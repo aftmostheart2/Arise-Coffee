@@ -70,6 +70,13 @@ function estimateWaitMinutes(position) {
   return Math.max(0, Math.max(0, position - 1) * 3);
 }
 
+function waitText(position) {
+  const ahead = Math.max(0, position - 1);
+  if (ahead === 0) return "You're up next";
+  const minutes = ahead * 3;
+  return `${ahead} order${ahead === 1 ? "" : "s"} ahead · about ${minutes} min`;
+}
+
 function ringReadyAlert() {
   try {
     if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
@@ -367,7 +374,7 @@ function DonationModal({ onClose }) {
   }
 
   return (
-    <div className="modalOverlay">
+    <div className="modalOverlay donationOverlay">
       <div className="donationModal">
         <div className="donationIcon">☕</div>
         <h2>Support HTC</h2>
@@ -565,7 +572,7 @@ function CustomerPage() {
                   <span className={["ready","complete"].includes(myOrder.status) ? "done" : ""}>Ready</span>
                 </div>
 
-                {myOrder.status === "waiting" && <div className="waitEstimate">{currentPosition - 1} order{currentPosition - 1 === 1 ? "" : "s"} ahead · about {wait} min</div>}
+                {myOrder.status === "waiting" && <div className="waitEstimate">{waitText(currentPosition)}</div>}
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being made now.</div>}
                 {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
                 {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Clear my ticket</button>}
@@ -658,7 +665,7 @@ function CustomerPage() {
               <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
               <div>
                 <strong>{o.name}</strong>
-                <p>{o.temp} {o.drink} · {statusLabel(o.status)}{o.status === "waiting" ? ` · ~${estimateWaitMinutes(idx + 1)} min` : ""}</p>
+                <p>{o.temp} {o.drink} · {statusLabel(o.status)}{o.status === "waiting" ? ` · ${waitText(idx + 1)}` : ""}</p>
               </div>
             </div>
           ))}

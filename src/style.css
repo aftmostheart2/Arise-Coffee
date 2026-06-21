@@ -292,3 +292,28 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   margin-top:12px;
   color:#8A6A4A!important;
 }
+
+
+/* Donation popup hard-center fix */
+.donationOverlay{
+  position:fixed!important;
+  inset:0!important;
+  z-index:9999!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:18px!important;
+  background:rgba(28,10,0,.82)!important;
+}
+.donationOverlay .donationModal{
+  position:relative!important;
+  margin:auto!important;
+  transform:none!important;
+  max-height:calc(100vh - 36px);
+  overflow:auto;
+}
+
+/* First-order ETA copy fix */
+.waitEstimate{
+  text-align:left;
+}
