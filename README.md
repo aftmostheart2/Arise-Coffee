@@ -1,62 +1,25 @@
-# Coffee Queue Admin Status Version
+# Arise Coffee
 
-Backend URL already set:
+Coffee queue web app with Google Sheets backend.
 
-https://script.google.com/macros/s/AKfycbzZondDOOrB3twVF7dScV02b4Mw2mrIEBf82g7BrcVLRmgBFjkt4uaWPlV27-PKq3Aymw/exec
+## Features in this version
 
-## Important
-
-Before deploying this Vercel version, replace your Apps Script code with the code in:
-
-`APPS_SCRIPT_REPLACE_CODE.txt`
-
-Then in Apps Script:
-
-- Save
-- Deploy
-- Manage deployments
-- Edit pencil
-- New version
-- Deploy
+- Customer live order status: Waiting, Being Made, Ready, Complete
+- Ready alert with vibration/sound where browser allows it
+- Wait estimate using 3 minutes per order ahead
+- Cleaner admin buttons: Start Making, Mark Ready, Complete
+- Remote open/close queue through Google Apps Script
+- Admin page at `/admin`
+- PIN required on fresh admin visits
+- Max 3 syrups
+- Vercel route rewrite for `/admin`
 
 ## Vercel
 
-Upload this zip/folder to Vercel.
-
 - Framework: Vite
-- Build command: npm run build
-- Output folder: dist
+- Build command: `npm run build`
+- Output folder: `dist`
 
-## Pages
+## Apps Script
 
-- Customer page: `/`
-- Admin page: `/admin`
-
-## Admin features
-
-- Open/close queue
-- Change closed message
-- See orders
-- Set order status: Waiting, Start, Ready, Complete
-- Clear completed orders
-- Clear all orders only after queue is closed
-- Cleared orders move to the Archive sheet
-
-
-## Vercel route fix
-
-This version includes `vercel.json` so `/admin` and all app routes load correctly on Vercel.
-
-
-## Admin PIN behavior
-
-This version does not remember the admin PIN in browser storage.
-Each time `/admin` is opened fresh, the PIN screen appears again.
-
-It also includes the Vercel rewrite for `/admin`.
-
-
-## Closed badge CSS fix
-
-This version fixes the queue closed header badge becoming a giant vertical panel.
-The closed-screen CSS was renamed so it no longer collides with `.pill.closed`.
+Use the Apps Script currently deployed for the Google Sheets backend.
