@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1C0A00;color:#FFF8F0;font-family:Inter,sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+a{color:inherit;text-decoration:none}
+
+header{background:#140800;padding:14px 24px;border-bottom:1px solid rgba(200,130,58,.15);display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand span{font-size:22px}
+header h1,h2,.modal h2{font-family:"Playfair Display",Georgia,serif;font-weight:700}
+header h1{font-size:19px}
+header p{font-size:10px;color:#5A3A20;letter-spacing:1.5px;text-transform:uppercase}
+.adminLink{margin-left:auto;color:#5A3A20;font-size:12px}
+.pill{margin-left:12px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.pill.open{background:rgba(107,191,107,.12);color:#6BBF6B;border:1px solid rgba(107,191,107,.3)}
+.pill.closedPage{background:rgba(224,82,82,.12);color:#E05252;border:1px solid rgba(224,82,82,.3)}
+
+.layout{display:grid;grid-template-columns:1fr min(360px,38%);max-width:1080px;width:100%;margin:0 auto;padding:0 24px 48px}
+.formCol{padding:32px 28px 32px 0;border-right:1px solid rgba(200,130,58,.1)}
+.queueCol{padding:32px 0 32px 24px}
+h2{font-size:24px;margin-bottom:4px}
+.queueCol h2{font-size:20px}
+.sub{font-size:13px;color:#5A3A20;margin-bottom:28px}
+.field{margin-bottom:22px}
+.label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#8A9B8E;margin-bottom:10px}
+.label span{letter-spacing:0;text-transform:none;color:#5A3A20;font-size:11px}
+.gold{color:#C8823A!important}
+
+input,textarea{width:100%;padding:11px 14px;background:#2C1400;border:1px solid rgba(200,130,58,.25);border-radius:4px;color:#FFF8F0}
+textarea{resize:vertical}
+input:focus,textarea:focus{outline:2px solid #C8823A}
+.drinkList{display:flex;flex-direction:column;gap:7px}
+.drink{width:100%;padding:10px 14px;text-align:left;border-radius:4px;background:#2C1400;color:#A08060;border:1px solid rgba(200,130,58,.2)}
+.drink.active{background:#C8823A;color:#FFF8F0;border-color:#C8823A}
+.drink span{font-size:12px;opacity:.75;margin-left:8px}
+.row{display:flex;gap:8px}
+.wrap{flex-wrap:wrap}
+.choice{flex:1;padding:11px;border-radius:4px;background:#2C1400;color:#A08060;border:1px solid rgba(200,130,58,.2);font-weight:500}
+.choice.active{background:#C8823A;color:#FFF8F0;border-color:#C8823A}
+.servedOnly{margin-bottom:18px;font-size:12px;color:#5A3A20;padding:9px 13px;background:#2C1400;border-radius:4px;border:1px solid rgba(200,130,58,.15)}
+.servedOnly strong{color:#A08060}
+.syrups{display:flex;flex-wrap:wrap;gap:7px}
+.syrup{padding:8px 12px;border-radius:4px;font-size:12px;font-weight:500;background:#2C1400;color:#6A5040;border:1px solid rgba(200,130,58,.15)}
+.syrup.active{background:rgba(200,130,58,.2);color:#C8823A;border-color:#C8823A}
+
+.joinBtn,.primaryBtn{width:100%;padding:14px;background:#C8823A;color:#FFF8F0;border:none;border-radius:4px;font-weight:600}
+.primaryBtn{margin-top:10px;padding:11px}
+.ghostBtn{padding:10px 14px;border-radius:4px;background:transparent;border:1px solid rgba(200,130,58,.25);color:#8A9B8E}
+.dangerOutlineBtn{padding:10px 14px;border-radius:4px;background:transparent;border:1px solid rgba(224,82,82,.4);color:#E05252}
+
+.empty{color:#4A3020;text-align:center;padding:44px 20px;border:1px dashed rgba(200,130,58,.12);border-radius:8px}
+.empty div{font-size:30px;opacity:.25;margin-bottom:10px}
+.smallEmpty{padding:24px}
+
+.queueItem{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid rgba(200,130,58,.1)}
+.queueItem.making{background:rgba(200,130,58,.05)}
+.queueItem.ready{background:rgba(107,191,107,.06)}
+.orderNum{min-width:52px;font-family:"Playfair Display",Georgia,serif;font-size:18px;font-weight:700;color:#C8823A}
+.queueItem p{font-size:12px;color:#8A9B8E;margin-top:2px}
+
+.myTicket{background:rgba(200,130,58,.07);border:1px solid rgba(200,130,58,.22);border-radius:8px;padding:16px;margin-bottom:24px}
+.myTicket.ready{border-color:rgba(107,191,107,.45);background:rgba(107,191,107,.08)}
+.ticketLine{display:flex;gap:14px;align-items:center}
+.queueNumSmall{font-family:"Playfair Display",Georgia,serif;font-size:34px;color:#C8823A;font-weight:700}
+.readyNotice{margin-top:12px;background:rgba(107,191,107,.12);color:#6BBF6B;border:1px solid rgba(107,191,107,.3);padding:10px;border-radius:4px;font-weight:600}
+
+.closedPage,.pinPage{min-height:calc(100vh - 66px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 24px}
+.closedIcon{font-size:52px;opacity:.4;margin-bottom:24px}
+.closedPage h1{font-family:"Playfair Display",Georgia,serif;font-size:28px;margin-bottom:12px}
+.closedPage p{color:#8A9B8E;max-width:320px;line-height:1.6}
+
+.modal{background:#1C0A00;border:1px solid rgba(200,130,58,.3);border-radius:8px;padding:28px;width:min(380px,92vw)}
+.pinModal{text-align:center;width:min(320px,90vw)}
+.modal p{color:#6A5040;font-size:13px;margin:6px 0 22px}
+.pinDots{display:flex;justify-content:center;gap:12px;margin:20px 0}
+.pinDots span{width:14px;height:14px;border-radius:50%;border:2px solid rgba(200,130,58,.3)}
+.pinDots span.filled{background:#C8823A;border-color:#C8823A}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.numpad button{padding:16px;border-radius:6px;border:1px solid rgba(200,130,58,.2);background:#2C1400;color:#FFF8F0;font-size:18px}
+.hiddenKey{visibility:hidden}
+.errorText{color:#E05252;font-size:12px;margin-top:6px}
+.muted{color:#5A3A20;font-size:12px}
+.small{font-size:11px}
+.notice{margin-top:10px;color:#8A9B8E;font-size:13px;text-align:center}
+
+.adminPage{max-width:980px;margin:0 auto;padding:28px 18px 60px}
+.adminTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.adminCard,.panel{background:#2C1400;border-radius:8px;padding:16px;margin-bottom:16px}
+.adminCard{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.statusOpen,.statusClosed{font-family:"Playfair Display",Georgia,serif;font-size:17px}
+.statusOpen{color:#6BBF6B}.statusClosed{color:#E05252}
+.successBtn,.dangerBtn{padding:10px 16px;border-radius:6px;color:#FFF8F0;border:none;font-weight:600}
+.successBtn{background:#2A5A2A}.dangerBtn{background:#8B1A1A}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.orders h2{font-size:20px;margin-bottom:12px}
+.adminOrder{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:14px;margin-bottom:12px}
+.adminOrder.making{border-color:rgba(200,130,58,.4)}
+.adminOrder.ready{border-color:rgba(107,191,107,.45)}
+.orderTop{display:flex;gap:12px;align-items:flex-start}
+.orderTop p{font-size:12px;color:#8A9B8E;margin-top:2px}
+.orderTop em{display:block;color:#8A9B8E;font-size:12px;margin-top:6px}
+.statusBadge{margin-left:auto;font-size:11px;border-radius:20px;padding:4px 9px;background:#2C1400;color:#8A9B8E;white-space:nowrap}
+.statusBadge.making{color:#C8823A}.statusBadge.ready{color:#6BBF6B}
+.adminActions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.adminActions button{padding:9px;border-radius:4px;border:1px solid rgba(200,130,58,.2);background:#2C1400;color:#A08060}
+.completedOrder{padding:10px;border-bottom:1px solid rgba(200,130,58,.1);color:#8A9B8E;font-size:13px}
+
+@media(max-width:760px){
+  header{padding:13px 16px}
+  .adminLink{font-size:11px}
+  .layout{grid-template-columns:1fr;padding:0 18px 36px}
+  .formCol{padding-right:0;border-right:none}
+  .queueCol{padding-left:0;padding-top:0}
+  .drink span{display:block;margin-left:0;margin-top:3px}
+  .adminActions{grid-template-columns:repeat(2,1fr)}
+  .adminTop{align-items:flex-start}
+}

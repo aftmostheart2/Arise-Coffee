@@ -1,0 +1,233 @@
+const SHEET_ORDERS = "Orders";
+const SHEET_SETTINGS = "Settings";
+const SHEET_ARCHIVE = "Archive";
+
+function getSS() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function getSheet(name) {
+  return getSS().getSheetByName(name);
+}
+
+function getSettingsSheet() {
+  return getSheet(SHEET_SETTINGS);
+}
+
+function getSetting(name) {
+  const sheet = getSettingsSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === name) return data[i][1];
+  }
+  return null;
+}
+
+function setSetting(name, value) {
+  const sheet = getSettingsSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === name) {
+      sheet.getRange(i + 1, 2).setValue(value);
+      return;
+    }
+  }
+  sheet.appendRow([name, value]);
+}
+
+function ensureSheets() {
+  const ss = getSS();
+
+  let orders = ss.getSheetByName(SHEET_ORDERS);
+  if (!orders) orders = ss.insertSheet(SHEET_ORDERS);
+
+  if (orders.getLastRow() === 0) {
+    orders.appendRow(["Order ID", "Time", "Name", "Drink", "Temp", "Milk", "Syrups", "Notes", "Status"]);
+  } else {
+    const headers = orders.getRange(1, 1, 1, orders.getLastColumn()).getValues()[0];
+    if (headers[0] !== "Order ID") {
+      orders.insertColumnBefore(1);
+      orders.getRange(1, 1).setValue("Order ID");
+    }
+    if (orders.getRange(1, 9).getValue() !== "Status") {
+      orders.getRange(1, 9).setValue("Status");
+    }
+  }
+
+  let archive = ss.getSheetByName(SHEET_ARCHIVE);
+  if (!archive) {
+    archive = ss.insertSheet(SHEET_ARCHIVE);
+    archive.appendRow(["Archived At", "Order ID", "Time", "Name", "Drink", "Temp", "Milk", "Syrups", "Notes", "Status"]);
+  }
+}
+
+function readOrders(includeComplete) {
+  ensureSheets();
+  const sheet = getSheet(SHEET_ORDERS);
+  const values = sheet.getDataRange().getValues();
+  const out = [];
+
+  for (let i = 1; i < values.length; i++) {
+    const r = values[i];
+    const status = String(r[8] || "waiting").toLowerCase();
+    if (!includeComplete && status === "complete") continue;
+
+    out.push({
+      row: i + 1,
+      id: String(r[0] || ""),
+      time: r[1] instanceof Date ? r[1].toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : String(r[1] || ""),
+      name: String(r[2] || ""),
+      drink: String(r[3] || ""),
+      temp: String(r[4] || ""),
+      milk: String(r[5] || ""),
+      syrups: String(r[6] || ""),
+      notes: String(r[7] || ""),
+      status
+    });
+  }
+
+  return out;
+}
+
+function doGet(e) {
+  ensureSheets();
+
+  const action = e && e.parameter && e.parameter.action;
+
+  if (action === "orders") {
+    return json({
+      ok: true,
+      isOpen: getSetting("isOpen") === true,
+      message: getSetting("message") || "",
+      orders: readOrders(false)
+    });
+  }
+
+  if (action === "order") {
+    const id = e.parameter.id;
+    const orders = readOrders(true);
+    const found = orders.find(o => o.id === id);
+    return json({
+      ok: true,
+      isOpen: getSetting("isOpen") === true,
+      order: found || null
+    });
+  }
+
+  return json({
+    ok: true,
+    isOpen: getSetting("isOpen") === true,
+    message: getSetting("message") || ""
+  });
+}
+
+function doPost(e) {
+  ensureSheets();
+
+  const data = JSON.parse(e.postData.contents);
+  const pin = String(getSetting("pin"));
+
+  if (data.action === "admin") {
+    if (String(data.pin) !== pin) return json({ ok: false, error: "Wrong PIN" });
+
+    if (typeof data.isOpen === "boolean") setSetting("isOpen", data.isOpen);
+    if (typeof data.message === "string") setSetting("message", data.message);
+
+    return json({
+      ok: true,
+      isOpen: getSetting("isOpen") === true,
+      message: getSetting("message") || "",
+      orders: readOrders(false)
+    });
+  }
+
+  if (data.action === "order") {
+    if (getSetting("isOpen") !== true) {
+      return json({ ok: false, error: "Queue closed" });
+    }
+
+    const sheet = getSheet(SHEET_ORDERS);
+    const id = "CQ-" + Date.now();
+    sheet.appendRow([
+      id,
+      new Date(),
+      data.name || "",
+      data.drink || "",
+      data.temp || "",
+      data.milk || "",
+      Array.isArray(data.syrups) ? data.syrups.join(", ") : "",
+      data.notes || "",
+      "waiting"
+    ]);
+
+    const active = readOrders(false);
+    const position = active.findIndex(o => o.id === id) + 1;
+
+    return json({ ok: true, id, position });
+  }
+
+  if (data.action === "updateStatus") {
+    if (String(data.pin) !== pin) return json({ ok: false, error: "Wrong PIN" });
+
+    const status = String(data.status || "").toLowerCase();
+    if (!["waiting", "making", "ready", "complete"].includes(status)) {
+      return json({ ok: false, error: "Bad status" });
+    }
+
+    const sheet = getSheet(SHEET_ORDERS);
+    const values = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(data.id)) {
+        sheet.getRange(i + 1, 9).setValue(status);
+        return json({ ok: true, orders: readOrders(false) });
+      }
+    }
+
+    return json({ ok: false, error: "Order not found" });
+  }
+
+  if (data.action === "clearCompleted") {
+    if (String(data.pin) !== pin) return json({ ok: false, error: "Wrong PIN" });
+    archiveAndDeleteRows(status => status === "complete");
+    return json({ ok: true, orders: readOrders(false) });
+  }
+
+  if (data.action === "clearAll") {
+    if (String(data.pin) !== pin) return json({ ok: false, error: "Wrong PIN" });
+
+    if (getSetting("isOpen") === true) {
+      return json({ ok: false, error: "Close the queue before clearing all orders" });
+    }
+
+    archiveAndDeleteRows(status => true);
+    return json({ ok: true, orders: readOrders(false) });
+  }
+
+  return json({ ok: false, error: "Unknown action" });
+}
+
+function archiveAndDeleteRows(matchFn) {
+  ensureSheets();
+
+  const orders = getSheet(SHEET_ORDERS);
+  const archive = getSheet(SHEET_ARCHIVE);
+  const values = orders.getDataRange().getValues();
+
+  const rowsToDelete = [];
+  for (let i = 1; i < values.length; i++) {
+    const status = String(values[i][8] || "waiting").toLowerCase();
+    if (matchFn(status)) {
+      archive.appendRow([new Date(), ...values[i]]);
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  rowsToDelete.reverse().forEach(row => orders.deleteRow(row));
+}
+
+function json(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
