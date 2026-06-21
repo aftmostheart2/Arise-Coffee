@@ -1,18 +1,16 @@
 # Arise Coffee
 
-Coffee queue web app with Google Sheets backend.
+Inventory-enabled coffee queue app.
 
-## Features in this version
+## Features
 
-- Customer live order status: Waiting, Being Made, Ready, Complete
-- Ready alert with vibration/sound where browser allows it
-- Wait estimate using 3 minutes per order ahead
-- Cleaner admin buttons: Start Making, Mark Ready, Complete
-- Remote open/close queue through Google Apps Script
-- Admin page at `/admin`
-- PIN required on fresh admin visits
+- Admin can toggle syrup/milk inventory from `/admin`
+- Customers see unavailable items as **Out of stock**
+- Out-of-stock items are greyed out and cannot be selected
+- Whole milk can be controlled from the Inventory tab
 - Max 3 syrups
-- Vercel route rewrite for `/admin`
+- Arise Coffee branding
+- Vercel `/admin` route fix
 
 ## Vercel
 
@@ -20,6 +18,6 @@ Coffee queue web app with Google Sheets backend.
 - Build command: `npm run build`
 - Output folder: `dist`
 
-## Apps Script
+## Donation popup
 
-Use the Apps Script currently deployed for the Google Sheets backend.
+After a customer places an order, the app shows a donation popup for HTC with Venmo and Zelle options.

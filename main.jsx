@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzZondDOOrB3twVF7dScV02b4Mw2mrIEBf82g7BrcVLRmgBFjkt4uaWPlV27-PKq3Aymw/exec";
+const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
+const DONATION_ZELLE = "htacoc@gmail.com";
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -24,6 +26,19 @@ function getDrink(id) {
 
 function defaultForm() {
   return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
+}
+
+function inventoryItemsByType(inventory, type, fallback) {
+  const key = type + "s";
+  const list = inventory?.[key];
+  if (Array.isArray(list) && list.length) return list;
+  return fallback.map(item => ({ item, type, available: true }));
+}
+
+function isInventoryAvailable(inventory, type, item) {
+  const fallback = type === "milk" ? MILKS : SYRUPS;
+  const found = inventoryItemsByType(inventory, type, fallback).find(x => x.item === item);
+  return found ? found.available !== false : true;
 }
 
 async function apiGet(action, params = {}) {
@@ -98,6 +113,7 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showDonation, setShowDonation] = useState(false);
 
   async function tryPin(value) {
     if (value.length < 4) return;
@@ -145,6 +161,7 @@ function AdminPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
+  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -155,6 +172,7 @@ function AdminPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
+        if (data.inventory) setInventory(data.inventory);
       }
     } catch {}
   }
@@ -186,6 +204,22 @@ function AdminPage() {
       if (data.ok) setOrders(data.orders || []);
       else alert(data.error || "Could not update order");
     } catch { alert("Connection error"); }
+    setBusy(false);
+  }
+
+  async function toggleInventory(item, available) {
+    setBusy(true);
+    try {
+      const data = await apiPost({ action: "setInventory", pin, item, available });
+      if (data.ok) {
+        setInventory(data.inventory || inventory);
+        await refresh();
+      } else {
+        alert(data.error || "Could not update inventory");
+      }
+    } catch {
+      alert("Connection error");
+    }
     setBusy(false);
   }
 
@@ -252,6 +286,45 @@ function AdminPage() {
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
 
+        <section className="inventoryPanel">
+          <h2>Syrup & Milk Inventory</h2>
+          <p className="sub">Tap an item to mark it available or out of stock.</p>
+
+          <div className="inventoryGroup">
+            <div className="label">Syrups</div>
+            <div className="inventoryGrid">
+              {inventoryItemsByType(inventory, "syrup", SYRUPS).map(x => (
+                <button
+                  key={x.item}
+                  disabled={busy}
+                  className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
+                  onClick={() => toggleInventory(x.item, !x.available)}
+                >
+                  <span>{x.item}</span>
+                  <strong>{x.available ? "Available" : "Out of stock"}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="inventoryGroup">
+            <div className="label">Milks</div>
+            <div className="inventoryGrid">
+              {inventoryItemsByType(inventory, "milk", MILKS).map(x => (
+                <button
+                  key={x.item}
+                  disabled={busy}
+                  className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
+                  onClick={() => toggleInventory(x.item, !x.available)}
+                >
+                  <span>{x.item}</span>
+                  <strong>{x.available ? "Available" : "Out of stock"}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="orders">
           <h2>Active Orders</h2>
           {visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
@@ -284,12 +357,51 @@ function AdminPage() {
   );
 }
 
+
+function DonationModal({ onClose }) {
+  async function copyZelle() {
+    try {
+      await navigator.clipboard.writeText(DONATION_ZELLE);
+      alert("Zelle email copied");
+    } catch {
+      alert("Zelle: " + DONATION_ZELLE);
+    }
+  }
+
+  return (
+    <div className="modalOverlay">
+      <div className="donationModal">
+        <div className="donationIcon">☕</div>
+        <h2>Support HTC</h2>
+        <p>
+          Arise Coffee is free, but donations help support Holy Transfiguration Church.
+          Thank you for helping keep this going.
+        </p>
+
+        <div className="donationActions">
+          <a className="venmoBtn" href={DONATION_VENMO_URL} target="_blank" rel="noreferrer">
+            Donate with Venmo
+          </a>
+          <button className="zelleBtn" onClick={copyZelle}>
+            Zelle: {DONATION_ZELLE}
+          </button>
+        </div>
+
+        <button className="plainBtn donationSkip" onClick={onClose}>
+          Maybe later
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CustomerPage() {
   const [form, setForm] = useState(defaultForm());
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
+  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -306,6 +418,7 @@ function CustomerPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
+        if (data.inventory) setInventory(data.inventory);
         if (myOrderId) {
           const found = (data.orders || []).find(o => o.id === myOrderId);
           if (found) {
@@ -348,6 +461,9 @@ function CustomerPage() {
     const e = {};
     if (!form.name.trim()) e.name = "Please enter your name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
+    if (form.milk && !isInventoryAvailable(inventory, "milk", form.milk)) e.milk = form.milk + " is out of stock";
+    const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventory, "syrup", s));
+    if (outSyrup) e.syrups = outSyrup + " is out of stock";
     return e;
   }
 
@@ -397,6 +513,7 @@ function CustomerPage() {
         status: "waiting"
       });
       setForm(defaultForm());
+      setShowDonation(true);
       await refresh();
     } catch {
       alert("Connection error. Try again.");
@@ -490,12 +607,23 @@ function CustomerPage() {
 
               {drink.syrups && <div className="field">
                 {lbl("Syrup", `— pick up to ${MAX_SYRUPS}`)}
-                <div className="syrups">{SYRUPS.map(s => {
-                  const selected = form.syrups.includes(s);
+                <div className="syrups">{inventoryItemsByType(inventory, "syrup", SYRUPS).map(s => {
+                  const selected = form.syrups.includes(s.item);
+                  const out = !s.available;
                   const maxed = !selected && form.syrups.length >= MAX_SYRUPS;
-                  return <button key={s} disabled={maxed} className={selected ? "syrup active" : "syrup"} onClick={() => toggleSyrup(s)}>{selected ? "✓ " : ""}{s}</button>
+                  return (
+                    <button
+                      key={s.item}
+                      disabled={out || maxed}
+                      className={(selected ? "syrup active" : "syrup") + (out ? " outOfStock" : "")}
+                      onClick={() => !out && toggleSyrup(s.item)}
+                    >
+                      {selected ? "✓ " : ""}{s.item}{out ? " — Out of stock" : ""}
+                    </button>
+                  );
                 })}</div>
                 <div className="muted small">{form.syrups.length === 0 ? "None selected — no syrup will be added" : `${form.syrups.length}/${MAX_SYRUPS} selected`}</div>
+                {errors.syrups && <div className="errorText">{errors.syrups}</div>}
               </div>}
 
               {!drink.syrups && !drink.milk && <div className="servedOnly">☕ Pure espresso — no milk, water or syrup added</div>}
@@ -524,6 +652,7 @@ function CustomerPage() {
           ))}
         </section>
       </main>
+      {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
     </>
   );
 }
