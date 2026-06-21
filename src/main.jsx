@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzZondDOOrB3twVF7dScV02b4Mw2mrIEBf82g7BrcVLRmgBFjkt4uaWPlV27-PKq3Aymw/exec";
+const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
+const DONATION_ZELLE = "htacoc@gmail.com";
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -24,6 +26,19 @@ function getDrink(id) {
 
 function defaultForm() {
   return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
+}
+
+function inventoryItemsByType(inventory, type, fallback) {
+  const key = type + "s";
+  const list = inventory?.[key];
+  if (Array.isArray(list) && list.length) return list;
+  return fallback.map(item => ({ item, type, available: true }));
+}
+
+function isInventoryAvailable(inventory, type, item) {
+  const fallback = type === "milk" ? MILKS : SYRUPS;
+  const found = inventoryItemsByType(inventory, type, fallback).find(x => x.item === item);
+  return found ? found.available !== false : true;
 }
 
 async function apiGet(action, params = {}) {
@@ -51,12 +66,42 @@ function statusLabel(status) {
   return "Waiting";
 }
 
+function estimateWaitMinutes(position) {
+  return Math.max(0, Math.max(0, position - 1) * 3);
+}
+
+function ringReadyAlert() {
+  try {
+    if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+  } catch {}
+
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(740, ctx.currentTime);
+    osc.frequency.setValueAtTime(980, ctx.currentTime + 0.12);
+
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch {}
+}
+
 function Header({ isOpen, statusText }) {
   return (
     <header>
       <a className="brand" href="/">
         <span>☕</span>
-        <div><h1>Arise Coffee</h1><p>Ordering System</p></div>
+        <div><h1>Arise Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
       <a className="adminLink" href="/admin">Admin</a>
@@ -68,7 +113,6 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
   async function tryPin(value) {
     if (value.length < 4) return;
     setBusy(true);
@@ -115,6 +159,7 @@ function AdminPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
+  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -125,6 +170,7 @@ function AdminPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
+        if (data.inventory) setInventory(data.inventory);
       }
     } catch {}
   }
@@ -156,6 +202,22 @@ function AdminPage() {
       if (data.ok) setOrders(data.orders || []);
       else alert(data.error || "Could not update order");
     } catch { alert("Connection error"); }
+    setBusy(false);
+  }
+
+  async function toggleInventory(item, available) {
+    setBusy(true);
+    try {
+      const data = await apiPost({ action: "setInventory", pin, item, available });
+      if (data.ok) {
+        setInventory(data.inventory || inventory);
+        await refresh();
+      } else {
+        alert(data.error || "Could not update inventory");
+      }
+    } catch {
+      alert("Connection error");
+    }
     setBusy(false);
   }
 
@@ -222,6 +284,45 @@ function AdminPage() {
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
 
+        <section className="inventoryPanel">
+          <h2>Syrup & Milk Inventory</h2>
+          <p className="sub">Tap an item to mark it available or out of stock.</p>
+
+          <div className="inventoryGroup">
+            <div className="label">Syrups</div>
+            <div className="inventoryGrid">
+              {inventoryItemsByType(inventory, "syrup", SYRUPS).map(x => (
+                <button
+                  key={x.item}
+                  disabled={busy}
+                  className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
+                  onClick={() => toggleInventory(x.item, !x.available)}
+                >
+                  <span>{x.item}</span>
+                  <strong>{x.available ? "Available" : "Out of stock"}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="inventoryGroup">
+            <div className="label">Milks</div>
+            <div className="inventoryGrid">
+              {inventoryItemsByType(inventory, "milk", MILKS).map(x => (
+                <button
+                  key={x.item}
+                  disabled={busy}
+                  className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
+                  onClick={() => toggleInventory(x.item, !x.available)}
+                >
+                  <span>{x.item}</span>
+                  <strong>{x.available ? "Available" : "Out of stock"}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="orders">
           <h2>Active Orders</h2>
           {visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
@@ -237,8 +338,8 @@ function AdminPage() {
               </div>
               <div className="adminActions">
                 <button onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
-                <button onClick={() => updateStatus(o.id, "making")}>Start</button>
-                <button onClick={() => updateStatus(o.id, "ready")}>Ready</button>
+                <button onClick={() => updateStatus(o.id, "making")}>Start Making</button>
+                <button onClick={() => updateStatus(o.id, "ready")}>Mark Ready</button>
                 <button onClick={() => updateStatus(o.id, "complete")}>Complete</button>
               </div>
             </div>
@@ -254,15 +355,57 @@ function AdminPage() {
   );
 }
 
+
+function DonationModal({ onClose }) {
+  async function copyZelle() {
+    try {
+      await navigator.clipboard.writeText(DONATION_ZELLE);
+      alert("Zelle email copied");
+    } catch {
+      alert("Zelle: " + DONATION_ZELLE);
+    }
+  }
+
+  return (
+    <div className="modalOverlay">
+      <div className="donationModal">
+        <div className="donationIcon">☕</div>
+        <h2>Support HTC</h2>
+        <p>
+          Arise Coffee is free, but donations help support Holy Transfiguration Church.
+          Thank you for helping keep this going.
+        </p>
+
+        <div className="donationActions">
+          <a className="venmoBtn" href={DONATION_VENMO_URL} target="_blank" rel="noreferrer">
+            Donate with Venmo
+          </a>
+          <button className="zelleBtn" onClick={copyZelle}>
+            Zelle: {DONATION_ZELLE}
+          </button>
+        </div>
+
+        <button className="plainBtn donationSkip" onClick={onClose}>
+          Maybe later
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CustomerPage() {
   const [form, setForm] = useState(defaultForm());
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
+  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showDonation, setShowDonation] = useState(false);
+  const [readyAlertShown, setReadyAlertShown] = useState(false);
+  const previousStatusRef = useRef("");
   const nameRef = useRef(null);
 
   const drink = getDrink(form.drinkId);
@@ -274,10 +417,17 @@ function CustomerPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
+        if (data.inventory) setInventory(data.inventory);
         if (myOrderId) {
           const found = (data.orders || []).find(o => o.id === myOrderId);
-          if (found) setMyOrder(found);
-          else {
+          if (found) {
+            setMyOrder(found);
+            if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
+              ringReadyAlert();
+              setReadyAlertShown(true);
+            }
+            previousStatusRef.current = found.status;
+          } else {
             const single = await apiGet("order", { id: myOrderId });
             setMyOrder(single.order || null);
           }
@@ -310,6 +460,9 @@ function CustomerPage() {
     const e = {};
     if (!form.name.trim()) e.name = "Please enter your name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
+    if (form.milk && !isInventoryAvailable(inventory, "milk", form.milk)) e.milk = form.milk + " is out of stock";
+    const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventory, "syrup", s));
+    if (outSyrup) e.syrups = outSyrup + " is out of stock";
     return e;
   }
 
@@ -345,6 +498,8 @@ function CustomerPage() {
       }
 
       localStorage.setItem("coffee-my-order-id", data.id);
+      setReadyAlertShown(false);
+      previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
       setMyOrder({
         id: data.id,
@@ -357,6 +512,7 @@ function CustomerPage() {
         status: "waiting"
       });
       setForm(defaultForm());
+      setShowDonation(true);
       await refresh();
     } catch {
       alert("Connection error. Try again.");
@@ -389,20 +545,33 @@ function CustomerPage() {
       <Header isOpen={isOpen} />
       <main className="layout">
         <section className="formCol">
-          {myOrder && (
-            <div className={"myTicket " + myOrder.status}>
-              <div className="label gold">Your Order</div>
-              <div className="ticketLine">
-                <div className="queueNumSmall">#{String(Math.max(1, orders.findIndex(o => o.id === myOrder.id) + 1)).padStart(3, "0")}</div>
-                <div>
-                  <strong>{statusLabel(myOrder.status)}</strong>
-                  <p>{myOrder.temp} {myOrder.drink}{myOrder.milk ? ` · ${myOrder.milk}` : ""}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
+          {myOrder && (() => {
+            const currentPosition = Math.max(1, orders.findIndex(o => o.id === myOrder.id) + 1);
+            const wait = estimateWaitMinutes(currentPosition);
+            return (
+              <div className={"myTicket " + myOrder.status}>
+                <div className="label gold">Your Order</div>
+                <div className="ticketLine">
+                  <div className="queueNumSmall">#{String(currentPosition).padStart(3, "0")}</div>
+                  <div>
+                    <strong>{statusLabel(myOrder.status)}</strong>
+                    <p>{myOrder.temp} {myOrder.drink}{myOrder.milk ? ` · ${myOrder.milk}` : ""}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
+                  </div>
                 </div>
+
+                <div className="statusSteps">
+                  <span className={["waiting","making","ready","complete"].includes(myOrder.status) ? "done" : ""}>Received</span>
+                  <span className={["making","ready","complete"].includes(myOrder.status) ? "done" : ""}>Making</span>
+                  <span className={["ready","complete"].includes(myOrder.status) ? "done" : ""}>Ready</span>
+                </div>
+
+                {myOrder.status === "waiting" && <div className="waitEstimate">{currentPosition - 1} order{currentPosition - 1 === 1 ? "" : "s"} ahead · about {wait} min</div>}
+                {myOrder.status === "making" && <div className="makingNotice">Your drink is being made now.</div>}
+                {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
+                {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Clear my ticket</button>}
               </div>
-              {myOrder.status === "ready" && <div className="readyNotice">Your drink is ready for pickup.</div>}
-              {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Clear my ticket</button>}
-            </div>
-          )}
+            );
+          })()}
 
           <h2>Place your order</h2>
           <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
@@ -431,18 +600,42 @@ function CustomerPage() {
 
               {drink.milk && <div className="field">
                 {lbl("Milk", "(required)")}
-                <div className="row wrap">{MILKS.map(m => <button key={m} className={form.milk === m ? "choice active" : "choice"} onClick={() => { setForm(f => ({...f, milk: m})); setErrors(er => ({...er, milk: ""})); }}>{m}</button>)}</div>
+                <div className="row wrap">{inventoryItemsByType(inventory, "milk", MILKS).map(m => (
+                  <button
+                    key={m.item}
+                    disabled={!m.available}
+                    className={(form.milk === m.item ? "choice active" : "choice") + (!m.available ? " outOfStock" : "")}
+                    onClick={() => {
+                      if (!m.available) return;
+                      setForm(f => ({...f, milk: m.item}));
+                      setErrors(er => ({...er, milk: ""}));
+                    }}
+                  >
+                    {m.item}{!m.available ? " — Out of stock" : ""}
+                  </button>
+                ))}</div>
                 {errors.milk && <div className="errorText">{errors.milk}</div>}
               </div>}
 
               {drink.syrups && <div className="field">
                 {lbl("Syrup", `— pick up to ${MAX_SYRUPS}`)}
-                <div className="syrups">{SYRUPS.map(s => {
-                  const selected = form.syrups.includes(s);
+                <div className="syrups">{inventoryItemsByType(inventory, "syrup", SYRUPS).map(s => {
+                  const selected = form.syrups.includes(s.item);
+                  const out = !s.available;
                   const maxed = !selected && form.syrups.length >= MAX_SYRUPS;
-                  return <button key={s} disabled={maxed} className={selected ? "syrup active" : "syrup"} onClick={() => toggleSyrup(s)}>{selected ? "✓ " : ""}{s}</button>
+                  return (
+                    <button
+                      key={s.item}
+                      disabled={out || maxed}
+                      className={(selected ? "syrup active" : "syrup") + (out ? " outOfStock" : "")}
+                      onClick={() => !out && toggleSyrup(s.item)}
+                    >
+                      {selected ? "✓ " : ""}{s.item}{out ? " — Out of stock" : ""}
+                    </button>
+                  );
                 })}</div>
                 <div className="muted small">{form.syrups.length === 0 ? "None selected — no syrup will be added" : `${form.syrups.length}/${MAX_SYRUPS} selected`}</div>
+                {errors.syrups && <div className="errorText">{errors.syrups}</div>}
               </div>}
 
               {!drink.syrups && !drink.milk && <div className="servedOnly">☕ Pure espresso — no milk, water or syrup added</div>}
@@ -465,12 +658,13 @@ function CustomerPage() {
               <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
               <div>
                 <strong>{o.name}</strong>
-                <p>{o.temp} {o.drink} · {statusLabel(o.status)}</p>
+                <p>{o.temp} {o.drink} · {statusLabel(o.status)}{o.status === "waiting" ? ` · ~${estimateWaitMinutes(idx + 1)} min` : ""}</p>
               </div>
             </div>
           ))}
         </section>
       </main>
+      {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
     </>
   );
 }

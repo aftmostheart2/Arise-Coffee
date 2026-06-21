@@ -118,3 +118,177 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   .adminActions{grid-template-columns:repeat(2,1fr)}
   .adminTop{align-items:flex-start}
 }
+
+
+.statusSteps{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+.statusSteps span{
+  padding:8px 6px;
+  border-radius:999px;
+  text-align:center;
+  font-size:11px;
+  color:#5A3A20;
+  border:1px solid rgba(200,130,58,.16);
+  background:#2C1400;
+}
+.statusSteps span.done{
+  color:#FFF8F0;
+  background:rgba(200,130,58,.22);
+  border-color:rgba(200,130,58,.45);
+}
+.waitEstimate,.makingNotice,.readyNotice{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:6px;
+  font-size:13px;
+  font-weight:600;
+}
+.waitEstimate{
+  color:#C8823A;
+  background:rgba(200,130,58,.10);
+  border:1px solid rgba(200,130,58,.25);
+}
+.makingNotice{
+  color:#C8823A;
+  background:rgba(200,130,58,.12);
+  border:1px solid rgba(200,130,58,.35);
+}
+.readyNotice{
+  color:#6BBF6B;
+  background:rgba(107,191,107,.12);
+  border:1px solid rgba(107,191,107,.35);
+}
+.adminActions button:nth-child(2){
+  color:#C8823A;
+  border-color:rgba(200,130,58,.35);
+}
+.adminActions button:nth-child(3){
+  color:#6BBF6B;
+  border-color:rgba(107,191,107,.35);
+}
+.adminActions button:nth-child(4){
+  color:#E05252;
+  border-color:rgba(224,82,82,.35);
+}
+
+
+.outOfStock{
+  opacity:.45!important;
+  filter:grayscale(.35);
+  cursor:not-allowed!important;
+}
+.syrup.outOfStock,
+.choice.outOfStock{
+  color:#5A3A20!important;
+  border-color:rgba(200,130,58,.08)!important;
+  background:#1a0b00!important;
+}
+.inventoryPanel{
+  background:#241000;
+  border:1px solid rgba(200,130,58,.14);
+  border-radius:8px;
+  padding:16px;
+  margin-bottom:24px;
+}
+.inventoryPanel h2{
+  font-size:20px;
+  margin-bottom:4px;
+}
+.inventoryGroup{
+  margin-top:16px;
+}
+.inventoryGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:8px;
+}
+.inventoryToggle{
+  text-align:left;
+  padding:11px 12px;
+  border-radius:6px;
+  background:#2C1400;
+  border:1px solid rgba(200,130,58,.18);
+  color:#FFF8F0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.inventoryToggle span{
+  font-size:13px;
+  font-weight:600;
+}
+.inventoryToggle strong{
+  font-size:11px;
+  color:#6BBF6B;
+}
+.inventoryToggle.out{
+  opacity:.65;
+  border-color:rgba(224,82,82,.3);
+}
+.inventoryToggle.out strong{
+  color:#E05252;
+}
+
+
+.donationModal{
+  width:min(380px,92vw);
+  background:#FFF8F0;
+  color:#1C0A00;
+  border-radius:14px;
+  padding:26px;
+  text-align:center;
+  box-shadow:0 24px 64px rgba(28,10,0,.55);
+  border:1px solid #E8D9C8;
+}
+.donationIcon{
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  background:#F2E8D9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  margin:0 auto 14px;
+}
+.donationModal h2{
+  color:#1C0A00;
+  font-size:24px;
+  margin-bottom:8px;
+}
+.donationModal p{
+  color:#5C2D0A;
+  font-size:14px;
+  line-height:1.55;
+  margin-bottom:18px;
+}
+.donationActions{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.venmoBtn,.zelleBtn{
+  width:100%;
+  padding:12px 14px;
+  border-radius:8px;
+  font-weight:700;
+  text-align:center;
+}
+.venmoBtn{
+  background:#3D95CE;
+  color:white;
+  border:none;
+}
+.zelleBtn{
+  background:#6D1ED4;
+  color:white;
+  border:none;
+}
+.donationSkip{
+  margin-top:12px;
+  color:#8A6A4A!important;
+}
