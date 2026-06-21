@@ -113,8 +113,6 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [showDonation, setShowDonation] = useState(false);
-
   async function tryPin(value) {
     if (value.length < 4) return;
     setBusy(true);
@@ -405,6 +403,7 @@ function CustomerPage() {
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showDonation, setShowDonation] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const previousStatusRef = useRef("");
   const nameRef = useRef(null);
@@ -601,7 +600,20 @@ function CustomerPage() {
 
               {drink.milk && <div className="field">
                 {lbl("Milk", "(required)")}
-                <div className="row wrap">{MILKS.map(m => <button key={m} className={form.milk === m ? "choice active" : "choice"} onClick={() => { setForm(f => ({...f, milk: m})); setErrors(er => ({...er, milk: ""})); }}>{m}</button>)}</div>
+                <div className="row wrap">{inventoryItemsByType(inventory, "milk", MILKS).map(m => (
+                  <button
+                    key={m.item}
+                    disabled={!m.available}
+                    className={(form.milk === m.item ? "choice active" : "choice") + (!m.available ? " outOfStock" : "")}
+                    onClick={() => {
+                      if (!m.available) return;
+                      setForm(f => ({...f, milk: m.item}));
+                      setErrors(er => ({...er, milk: ""}));
+                    }}
+                  >
+                    {m.item}{!m.available ? " — Out of stock" : ""}
+                  </button>
+                ))}</div>
                 {errors.milk && <div className="errorText">{errors.milk}</div>}
               </div>}
 
