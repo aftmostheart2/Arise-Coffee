@@ -56,7 +56,7 @@ function Header({ isOpen, statusText }) {
     <header>
       <a className="brand" href="/">
         <span>☕</span>
-        <div><h1>The Queue</h1><p>Coffee Order System</p></div>
+        <div><h1>Arise COffee</h1><p>Coffee Order System</p></div>
       </a>
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
       <a className="adminLink" href="/admin">Admin</a>
