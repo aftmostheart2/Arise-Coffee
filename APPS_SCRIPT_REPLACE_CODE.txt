@@ -84,28 +84,7 @@ function ensureSheets() {
     inventory.appendRow(["Item", "Type", "Available"]);
     DEFAULT_SYRUPS.forEach(item => inventory.appendRow([item, "syrup", true]));
     DEFAULT_MILKS.forEach(item => inventory.appendRow([item, "milk", true]));
-  } else {
-    ensureInventoryDefaults(inventory);
   }
-}
-
-function ensureInventoryDefaults(sheet) {
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(["Item", "Type", "Available"]);
-  }
-
-  const values = sheet.getDataRange().getValues();
-  const existing = {};
-  for (let i = 1; i < values.length; i++) {
-    existing[inventoryKey(values[i][0])] = true;
-  }
-
-  DEFAULT_SYRUPS.forEach(item => {
-    if (!existing[inventoryKey(item)]) sheet.appendRow([item, "syrup", true]);
-  });
-  DEFAULT_MILKS.forEach(item => {
-    if (!existing[inventoryKey(item)]) sheet.appendRow([item, "milk", true]);
-  });
 }
 
 function rowToOrder(row, rowNumber) {
@@ -310,15 +289,13 @@ function doPost(e) {
     const item = String(data.item || "").trim();
 
     for (let i = 1; i < values.length; i++) {
-      if (inventoryKey(values[i][0]) === inventoryKey(item)) {
+      if (String(values[i][0]).trim() === item) {
         sheet.getRange(i + 1, 3).setValue(data.available === true);
         return json({ ok: true, inventory: readInventory() });
       }
     }
 
-    const type = DEFAULT_MILKS.some(x => inventoryKey(x) === inventoryKey(item)) ? "milk" : "syrup";
-    sheet.appendRow([item, type, data.available === true]);
-    return json({ ok: true, inventory: readInventory() });
+    return json({ ok: false, error: "Inventory item not found" });
   }
 
   if (data.action === "clearCompleted") {
