@@ -28,15 +28,29 @@ function defaultForm() {
   return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
 }
 
+function defaultInventory() {
+  return {
+    syrups: SYRUPS.map(item => ({ item, type: "syrup", available: true })),
+    milks: MILKS.map(item => ({ item, type: "milk", available: true }))
+  };
+}
+
+function inventoryKey(item) {
+  return String(item || "").trim().toLowerCase();
+}
+
 function inventoryItemsByType(inventory, type, fallback) {
   const key = type + "s";
   const list = inventory?.[key];
-  const byItem = new Map(Array.isArray(list) ? list.map(x => [x.item, x]) : []);
-  const merged = fallback.map(item => byItem.get(item) || { item, type, available: true });
+  const byItem = new Map(Array.isArray(list) ? list.map(x => [inventoryKey(x.item), x]) : []);
+  const merged = fallback.map(item => {
+    const found = byItem.get(inventoryKey(item));
+    return found ? { ...found, item } : { item, type, available: true };
+  });
 
   if (Array.isArray(list)) {
     list.forEach(x => {
-      if (!fallback.includes(x.item)) merged.push(x);
+      if (!fallback.some(item => inventoryKey(item) === inventoryKey(x.item))) merged.push(x);
     });
   }
 
@@ -209,7 +223,7 @@ function AdminPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
-  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
+  const [inventory, setInventory] = useState(defaultInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const ordersLoadingRef = useRef(false);
@@ -505,7 +519,7 @@ function CustomerPage() {
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
-  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
+  const [inventory, setInventory] = useState(defaultInventory);
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
   const [myOrderPosition, setMyOrderPosition] = useState(1);

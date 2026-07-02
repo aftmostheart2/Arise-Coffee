@@ -156,14 +156,21 @@ function readInventory() {
 
 function mergeInventoryDefaults(defaultItems, sheetItems, type) {
   const byItem = {};
-  sheetItems.forEach(x => byItem[x.item] = x);
+  sheetItems.forEach(x => byItem[inventoryKey(x.item)] = x);
 
-  const merged = defaultItems.map(item => byItem[item] || { item, type, available: true });
+  const merged = defaultItems.map(item => {
+    const found = byItem[inventoryKey(item)];
+    return found ? { item, type, available: found.available !== false } : { item, type, available: true };
+  });
   sheetItems.forEach(x => {
-    if (defaultItems.indexOf(x.item) === -1) merged.push(x);
+    if (!defaultItems.some(item => inventoryKey(item) === inventoryKey(x.item))) merged.push(x);
   });
 
   return merged;
+}
+
+function inventoryKey(item) {
+  return String(item || "").trim().toLowerCase();
 }
 
 function doGet(e) {
