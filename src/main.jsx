@@ -544,6 +544,7 @@ function CustomerPage() {
       if (typeof data.message === "string") setMessage(data.message || "");
       if (data.inventory) setInventory(data.inventory);
       updateMyOrder(data.order, data.position);
+      refreshInventoryOnly();
     } catch {
     } finally {
       orderLoadingRef.current = false;
