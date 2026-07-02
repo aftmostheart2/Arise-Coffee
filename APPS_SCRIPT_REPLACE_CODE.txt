@@ -136,7 +136,7 @@ function readInventory() {
   ensureSheets();
   const sheet = getSheet(SHEET_INVENTORY);
   const values = sheet.getDataRange().getValues();
-  const sheetInventory = { syrups: [], milks: [] };
+  const inventory = { syrups: [], milks: [] };
 
   for (let i = 1; i < values.length; i++) {
     const item = String(values[i][0] || "").trim();
@@ -144,26 +144,14 @@ function readInventory() {
     if (!item) continue;
 
     const available = values[i][2] !== false && String(values[i][2]).toLowerCase() !== "false";
-    if (type === "milk") sheetInventory.milks.push({ item, type: "milk", available });
-    if (type === "syrup") sheetInventory.syrups.push({ item, type: "syrup", available });
+    if (type === "milk") inventory.milks.push({ item, type: "milk", available });
+    if (type === "syrup") inventory.syrups.push({ item, type: "syrup", available });
   }
 
-  return {
-    syrups: mergeInventoryDefaults(DEFAULT_SYRUPS, sheetInventory.syrups, "syrup"),
-    milks: mergeInventoryDefaults(DEFAULT_MILKS, sheetInventory.milks, "milk")
-  };
-}
+  if (!inventory.syrups.length) inventory.syrups = DEFAULT_SYRUPS.map(item => ({ item, type: "syrup", available: true }));
+  if (!inventory.milks.length) inventory.milks = DEFAULT_MILKS.map(item => ({ item, type: "milk", available: true }));
 
-function mergeInventoryDefaults(defaultItems, sheetItems, type) {
-  const byItem = {};
-  sheetItems.forEach(x => byItem[x.item] = x);
-
-  const merged = defaultItems.map(item => byItem[item] || { item, type, available: true });
-  sheetItems.forEach(x => {
-    if (defaultItems.indexOf(x.item) === -1) merged.push(x);
-  });
-
-  return merged;
+  return inventory;
 }
 
 function doGet(e) {
