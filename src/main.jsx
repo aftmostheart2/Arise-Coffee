@@ -204,8 +204,13 @@ function AdminPage() {
   const [inventory, setInventory] = useState({ syrups: [], milks: [] });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const ordersLoadingRef = useRef(false);
+  const statusLoadingRef = useRef(false);
+  const inventoryLoadingRef = useRef(false);
 
   async function refreshOrders() {
+    if (ordersLoadingRef.current) return;
+    ordersLoadingRef.current = true;
     try {
       const data = await apiGet("orders");
       if (data.ok) {
@@ -213,24 +218,37 @@ function AdminPage() {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
       }
-    } catch {}
+    } catch {
+    } finally {
+      ordersLoadingRef.current = false;
+    }
   }
 
   async function refreshStatus() {
+    if (statusLoadingRef.current) return;
+    statusLoadingRef.current = true;
     try {
-      const data = await apiGet();
+      const data = await apiGet("status");
       if (data.ok) {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
       }
-    } catch {}
+    } catch {
+    } finally {
+      statusLoadingRef.current = false;
+    }
   }
 
   async function refreshInventory() {
+    if (inventoryLoadingRef.current) return;
+    inventoryLoadingRef.current = true;
     try {
       const data = await apiGet("inventory");
       if (data.ok && data.inventory) setInventory(data.inventory);
-    } catch {}
+    } catch {
+    } finally {
+      inventoryLoadingRef.current = false;
+    }
   }
 
   async function refreshAdminData() {
@@ -269,7 +287,16 @@ function AdminPage() {
     setBusy(true);
     try {
       const data = await apiPost({ action: "updateStatus", pin, id: orderId, status });
-      if (data.ok) setOrders(data.orders || []);
+      if (data.ok) {
+        if (data.order) {
+          setOrders(current => {
+            const exists = current.some(o => o.id === data.order.id);
+            return exists ? current.map(o => o.id === data.order.id ? data.order : o) : [...current, data.order];
+          });
+        } else {
+          setOrders(data.orders || []);
+        }
+      }
       else alert(data.error || "Could not update order");
     } catch { alert("Connection error"); }
     setBusy(false);
@@ -478,6 +505,9 @@ function CustomerPage() {
   const [showDonation, setShowDonation] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const submittingRef = useRef(false);
+  const orderLoadingRef = useRef(false);
+  const statusLoadingRef = useRef(false);
+  const inventoryLoadingRef = useRef(false);
   const previousStatusRef = useRef("");
   const nameRef = useRef(null);
 
@@ -505,6 +535,8 @@ function CustomerPage() {
 
   async function refreshOrder() {
     if (!myOrderId) return;
+    if (orderLoadingRef.current) return;
+    orderLoadingRef.current = true;
     try {
       const data = await apiGet("order", { id: myOrderId });
       if (data.ok === false) return;
@@ -512,7 +544,10 @@ function CustomerPage() {
       if (typeof data.message === "string") setMessage(data.message || "");
       if (data.inventory) setInventory(data.inventory);
       updateMyOrder(data.order, data.position);
-    } catch {}
+    } catch {
+    } finally {
+      orderLoadingRef.current = false;
+    }
   }
 
   async function refreshInitialCustomerData() {
@@ -527,21 +562,31 @@ function CustomerPage() {
   }
 
   async function refreshInventoryOnly() {
+    if (inventoryLoadingRef.current) return;
+    inventoryLoadingRef.current = true;
     try {
       const data = await apiGet("inventory");
       if (data.ok && data.inventory) setInventory(data.inventory);
-    } catch {}
+    } catch {
+    } finally {
+      inventoryLoadingRef.current = false;
+    }
   }
 
   async function refreshStatusOnly() {
+    if (statusLoadingRef.current) return isOpen;
+    statusLoadingRef.current = true;
     try {
-      const data = await apiGet();
+      const data = await apiGet("status");
       if (data.ok) {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         return Boolean(data.isOpen);
       }
-    } catch {}
+    } catch {
+    } finally {
+      statusLoadingRef.current = false;
+    }
     return isOpen;
   }
 
