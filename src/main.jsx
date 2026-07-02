@@ -31,8 +31,16 @@ function defaultForm() {
 function inventoryItemsByType(inventory, type, fallback) {
   const key = type + "s";
   const list = inventory?.[key];
-  if (Array.isArray(list) && list.length) return list;
-  return fallback.map(item => ({ item, type, available: true }));
+  const byItem = new Map(Array.isArray(list) ? list.map(x => [x.item, x]) : []);
+  const merged = fallback.map(item => byItem.get(item) || { item, type, available: true });
+
+  if (Array.isArray(list)) {
+    list.forEach(x => {
+      if (!fallback.includes(x.item)) merged.push(x);
+    });
+  }
+
+  return merged;
 }
 
 function buildInventoryLookup(inventory) {
