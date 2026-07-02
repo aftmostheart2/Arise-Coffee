@@ -127,7 +127,8 @@ function ringReadyAlert() {
   } catch {}
 }
 
-function Header({ isOpen, statusText }) {
+function Header({ isOpen, statusText, serverHealth }) {
+  const isAdminPage = window.location.pathname.toLowerCase().startsWith("/admin");
   return (
     <header>
       <a className="brand" href="/">
@@ -135,7 +136,8 @@ function Header({ isOpen, statusText }) {
         <div><h1>Arise Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
-      <a className="adminLink" href="/admin">Admin</a>
+      {isAdminPage && <span className={serverHealth === "ok" ? "health ok" : serverHealth === "bad" ? "health bad" : "health"}>{serverHealth === "ok" ? "● Connected" : serverHealth === "bad" ? "● Offline" : "● Checking"}</span>}
+      {!isAdminPage && <a className="adminLink" href="/admin">Admin</a>}
     </header>
   );
 }
@@ -144,12 +146,14 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [serverHealth, setServerHealth] = useState("checking");
+  const [lastUpdated, setLastUpdated] = useState("");
   async function tryPin(value) {
     if (value.length < 4) return;
     setBusy(true);
     setError("");
     try {
-      const result = await apiPost({ action: "admin", pin: value });
+      const result = await apiPost({ action: "login", pin: value });
       if (result.ok) onSuccess(value);
       else {
         setError("Wrong PIN");
@@ -169,7 +173,7 @@ function PinGate({ onSuccess }) {
         <p>Enter the PIN from the Settings tab.</p>
         <div className="pinDots">{[0,1,2,3].map(i => <span key={i} className={pin.length > i ? "filled" : ""} />)}</div>
         {error && <div className="errorText">{error}</div>}
-        {busy && <div className="muted small">Checking…</div>}
+        {busy && <div className="checkingLine"><span className="miniSpinner"></span>Checking PIN…</div>}
         <div className="numpad">
           {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((k, i) => (
             <button key={i} disabled={busy || k === ""} className={k === "" ? "hiddenKey" : ""} onClick={() => {
@@ -236,6 +240,22 @@ function AdminPage() {
     setBusy(false);
   }
 
+  async function clearCacheAndRefresh() {
+    setBusy(true);
+    try {
+      const data = await apiPost({ action: "clearCache", pin });
+      if (data.ok) {
+        if (data.inventory) setInventory(data.inventory);
+        await refresh();
+      } else {
+        alert(data.error || "Could not refresh cache");
+      }
+    } catch {
+      alert("Connection error");
+    }
+    setBusy(false);
+  }
+
   async function toggleInventory(item, available) {
     setBusy(true);
     try {
@@ -246,6 +266,20 @@ function AdminPage() {
       } else {
         alert(data.error || "Could not update inventory");
       }
+    } catch {
+      alert("Connection error");
+    }
+    setBusy(false);
+  }
+
+  async function completeReadyOrders() {
+    if (!confirm("Mark all ready orders as complete?")) return;
+    setBusy(true);
+    try {
+      for (const order of readyOrders) {
+        await apiPost({ action: "updateStatus", pin, id: order.id, status: "complete" });
+      }
+      await refresh();
     } catch {
       alert("Connection error");
     }
@@ -278,16 +312,19 @@ function AdminPage() {
   }
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
+  const waitingOrders = visibleOrders.filter(o => o.status === "waiting");
+  const makingOrders = visibleOrders.filter(o => o.status === "making");
+  const readyOrders = visibleOrders.filter(o => o.status === "ready");
   const completed = orders.filter(o => o.status === "complete");
 
   return (
     <>
-      <Header isOpen={isOpen} />
+      <Header isOpen={isOpen} serverHealth={serverHealth} />
       <main className="adminPage">
         <section className="adminTop">
           <div>
             <h2>Admin Control</h2>
-            <p className="sub">Orders update from the Google Sheet.</p>
+            <p className="sub">Orders update from the Google Sheet.{lastUpdated ? ` Last updated ${lastUpdated}.` : ""}</p>
           </div>
           <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
         </section>
@@ -310,7 +347,9 @@ function AdminPage() {
         </section>
 
         <section className="toolbar">
-          <button className="ghostBtn" onClick={refresh}>Refresh</button>
+          <button className="ghostBtn" onClick={refresh}>Refresh orders</button>
+          <button className="ghostBtn" onClick={clearCacheAndRefresh}>Refresh inventory/cache</button>
+          <button className="ghostBtn" onClick={completeReadyOrders}>Complete all ready</button>
           <button className="ghostBtn" onClick={clearCompleted}>Clear completed</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
@@ -703,6 +742,7 @@ function CustomerPage() {
         <section className="queueCol privateStatusCol">
           <h2>Order Status</h2>
           <p className="sub">This screen only shows your order.</p>
+          <button className="ghostBtn tinyRefresh" onClick={refresh}>Refresh status</button>
 
           {!myOrder ? (
             <div className="empty privateEmpty">

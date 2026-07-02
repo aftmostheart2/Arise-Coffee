@@ -1,26 +1,23 @@
-# Arise Coffee
+# Arise Coffee Efficiency Pack
 
-Polished customer status version.
+## Includes
 
-## Customer page
+- Faster Apps Script caching
+- Inventory/settings cache lowered to 10 seconds
+- Admin health indicator
+- Last updated timestamp
+- Manual Refresh Orders button
+- Manual Refresh Inventory/Cache button
+- Complete all ready orders button
+- Customer refresh button
+- Keeps polished customer status, admin queue, donation popup, inventory, and 3 syrup support
 
-- No public full queue list
-- Customers see only their own order
-- Status card: Waiting, Being Made, Ready, Complete
-- Progress tracker: Received → Making → Ready
-- Polished ETA: You're up next or Estimated wait
-- Remembers customer name locally
-- Ready alert support remains
+## Important
 
-## Admin page
-
-- Full queue remains visible to admin
-- Start Making / Mark Ready / Complete
-- Inventory controls remain available
-- Donation popup remains after order
+Replace your Apps Script with `APPS_SCRIPT_COMPLETE_EFFICIENCY.txt`, then deploy a new version.
 
 ## Vercel
 
 - Framework: Vite
-- Build command: `npm run build`
-- Output: `dist`
+- Build: npm run build
+- Output: dist

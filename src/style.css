@@ -458,3 +458,42 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
     margin-bottom:24px;
   }
 }
+
+
+.checkingLine{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  color:#8A6A4A;
+  font-size:13px;
+  margin:10px 0;
+}
+.miniSpinner{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  border:2px solid rgba(200,130,58,.25);
+  border-top-color:#C8823A;
+  animation:spin .75s linear infinite;
+}
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+
+.health{
+  margin-left:auto;
+  font-size:11px;
+  color:#8A9B8E;
+  border:1px solid rgba(200,130,58,.18);
+  border-radius:999px;
+  padding:4px 9px;
+}
+.health.ok{ color:#6BBF6B; border-color:rgba(107,191,107,.35); background:rgba(107,191,107,.08); }
+.health.bad{ color:#E05252; border-color:rgba(224,82,82,.35); background:rgba(224,82,82,.08); }
+.tinyRefresh{
+  width:100%;
+  margin-bottom:14px;
+  padding:9px 12px;
+}
