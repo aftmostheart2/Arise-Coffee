@@ -1,13 +1,26 @@
 # Arise Coffee
 
-Donation popup + ETA fixed version.
+Polished customer status version.
 
-## Fixes
+## Customer page
 
-- Donation popup is forced to the center of the screen after ordering
-- First order now says "You're up next" instead of "0 min"
-- Keeps inventory, donation, admin, 3 syrups, and Vercel `/admin` route fix
+- No public full queue list
+- Customers see only their own order
+- Status card: Waiting, Being Made, Ready, Complete
+- Progress tracker: Received → Making → Ready
+- Polished ETA: You're up next or Estimated wait
+- Remembers customer name locally
+- Ready alert support remains
 
-## Deploy
+## Admin page
 
-Upload extracted files to GitHub and commit, or upload this project to Vercel.
+- Full queue remains visible to admin
+- Start Making / Mark Ready / Complete
+- Inventory controls remain available
+- Donation popup remains after order
+
+## Vercel
+
+- Framework: Vite
+- Build command: `npm run build`
+- Output: `dist`

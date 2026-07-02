@@ -72,9 +72,33 @@ function estimateWaitMinutes(position) {
 
 function waitText(position) {
   const ahead = Math.max(0, position - 1);
+
   if (ahead === 0) return "You're up next";
-  const minutes = ahead * 3;
-  return `${ahead} order${ahead === 1 ? "" : "s"} ahead · about ${minutes} min`;
+
+  const minutes = ahead * 4;
+
+  return `Estimated wait: ~${minutes} min`;
+}
+
+function ordersAheadText(position) {
+  const ahead = Math.max(0, position - 1);
+  if (ahead === 0) return "No orders ahead of you.";
+  return `${ahead} order${ahead === 1 ? "" : "s"} ahead of you.`;
+}
+
+function statusEmoji(status) {
+  if (status === "making") return "🟠";
+  if (status === "ready") return "🟢";
+  if (status === "complete") return "✅";
+  return "🟡";
+}
+
+function normalizeOrderFromSingle(order) {
+  if (!order) return null;
+  return {
+    ...order,
+    syrups: Array.isArray(order.syrups) ? order.syrups.join(", ") : order.syrups
+  };
 }
 
 function ringReadyAlert() {
@@ -185,7 +209,7 @@ function AdminPage() {
   useEffect(() => {
     if (!pin) return;
     refresh();
-    const id = setInterval(refresh, 5000);
+    const id = setInterval(refresh, 3000);
     return () => clearInterval(id);
   }, [pin]);
 
@@ -401,7 +425,10 @@ function DonationModal({ onClose }) {
 }
 
 function CustomerPage() {
-  const [form, setForm] = useState(defaultForm());
+  const [form, setForm] = useState(() => {
+    const savedName = localStorage.getItem("arise-customer-name") || "";
+    return { ...defaultForm(), name: savedName };
+  });
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
@@ -419,34 +446,76 @@ function CustomerPage() {
 
   async function refresh() {
     try {
+      if (myOrderId) {
+        const single = await apiGet("order", { id: myOrderId });
+        if (typeof single.isOpen === "boolean") setIsOpen(Boolean(single.isOpen));
+        if (single.inventory) setInventory(single.inventory);
+
+        const found = normalizeOrderFromSingle(single.order);
+        if (found) {
+          setMyOrder(found);
+
+          if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
+            ringReadyAlert();
+            setReadyAlertShown(true);
+          }
+
+          previousStatusRef.current = found.status;
+        } else {
+          setMyOrder(null);
+        }
+
+        try {
+          const queueData = await apiGet("orders");
+          if (queueData.ok) {
+            setOrders(queueData.orders || []);
+            if (typeof queueData.isOpen === "boolean") setIsOpen(Boolean(queueData.isOpen));
+          }
+        } catch {}
+
+        return;
+      }
+
       const data = await apiGet("orders");
       if (data.ok) {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
         if (data.inventory) setInventory(data.inventory);
-        if (myOrderId) {
-          const found = (data.orders || []).find(o => o.id === myOrderId);
-          if (found) {
-            setMyOrder(found);
-            if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
-              ringReadyAlert();
-              setReadyAlertShown(true);
-            }
-            previousStatusRef.current = found.status;
-          } else {
-            const single = await apiGet("order", { id: myOrderId });
-            setMyOrder(single.order || null);
-          }
-        }
+      }
+    } catch {}
+  }
+
+  async function refreshInventoryOnly() {
+    try {
+      const data = await apiGet("inventory");
+      if (data.ok && data.inventory) setInventory(data.inventory);
+    } catch {}
+  }
+
+  async function refreshStatusOnly() {
+    try {
+      const data = await apiGet();
+      if (data.ok) {
+        setIsOpen(Boolean(data.isOpen));
+        setMessage(data.message || "");
       }
     } catch {}
   }
 
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, 5000);
-    return () => clearInterval(id);
+
+    const orderRefreshMs = myOrderId ? 5000 : 8000;
+    const orderId = setInterval(refresh, orderRefreshMs);
+    const inventoryId = setInterval(refreshInventoryOnly, 60000);
+    const statusId = setInterval(refreshStatusOnly, 15000);
+
+    return () => {
+      clearInterval(orderId);
+      clearInterval(inventoryId);
+      clearInterval(statusId);
+    };
   }, [myOrderId]);
 
   useEffect(() => {
@@ -504,6 +573,7 @@ function CustomerPage() {
         return;
       }
 
+      localStorage.setItem("arise-customer-name", form.name.trim());
       localStorage.setItem("coffee-my-order-id", data.id);
       setReadyAlertShown(false);
       previousStatusRef.current = "waiting";
@@ -552,33 +622,6 @@ function CustomerPage() {
       <Header isOpen={isOpen} />
       <main className="layout">
         <section className="formCol">
-          {myOrder && (() => {
-            const currentPosition = Math.max(1, orders.findIndex(o => o.id === myOrder.id) + 1);
-            const wait = estimateWaitMinutes(currentPosition);
-            return (
-              <div className={"myTicket " + myOrder.status}>
-                <div className="label gold">Your Order</div>
-                <div className="ticketLine">
-                  <div className="queueNumSmall">#{String(currentPosition).padStart(3, "0")}</div>
-                  <div>
-                    <strong>{statusLabel(myOrder.status)}</strong>
-                    <p>{myOrder.temp} {myOrder.drink}{myOrder.milk ? ` · ${myOrder.milk}` : ""}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
-                  </div>
-                </div>
-
-                <div className="statusSteps">
-                  <span className={["waiting","making","ready","complete"].includes(myOrder.status) ? "done" : ""}>Received</span>
-                  <span className={["making","ready","complete"].includes(myOrder.status) ? "done" : ""}>Making</span>
-                  <span className={["ready","complete"].includes(myOrder.status) ? "done" : ""}>Ready</span>
-                </div>
-
-                {myOrder.status === "waiting" && <div className="waitEstimate">{waitText(currentPosition)}</div>}
-                {myOrder.status === "making" && <div className="makingNotice">Your drink is being made now.</div>}
-                {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
-                {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Clear my ticket</button>}
-              </div>
-            );
-          })()}
 
           <h2>Place your order</h2>
           <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
@@ -657,18 +700,71 @@ function CustomerPage() {
           )}
         </section>
 
-        <section className="queueCol">
-          <h2>Live Queue</h2>
-          <p className="sub">{orders.length === 0 ? "No active orders." : `${orders.length} active order${orders.length > 1 ? "s" : ""}`}</p>
-          {orders.length === 0 ? <div className="empty"><div>☕</div><p>The queue is empty.</p></div> : orders.map((o, idx) => (
-            <div className={"queueItem " + o.status} key={o.id}>
-              <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
-              <div>
-                <strong>{o.name}</strong>
-                <p>{o.temp} {o.drink} · {statusLabel(o.status)}{o.status === "waiting" ? ` · ${waitText(idx + 1)}` : ""}</p>
-              </div>
+        <section className="queueCol privateStatusCol">
+          <h2>Order Status</h2>
+          <p className="sub">This screen only shows your order.</p>
+
+          {!myOrder ? (
+            <div className="empty privateEmpty">
+              <div>☕</div>
+              <p>Place an order and your live status will appear here.</p>
             </div>
-          ))}
+          ) : (() => {
+            const currentPosition = Math.max(1, orders.findIndex(o => o.id === myOrder.id) + 1);
+            return (
+              <div className={"customerStatusCard " + myOrder.status}>
+                <div className="statusHero">
+                  <span>{statusEmoji(myOrder.status)}</span>
+                  <div>
+                    <div className="label gold">Your Order</div>
+                    <h3>#{String(currentPosition).padStart(3, "0")}</h3>
+                  </div>
+                </div>
+
+                <div className="statusBig">{statusLabel(myOrder.status)}</div>
+
+                <div className="customerDrinkSummary">
+                  <strong>{myOrder.temp} {myOrder.drink}</strong>
+                  <p>{myOrder.milk ? myOrder.milk : "No milk"}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
+                  {myOrder.notes && <em>"{myOrder.notes}"</em>}
+                </div>
+
+                <div className="progressRail">
+                  <div className={["waiting","making","ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
+                    <span>✓</span>
+                    <p>Received</p>
+                  </div>
+                  <div className={["making","ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
+                    <span>{["making","ready","complete"].includes(myOrder.status) ? "✓" : "○"}</span>
+                    <p>Making</p>
+                  </div>
+                  <div className={["ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
+                    <span>{["ready","complete"].includes(myOrder.status) ? "✓" : "○"}</span>
+                    <p>Ready</p>
+                  </div>
+                </div>
+
+                {myOrder.status === "waiting" && (
+                  <div className="etaBox">
+                    <strong>{waitText(currentPosition)}</strong>
+                    <span>{ordersAheadText(currentPosition)}</span>
+                    <small>Wait times are estimates and may vary.</small>
+                  </div>
+                )}
+
+                {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
+                {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
+
+                {myOrder.status === "complete" && (
+                  <div className="completeBox">
+                    <strong>Thanks for supporting Arise Coffee!</strong>
+                    <p>See you next time ☕</p>
+                    <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </section>
       </main>
       {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
