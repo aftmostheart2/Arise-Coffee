@@ -16,7 +16,7 @@ const DRINKS = [
   { id: "coldchoc", label: "Cold Chocolate Milk", desc: "Chilled chocolate milk", temps: ["Cold"], milk: true, syrups: false },
 ];
 
-const MILKS = ["Almond milk", "Oat milk", "Soy milk"];
+const MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
 const SYRUPS = ["Caramel", "Sugar Free Caramel", "Vanilla", "Sugar Free Vanilla", "Mocha", "White Chocolate", "Honey", "Cinnamon Powder", "Hazelnut"];
 const MAX_SYRUPS = 3;
 
