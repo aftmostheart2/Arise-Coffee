@@ -127,7 +127,7 @@ function ringReadyAlert() {
   } catch {}
 }
 
-function Header({ isOpen, statusText, serverHealth }) {
+function Header({ isOpen, statusText }) {
   const isAdminPage = window.location.pathname.toLowerCase().startsWith("/admin");
   return (
     <header>
@@ -136,7 +136,6 @@ function Header({ isOpen, statusText, serverHealth }) {
         <div><h1>Arise Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
-      {isAdminPage && <span className={serverHealth === "ok" ? "health ok" : serverHealth === "bad" ? "health bad" : "health"}>{serverHealth === "ok" ? "● Connected" : serverHealth === "bad" ? "● Offline" : "● Checking"}</span>}
       {!isAdminPage && <a className="adminLink" href="/admin">Admin</a>}
     </header>
   );
@@ -146,7 +145,6 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [serverHealth, setServerHealth] = useState("checking");
   const [lastUpdated, setLastUpdated] = useState("");
   async function tryPin(value) {
     if (value.length < 4) return;
@@ -205,6 +203,7 @@ function AdminPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
+        setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         if (data.inventory) setInventory(data.inventory);
       }
     } catch {}
@@ -248,7 +247,7 @@ function AdminPage() {
         if (data.inventory) setInventory(data.inventory);
         await refresh();
       } else {
-        alert(data.error || "Could not refresh cache");
+        alert(data.error || "Could not refresh inventory/cache");
       }
     } catch {
       alert("Connection error");
@@ -312,14 +311,12 @@ function AdminPage() {
   }
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
-  const waitingOrders = visibleOrders.filter(o => o.status === "waiting");
-  const makingOrders = visibleOrders.filter(o => o.status === "making");
   const readyOrders = visibleOrders.filter(o => o.status === "ready");
   const completed = orders.filter(o => o.status === "complete");
 
   return (
     <>
-      <Header isOpen={isOpen} serverHealth={serverHealth} />
+      <Header isOpen={isOpen} />
       <main className="adminPage">
         <section className="adminTop">
           <div>

@@ -481,17 +481,6 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   to{transform:rotate(360deg)}
 }
 
-
-.health{
-  margin-left:auto;
-  font-size:11px;
-  color:#8A9B8E;
-  border:1px solid rgba(200,130,58,.18);
-  border-radius:999px;
-  padding:4px 9px;
-}
-.health.ok{ color:#6BBF6B; border-color:rgba(107,191,107,.35); background:rgba(107,191,107,.08); }
-.health.bad{ color:#E05252; border-color:rgba(224,82,82,.35); background:rgba(224,82,82,.08); }
 .tinyRefresh{
   width:100%;
   margin-bottom:14px;

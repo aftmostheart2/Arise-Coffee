@@ -1,23 +1,17 @@
-# Arise Coffee Efficiency Pack
+# Arise Coffee Safe Efficiency Fix
 
-## Includes
+This version starts from the stable app and only adds safe efficiency changes.
 
-- Faster Apps Script caching
-- Inventory/settings cache lowered to 10 seconds
-- Admin health indicator
-- Last updated timestamp
-- Manual Refresh Orders button
-- Manual Refresh Inventory/Cache button
-- Complete all ready orders button
-- Customer refresh button
-- Keeps polished customer status, admin queue, donation popup, inventory, and 3 syrup support
+## App changes
 
-## Important
+- Admin refreshes every 3 seconds
+- Last updated timestamp in admin
+- Refresh inventory/cache button if inventory controls exist
+- Complete all ready button
+- Customer status refresh button
+- Keeps stable customer/admin UI
 
-Replace your Apps Script with `APPS_SCRIPT_COMPLETE_EFFICIENCY.txt`, then deploy a new version.
+## Apps Script
 
-## Vercel
-
-- Framework: Vite
-- Build: npm run build
-- Output: dist
+Replace Apps Script with `APPS_SCRIPT_SAFE_SPEED.txt`.
+Then deploy a new version.
