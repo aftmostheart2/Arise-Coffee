@@ -1,17 +1,19 @@
-# Arise Coffee Safe Efficiency Fix
+# Arise Coffee Proper Efficiency Patch
 
-This version starts from the stable app and only adds safe efficiency changes.
+This patch starts from the stable working app and only makes safe efficiency changes.
 
-## App changes
+## Changes
 
-- Admin refreshes every 3 seconds
-- Last updated timestamp in admin
-- Refresh inventory/cache button if inventory controls exist
-- Complete all ready button
-- Customer status refresh button
-- Keeps stable customer/admin UI
+- Admin PIN uses fast Apps Script `login` action
+- Admin PIN is required on each fresh admin visit
+- Admin order refresh: 3 seconds
+- Customer refresh: 6 seconds
+- Keeps stable UI
+- Keeps Arise Coffee branding
+- Keeps max 3 syrups
+- Keeps Vercel `/admin` rewrite
 
-## Apps Script
+## Important
 
-Replace Apps Script with `APPS_SCRIPT_SAFE_SPEED.txt`.
-Then deploy a new version.
+Use your current working Google Apps Script speed script.
+Do not upload Apps Script txt files to GitHub unless you only want them as notes.

@@ -480,9 +480,3 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 @keyframes spin{
   to{transform:rotate(360deg)}
 }
-
-.tinyRefresh{
-  width:100%;
-  margin-bottom:14px;
-  padding:9px 12px;
-}

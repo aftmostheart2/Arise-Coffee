@@ -145,7 +145,6 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState("");
   async function tryPin(value) {
     if (value.length < 4) return;
     setBusy(true);
@@ -203,7 +202,6 @@ function AdminPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         setOrders(data.orders || []);
-        setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         if (data.inventory) setInventory(data.inventory);
       }
     } catch {}
@@ -239,22 +237,6 @@ function AdminPage() {
     setBusy(false);
   }
 
-  async function clearCacheAndRefresh() {
-    setBusy(true);
-    try {
-      const data = await apiPost({ action: "clearCache", pin });
-      if (data.ok) {
-        if (data.inventory) setInventory(data.inventory);
-        await refresh();
-      } else {
-        alert(data.error || "Could not refresh inventory/cache");
-      }
-    } catch {
-      alert("Connection error");
-    }
-    setBusy(false);
-  }
-
   async function toggleInventory(item, available) {
     setBusy(true);
     try {
@@ -265,20 +247,6 @@ function AdminPage() {
       } else {
         alert(data.error || "Could not update inventory");
       }
-    } catch {
-      alert("Connection error");
-    }
-    setBusy(false);
-  }
-
-  async function completeReadyOrders() {
-    if (!confirm("Mark all ready orders as complete?")) return;
-    setBusy(true);
-    try {
-      for (const order of readyOrders) {
-        await apiPost({ action: "updateStatus", pin, id: order.id, status: "complete" });
-      }
-      await refresh();
     } catch {
       alert("Connection error");
     }
@@ -311,7 +279,6 @@ function AdminPage() {
   }
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
-  const readyOrders = visibleOrders.filter(o => o.status === "ready");
   const completed = orders.filter(o => o.status === "complete");
 
   return (
@@ -321,7 +288,7 @@ function AdminPage() {
         <section className="adminTop">
           <div>
             <h2>Admin Control</h2>
-            <p className="sub">Orders update from the Google Sheet.{lastUpdated ? ` Last updated ${lastUpdated}.` : ""}</p>
+            <p className="sub">Orders update from the Google Sheet.</p>
           </div>
           <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
         </section>
@@ -344,9 +311,7 @@ function AdminPage() {
         </section>
 
         <section className="toolbar">
-          <button className="ghostBtn" onClick={refresh}>Refresh orders</button>
-          <button className="ghostBtn" onClick={clearCacheAndRefresh}>Refresh inventory/cache</button>
-          <button className="ghostBtn" onClick={completeReadyOrders}>Complete all ready</button>
+          <button className="ghostBtn" onClick={refresh}>Refresh</button>
           <button className="ghostBtn" onClick={clearCompleted}>Clear completed</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
@@ -542,7 +507,7 @@ function CustomerPage() {
   useEffect(() => {
     refresh();
 
-    const orderRefreshMs = myOrderId ? 5000 : 8000;
+    const orderRefreshMs = myOrderId ? 6000 : 10000;
     const orderId = setInterval(refresh, orderRefreshMs);
     const inventoryId = setInterval(refreshInventoryOnly, 60000);
     const statusId = setInterval(refreshStatusOnly, 15000);
@@ -739,7 +704,6 @@ function CustomerPage() {
         <section className="queueCol privateStatusCol">
           <h2>Order Status</h2>
           <p className="sub">This screen only shows your order.</p>
-          <button className="ghostBtn tinyRefresh" onClick={refresh}>Refresh status</button>
 
           {!myOrder ? (
             <div className="empty privateEmpty">
