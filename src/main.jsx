@@ -2,9 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyexBADXI1coIcSfUa8jrJ7BluPIUG5B3BnogsA1SfwAZBIaKkVJ_xB1KsVeOxc5Kwx4w/exec";
+const DEFAULT_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyexBADXI1coIcSfUa8jrJ7BluPIUG5B3BnogsA1SfwAZBIaKkVJ_xB1KsVeOxc5Kwx4w/exec";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || DEFAULT_BACKEND_URL;
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
+const INVENTORY_CACHE_KEY = "arise-inventory-cache";
+const INVENTORY_CACHE_MS = 5 * 60 * 1000;
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -26,6 +29,28 @@ function getDrink(id) {
 
 function defaultForm() {
   return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
+}
+
+function defaultInventory() {
+  return {
+    syrups: SYRUPS.map(item => ({ item, type: "syrup", available: true })),
+    milks: MILKS.map(item => ({ item, type: "milk", available: true }))
+  };
+}
+
+function loadCachedInventory() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(INVENTORY_CACHE_KEY) || "null");
+    if (cached?.inventory && Date.now() - cached.savedAt < INVENTORY_CACHE_MS) return cached.inventory;
+  } catch {}
+  return defaultInventory();
+}
+
+function cacheInventory(inventory) {
+  try {
+    sessionStorage.setItem(INVENTORY_CACHE_KEY, JSON.stringify({ inventory, savedAt: Date.now() }));
+  } catch {}
+  return inventory;
 }
 
 function inventoryItemsByType(inventory, type, fallback) {
@@ -201,7 +226,7 @@ function AdminPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
-  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
+  const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const ordersLoadingRef = useRef(false);
@@ -244,7 +269,7 @@ function AdminPage() {
     inventoryLoadingRef.current = true;
     try {
       const data = await apiGet("inventory");
-      if (data.ok && data.inventory) setInventory(data.inventory);
+      if (data.ok && data.inventory) setInventory(cacheInventory(data.inventory));
     } catch {
     } finally {
       inventoryLoadingRef.current = false;
@@ -307,7 +332,7 @@ function AdminPage() {
     try {
       const data = await apiPost({ action: "setInventory", pin, item, available });
       if (data.ok) {
-        setInventory(data.inventory || inventory);
+        setInventory(data.inventory ? cacheInventory(data.inventory) : inventory);
       } else {
         alert(data.error || "Could not update inventory");
       }
@@ -497,7 +522,7 @@ function CustomerPage() {
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
-  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
+  const [inventory, setInventory] = useState(loadCachedInventory);
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
   const [myOrderPosition, setMyOrderPosition] = useState(1);
@@ -542,7 +567,7 @@ function CustomerPage() {
       if (data.ok === false) return;
       if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
       if (typeof data.message === "string") setMessage(data.message || "");
-      if (data.inventory) setInventory(data.inventory);
+      if (data.inventory) setInventory(cacheInventory(data.inventory));
       updateMyOrder(data.order, data.position);
       refreshInventoryOnly();
     } catch {
@@ -567,7 +592,7 @@ function CustomerPage() {
     inventoryLoadingRef.current = true;
     try {
       const data = await apiGet("inventory");
-      if (data.ok && data.inventory) setInventory(data.inventory);
+      if (data.ok && data.inventory) setInventory(cacheInventory(data.inventory));
     } catch {
     } finally {
       inventoryLoadingRef.current = false;

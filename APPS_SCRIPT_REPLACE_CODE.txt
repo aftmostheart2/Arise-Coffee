@@ -222,22 +222,28 @@ function doPost(e) {
       return json({ ok: false, error: "Queue closed" });
     }
 
-    const sheet = getSheet(SHEET_ORDERS);
-    const id = "CQ-" + Date.now();
-    sheet.appendRow([
-      id,
-      new Date(),
-      data.name || "",
-      data.drink || "",
-      data.temp || "",
-      data.milk || "",
-      Array.isArray(data.syrups) ? data.syrups.join(", ") : "",
-      data.notes || "",
-      "waiting"
-    ]);
+    const lock = LockService.getScriptLock();
+    lock.waitLock(5000);
+    try {
+      const sheet = getSheet(SHEET_ORDERS);
+      const id = "CQ-" + Date.now();
+      sheet.appendRow([
+        id,
+        new Date(),
+        data.name || "",
+        data.drink || "",
+        data.temp || "",
+        data.milk || "",
+        Array.isArray(data.syrups) ? data.syrups.join(", ") : "",
+        data.notes || "",
+        "waiting"
+      ]);
 
-    const result = readOrderWithPosition(id);
-    return json({ ok: true, id, position: result.position, ordersAhead: result.ordersAhead });
+      const result = readOrderWithPosition(id);
+      return json({ ok: true, id, position: result.position, ordersAhead: result.ordersAhead });
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   if (data.action === "updateStatus") {
