@@ -35,10 +35,16 @@ function inventoryItemsByType(inventory, type, fallback) {
   return fallback.map(item => ({ item, type, available: true }));
 }
 
-function isInventoryAvailable(inventory, type, item) {
-  const fallback = type === "milk" ? MILKS : SYRUPS;
-  const found = inventoryItemsByType(inventory, type, fallback).find(x => x.item === item);
-  return found ? found.available !== false : true;
+function buildInventoryLookup(inventory) {
+  const lookup = {};
+  [...inventoryItemsByType(inventory, "syrup", SYRUPS), ...inventoryItemsByType(inventory, "milk", MILKS)].forEach(x => {
+    lookup[x.item] = x.available !== false;
+  });
+  return lookup;
+}
+
+function isInventoryAvailable(inventoryLookup, item) {
+  return inventoryLookup[item] !== false;
 }
 
 async function apiGet(action, params = {}) {
@@ -95,9 +101,13 @@ function statusEmoji(status) {
 
 function normalizeOrderFromSingle(order) {
   if (!order) return null;
+  const ordersAhead = Number(order.ordersAhead ?? order.ahead ?? NaN);
+  const position = Number(order.position || order.queuePosition || 0) || (Number.isFinite(ordersAhead) ? ordersAhead + 1 : undefined);
   return {
     ...order,
-    syrups: Array.isArray(order.syrups) ? order.syrups.join(", ") : order.syrups
+    syrups: Array.isArray(order.syrups) ? order.syrups.join(", ") : order.syrups,
+    position,
+    ordersAhead
   };
 }
 
@@ -195,23 +205,49 @@ function AdminPage() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function refresh() {
+  async function refreshOrders() {
     try {
       const data = await apiGet("orders");
       if (data.ok) {
-        setIsOpen(Boolean(data.isOpen));
-        setMessage(data.message || "");
         setOrders(data.orders || []);
-        if (data.inventory) setInventory(data.inventory);
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
       }
     } catch {}
   }
 
+  async function refreshStatus() {
+    try {
+      const data = await apiGet();
+      if (data.ok) {
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
+      }
+    } catch {}
+  }
+
+  async function refreshInventory() {
+    try {
+      const data = await apiGet("inventory");
+      if (data.ok && data.inventory) setInventory(data.inventory);
+    } catch {}
+  }
+
+  async function refreshAdminData() {
+    await Promise.all([refreshOrders(), refreshStatus(), refreshInventory()]);
+  }
+
   useEffect(() => {
     if (!pin) return;
-    refresh();
-    const id = setInterval(refresh, 3000);
-    return () => clearInterval(id);
+    refreshAdminData();
+    const ordersId = setInterval(refreshOrders, 3000);
+    const statusId = setInterval(refreshStatus, 6000);
+    const inventoryId = setInterval(refreshInventory, 60000);
+    return () => {
+      clearInterval(ordersId);
+      clearInterval(statusId);
+      clearInterval(inventoryId);
+    };
   }, [pin]);
 
   async function saveAdmin(payload) {
@@ -221,7 +257,9 @@ function AdminPage() {
       const data = await apiPost({ action: "admin", pin, ...payload });
       if (data.ok) {
         setNotice("Saved");
-        await refresh();
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
+        if (Array.isArray(data.orders)) setOrders(data.orders);
       } else setNotice(data.error || "Could not save");
     } catch { setNotice("Connection error"); }
     setBusy(false);
@@ -243,7 +281,6 @@ function AdminPage() {
       const data = await apiPost({ action: "setInventory", pin, item, available });
       if (data.ok) {
         setInventory(data.inventory || inventory);
-        await refresh();
       } else {
         alert(data.error || "Could not update inventory");
       }
@@ -311,7 +348,7 @@ function AdminPage() {
         </section>
 
         <section className="toolbar">
-          <button className="ghostBtn" onClick={refresh}>Refresh</button>
+          <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
           <button className="ghostBtn" onClick={clearCompleted}>Clear completed</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
@@ -433,58 +470,60 @@ function CustomerPage() {
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
-  const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState({ syrups: [], milks: [] });
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
+  const [myOrderPosition, setMyOrderPosition] = useState(1);
   const [busy, setBusy] = useState(false);
   const [showDonation, setShowDonation] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
+  const submittingRef = useRef(false);
   const previousStatusRef = useRef("");
   const nameRef = useRef(null);
 
   const drink = getDrink(form.drinkId);
+  const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
 
-  async function refresh() {
+  function updateMyOrder(order, positionFromResponse) {
+    const found = normalizeOrderFromSingle(order);
+    if (!found) {
+      setMyOrder(null);
+      return;
+    }
+
+    const nextPosition = found.position || Number(positionFromResponse || 0) || 1;
+    setMyOrderPosition(nextPosition);
+    setMyOrder({ ...found, position: nextPosition });
+
+    if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
+      ringReadyAlert();
+      setReadyAlertShown(true);
+    }
+
+    previousStatusRef.current = found.status;
+  }
+
+  async function refreshOrder() {
+    if (!myOrderId) return;
     try {
-      if (myOrderId) {
-        const single = await apiGet("order", { id: myOrderId });
-        if (typeof single.isOpen === "boolean") setIsOpen(Boolean(single.isOpen));
-        if (single.inventory) setInventory(single.inventory);
+      const data = await apiGet("order", { id: myOrderId });
+      if (data.ok === false) return;
+      if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+      if (typeof data.message === "string") setMessage(data.message || "");
+      if (data.inventory) setInventory(data.inventory);
+      updateMyOrder(data.order, data.position);
+    } catch {}
+  }
 
-        const found = normalizeOrderFromSingle(single.order);
-        if (found) {
-          setMyOrder(found);
-
-          if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
-            ringReadyAlert();
-            setReadyAlertShown(true);
-          }
-
-          previousStatusRef.current = found.status;
-        } else {
-          setMyOrder(null);
-        }
-
-        try {
-          const queueData = await apiGet("orders");
-          if (queueData.ok) {
-            setOrders(queueData.orders || []);
-            if (typeof queueData.isOpen === "boolean") setIsOpen(Boolean(queueData.isOpen));
-          }
-        } catch {}
-
-        return;
-      }
-
-      const data = await apiGet("orders");
+  async function refreshInitialCustomerData() {
+    try {
+      const data = await apiGet();
       if (data.ok) {
-        setIsOpen(Boolean(data.isOpen));
-        setMessage(data.message || "");
-        setOrders(data.orders || []);
-        if (data.inventory) setInventory(data.inventory);
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
       }
     } catch {}
+    await refreshInventoryOnly();
   }
 
   async function refreshInventoryOnly() {
@@ -500,20 +539,22 @@ function CustomerPage() {
       if (data.ok) {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
+        return Boolean(data.isOpen);
       }
     } catch {}
+    return isOpen;
   }
 
   useEffect(() => {
-    refresh();
+    if (myOrderId) refreshOrder();
+    else refreshInitialCustomerData();
 
-    const orderRefreshMs = myOrderId ? 6000 : 10000;
-    const orderId = setInterval(refresh, orderRefreshMs);
+    const orderId = myOrderId ? setInterval(refreshOrder, 6000) : null;
     const inventoryId = setInterval(refreshInventoryOnly, 60000);
-    const statusId = setInterval(refreshStatusOnly, 15000);
+    const statusId = setInterval(refreshStatusOnly, 6000);
 
     return () => {
-      clearInterval(orderId);
+      if (orderId) clearInterval(orderId);
       clearInterval(inventoryId);
       clearInterval(statusId);
     };
@@ -537,24 +578,33 @@ function CustomerPage() {
     const e = {};
     if (!form.name.trim()) e.name = "Please enter your name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
-    if (form.milk && !isInventoryAvailable(inventory, "milk", form.milk)) e.milk = form.milk + " is out of stock";
-    const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventory, "syrup", s));
+    if (form.milk && !isInventoryAvailable(inventoryLookup, form.milk)) e.milk = form.milk + " is out of stock";
+    const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventoryLookup, s));
     if (outSyrup) e.syrups = outSyrup + " is out of stock";
     return e;
   }
 
   async function submit() {
-    await refresh();
-    if (!isOpen) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setBusy(true);
+
+    const queueIsOpen = await refreshStatusOnly();
+    if (!queueIsOpen) {
+      setBusy(false);
+      submittingRef.current = false;
+      return;
+    }
 
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
       if (e.name) nameRef.current?.focus();
+      setBusy(false);
+      submittingRef.current = false;
       return;
     }
 
-    setBusy(true);
     try {
       const data = await apiPost({
         action: "order",
@@ -569,8 +619,9 @@ function CustomerPage() {
 
       if (!data.ok) {
         alert(data.error || "Could not place order");
-        await refresh();
+        await refreshStatusOnly();
         setBusy(false);
+        submittingRef.current = false;
         return;
       }
 
@@ -579,6 +630,7 @@ function CustomerPage() {
       setReadyAlertShown(false);
       previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
+      setMyOrderPosition(Number(data.position || 1));
       setMyOrder({
         id: data.id,
         name: form.name.trim(),
@@ -587,21 +639,23 @@ function CustomerPage() {
         milk: form.milk,
         syrups: form.syrups.join(", "),
         notes: form.notes,
-        status: "waiting"
+        status: "waiting",
+        position: Number(data.position || 1)
       });
       setForm(defaultForm());
       setShowDonation(true);
-      await refresh();
     } catch {
       alert("Connection error. Try again.");
     }
     setBusy(false);
+    submittingRef.current = false;
   }
 
   function clearMyTicket() {
     localStorage.removeItem("coffee-my-order-id");
     setMyOrderId("");
     setMyOrder(null);
+    setMyOrderPosition(1);
   }
 
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
@@ -613,7 +667,7 @@ function CustomerPage() {
         <div className="closedIcon">🚫</div>
         <h1>We're closed</h1>
         <p>{message || "Orders aren't being taken right now. Check back soon!"}</p>
-        <button className="ghostBtn" onClick={refresh}>Refresh status</button>
+        <button className="ghostBtn" onClick={refreshStatusOnly}>Refresh status</button>
       </main>
     </>;
   }
@@ -711,7 +765,7 @@ function CustomerPage() {
               <p>Place an order and your live status will appear here.</p>
             </div>
           ) : (() => {
-            const currentPosition = Math.max(1, orders.findIndex(o => o.id === myOrder.id) + 1);
+            const currentPosition = Math.max(1, Number(myOrder.position || myOrderPosition || 1));
             return (
               <div className={"customerStatusCard " + myOrder.status}>
                 <div className="statusHero">
