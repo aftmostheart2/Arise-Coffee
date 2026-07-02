@@ -4,7 +4,7 @@ const SHEET_ARCHIVE = "Archive";
 const SHEET_INVENTORY = "Inventory";
 
 const DEFAULT_SYRUPS = ["Caramel", "Sugar Free Caramel", "Vanilla", "Sugar Free Vanilla", "Mocha", "White Chocolate", "Honey", "Cinnamon Powder", "Hazelnut"];
-const DEFAULT_MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
+const DEFAULT_MILKS = ["Almond milk", "Oat milk", "Soy milk"];
 
 function getSS() {
   return SpreadsheetApp.getActiveSpreadsheet();
