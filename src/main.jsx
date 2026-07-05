@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import { apiGet, apiPost } from "./api/backend";
 
-const DEFAULT_BACKEND_URL = "https://script.google.com/macros/s/AKfycbyexBADXI1coIcSfUa8jrJ7BluPIUG5B3BnogsA1SfwAZBIaKkVJ_xB1KsVeOxc5Kwx4w/exec";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || DEFAULT_BACKEND_URL;
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
 const INVENTORY_CACHE_KEY = "arise-inventory-cache";
@@ -72,23 +71,6 @@ function isInventoryAvailable(inventoryLookup, item) {
   return inventoryLookup[item] !== false;
 }
 
-async function apiGet(action, params = {}) {
-  const url = new URL(BACKEND_URL);
-  if (action) url.searchParams.set("action", action);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  url.searchParams.set("t", Date.now());
-  const res = await fetch(url.toString());
-  return await res.json();
-}
-
-async function apiPost(payload) {
-  const res = await fetch(BACKEND_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  });
-  return await res.json();
-}
 
 function statusLabel(status) {
   if (status === "making") return "Being made";
