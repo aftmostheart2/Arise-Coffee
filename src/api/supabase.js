@@ -7,7 +7,10 @@ function normalizeResponse(data, fallback = {}) {
 
 async function callRpc(name, args = {}, fallback = { ok: false, error: "Connection error" }) {
   const { data, error } = await supabase.rpc(name, args);
-  if (error) throw error;
+  if (error) {
+    console.error(`Supabase RPC failed: ${name}`, error);
+    throw error;
+  }
   return normalizeResponse(data, fallback);
 }
 
