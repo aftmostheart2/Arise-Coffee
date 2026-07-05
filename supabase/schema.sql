@@ -44,8 +44,27 @@ create table if not exists archived_orders (
   id uuid primary key default gen_random_uuid(),
   archived_at timestamptz not null default now(),
   original_order_id uuid,
+  original_order_id_text text,
+  original_created_at timestamptz,
+  customer_name text,
+  drink text,
+  temperature text,
+  milk text,
+  syrups text,
+  notes text,
+  status text,
   order_data jsonb not null
 );
+
+alter table archived_orders add column if not exists original_order_id_text text;
+alter table archived_orders add column if not exists original_created_at timestamptz;
+alter table archived_orders add column if not exists customer_name text;
+alter table archived_orders add column if not exists drink text;
+alter table archived_orders add column if not exists temperature text;
+alter table archived_orders add column if not exists milk text;
+alter table archived_orders add column if not exists syrups text;
+alter table archived_orders add column if not exists notes text;
+alter table archived_orders add column if not exists status text;
 
 insert into inventory (item, type, available) values
 ('Caramel','syrup',true),
@@ -418,8 +437,31 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
-  insert into archived_orders (original_order_id, order_data)
-  select id, to_jsonb(orders)
+  insert into archived_orders (
+    original_order_id,
+    original_order_id_text,
+    original_created_at,
+    customer_name,
+    drink,
+    temperature,
+    milk,
+    syrups,
+    notes,
+    status,
+    order_data
+  )
+  select
+    id,
+    id::text,
+    created_at,
+    coalesce(customer_name, name, ''),
+    drink,
+    coalesce(temperature, temp, ''),
+    milk,
+    array_to_string(coalesce(syrups, '{}'::text[]), ', '),
+    notes,
+    status,
+    to_jsonb(orders)
   from orders
   where status = 'complete';
 
@@ -445,8 +487,31 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Close the queue before clearing all orders');
   end if;
 
-  insert into archived_orders (original_order_id, order_data)
-  select id, to_jsonb(orders)
+  insert into archived_orders (
+    original_order_id,
+    original_order_id_text,
+    original_created_at,
+    customer_name,
+    drink,
+    temperature,
+    milk,
+    syrups,
+    notes,
+    status,
+    order_data
+  )
+  select
+    id,
+    id::text,
+    created_at,
+    coalesce(customer_name, name, ''),
+    drink,
+    coalesce(temperature, temp, ''),
+    milk,
+    array_to_string(coalesce(syrups, '{}'::text[]), ', '),
+    notes,
+    status,
+    to_jsonb(orders)
   from orders;
 
   delete from orders;
