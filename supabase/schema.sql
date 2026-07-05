@@ -327,13 +327,13 @@ begin
 
   if input_is_open is not null then
     insert into settings (key, value)
-    values ('isOpen', case when input_is_open then '"true"' else '"false"' end)
+    values ('isOpen', to_jsonb(case when input_is_open then 'true' else 'false' end))
     on conflict (key) do update set value = excluded.value;
   end if;
 
   if input_message is not null then
     insert into settings (key, value)
-    values ('message', to_jsonb(input_message)::text)
+    values ('message', to_jsonb(input_message))
     on conflict (key) do update set value = excluded.value;
   end if;
 
