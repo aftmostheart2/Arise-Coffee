@@ -77,6 +77,9 @@ revoke all on inventory from anon;
 revoke all on settings from anon;
 revoke all on archived_orders from anon;
 
+drop function if exists arise_order(uuid);
+drop function if exists arise_update_status(text, uuid, text);
+
 create or replace function arise_setting(input_key text, fallback text default '')
 returns text
 language sql
@@ -224,7 +227,7 @@ as $$
   from active;
 $$;
 
-create or replace function arise_order(order_id uuid)
+create or replace function arise_order(order_id text)
 returns jsonb
 language plpgsql
 security definer
@@ -233,13 +236,13 @@ as $$
 declare
   found_order orders;
   found_position integer;
-  found_id uuid;
+  found_id text;
 begin
-  select id, position::integer
+  select id::text, position::integer
   into found_id, found_position
   from (
     select
-      id,
+      id::text as id,
       row_number() over (order by created_at) as position
     from orders
     where status <> 'complete'
@@ -248,10 +251,10 @@ begin
   limit 1;
 
   if found_id is null then
-    select id
+    select id::text
     into found_id
     from orders
-    where id = order_id
+    where id::text = order_id
       and status = 'complete'
     limit 1;
 
@@ -262,7 +265,7 @@ begin
     select orders
     into found_order
     from orders
-    where id = found_id
+    where id::text = found_id
     limit 1;
   end if;
 
@@ -284,7 +287,7 @@ security definer
 set search_path = public
 as $$
 declare
-  new_id uuid;
+  new_id text;
   order_state jsonb;
 begin
   if arise_setting('isOpen', 'true') <> 'true' then
@@ -301,7 +304,7 @@ begin
     coalesce(input_order->>'notes', ''),
     'waiting'
   )
-  returning id into new_id;
+  returning id::text into new_id;
 
   order_state := arise_order(new_id);
 
@@ -341,7 +344,7 @@ begin
 end;
 $$;
 
-create or replace function arise_update_status(input_pin text, order_id uuid, input_status text)
+create or replace function arise_update_status(input_pin text, order_id text, input_status text)
 returns jsonb
 language plpgsql
 security definer
@@ -357,7 +360,7 @@ begin
 
   update orders
   set status = input_status
-  where id = order_id
+  where id::text = order_id
   returning * into updated_order;
 
   if updated_order is null then
@@ -452,10 +455,10 @@ grant execute on function arise_status() to anon;
 grant execute on function arise_inventory() to anon;
 grant execute on function arise_login(text) to anon;
 grant execute on function arise_orders() to anon;
-grant execute on function arise_order(uuid) to anon;
+grant execute on function arise_order(text) to anon;
 grant execute on function arise_place_order(jsonb) to anon;
 grant execute on function arise_update_admin(text, boolean, text) to anon;
-grant execute on function arise_update_status(text, uuid, text) to anon;
+grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_update_inventory(text, text, boolean) to anon;
 grant execute on function arise_clear_completed(text) to anon;
 grant execute on function arise_clear_all(text) to anon;

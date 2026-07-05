@@ -67,7 +67,7 @@ export async function getOrders() {
 
 export async function getOrder(id) {
   try {
-    return await callRpc("arise_order", { order_id: id || null });
+    return await callRpc("arise_order", { order_id: id ? String(id) : null });
   } catch {
     return { ok: false, error: "Connection error" };
   }
@@ -114,7 +114,7 @@ export async function updateStatus(pin, id, status) {
   try {
     return await callRpc("arise_update_status", {
       input_pin: String(pin || ""),
-      order_id: id,
+      order_id: String(id || ""),
       input_status: status,
     });
   } catch {
