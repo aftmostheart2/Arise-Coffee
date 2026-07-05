@@ -264,7 +264,7 @@ begin
   end if;
 
   if found_id is not null then
-    select orders
+    select *
     into found_order
     from orders
     where id::text = found_id
