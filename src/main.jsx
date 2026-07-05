@@ -75,7 +75,7 @@ function isInventoryAvailable(inventoryLookup, item) {
 function statusLabel(status) {
   if (status === "making") return "Being made";
   if (status === "ready") return "Ready for pickup";
-  if (status === "complete") return "Complete";
+  if (status === "complete") return "Ready for pickup";
   return "Waiting";
 }
 
@@ -102,7 +102,7 @@ function ordersAheadText(position) {
 function statusEmoji(status) {
   if (status === "making") return "🟠";
   if (status === "ready") return "🟢";
-  if (status === "complete") return "✅";
+  if (status === "complete") return "🟢";
   return "🟡";
 }
 
@@ -299,7 +299,9 @@ function AdminPage() {
     try {
       const data = await apiPost({ action: "updateStatus", pin, id: orderId, status });
       if (data.ok) {
-        if (data.order) {
+        if (status === "complete") {
+          setOrders(current => current.filter(o => o.id !== orderId));
+        } else if (data.order) {
           setOrders(current => {
             const exists = current.some(o => o.id === data.order.id);
             return exists ? current.map(o => o.id === data.order.id ? data.order : o) : [...current, data.order];
@@ -354,7 +356,6 @@ function AdminPage() {
   }
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
-  const completed = orders.filter(o => o.status === "complete");
 
   return (
     <>
@@ -446,17 +447,11 @@ function AdminPage() {
               <div className="adminActions">
                 <button onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
                 <button onClick={() => updateStatus(o.id, "making")}>Start Making</button>
-                <button onClick={() => updateStatus(o.id, "ready")}>Mark Ready</button>
-                <button onClick={() => updateStatus(o.id, "complete")}>Complete</button>
+                <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
               </div>
             </div>
           ))}
         </section>
-
-        {completed.length > 0 && <section className="orders">
-          <h2>Completed</h2>
-          {completed.map(o => <div className="completedOrder" key={o.id}>{o.name} — {o.drink}</div>)}
-        </section>}
       </main>
     </>
   );
@@ -536,7 +531,10 @@ function CustomerPage() {
     setMyOrderPosition(nextPosition);
     setMyOrder({ ...found, position: nextPosition });
 
-    if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
+    const isReadyForPickup = ["ready", "complete"].includes(found.status);
+    const wasReadyForPickup = ["ready", "complete"].includes(previousStatusRef.current);
+
+    if (isReadyForPickup && !wasReadyForPickup && !readyAlertShown) {
       ringReadyAlert();
       setReadyAlertShown(true);
     }
@@ -866,15 +864,8 @@ function CustomerPage() {
                 )}
 
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
-                {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
-
-                {myOrder.status === "complete" && (
-                  <div className="completeBox">
-                    <strong>Thanks for supporting Arise Coffee!</strong>
-                    <p>See you next time ☕</p>
-                    <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>
-                  </div>
-                )}
+                {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
+                {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
               </div>
             );
           })()}
