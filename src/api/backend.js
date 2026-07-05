@@ -1,6 +1,6 @@
-import * as sheets from "./sheets";
+import * as supabaseBackend from "./supabase";
 
-const backend = sheets;
+const backend = supabaseBackend;
 
 export default backend;
 
