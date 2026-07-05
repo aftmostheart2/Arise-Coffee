@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import { apiGet, apiPost } from "./api/backend";
 
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzZondDOOrB3twVF7dScV02b4Mw2mrIEBf82g7BrcVLRmgBFjkt4uaWPlV27-PKq3Aymw/exec";
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
+const INVENTORY_CACHE_KEY = "arise-inventory-cache";
+const INVENTORY_CACHE_MS = 5 * 60 * 1000;
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -16,7 +18,7 @@ const DRINKS = [
   { id: "coldchoc", label: "Cold Chocolate Milk", desc: "Chilled chocolate milk", temps: ["Cold"], milk: true, syrups: false },
 ];
 
-const MILKS = ["Almond milk", "Oat milk", "Soy milk"];
+const MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
 const SYRUPS = ["Caramel", "Sugar Free Caramel", "Vanilla", "Sugar Free Vanilla", "Mocha", "White Chocolate", "Honey", "Cinnamon Powder", "Hazelnut"];
 const MAX_SYRUPS = 3;
 
@@ -28,6 +30,28 @@ function defaultForm() {
   return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
 }
 
+function defaultInventory() {
+  return {
+    syrups: SYRUPS.map(item => ({ item, type: "syrup", available: true })),
+    milks: MILKS.map(item => ({ item, type: "milk", available: true }))
+  };
+}
+
+function loadCachedInventory() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(INVENTORY_CACHE_KEY) || "null");
+    if (cached?.inventory && Date.now() - cached.savedAt < INVENTORY_CACHE_MS) return cached.inventory;
+  } catch {}
+  return defaultInventory();
+}
+
+function cacheInventory(inventory) {
+  try {
+    sessionStorage.setItem(INVENTORY_CACHE_KEY, JSON.stringify({ inventory, savedAt: Date.now() }));
+  } catch {}
+  return inventory;
+}
+
 function inventoryItemsByType(inventory, type, fallback) {
   const key = type + "s";
   const list = inventory?.[key];
@@ -35,29 +59,18 @@ function inventoryItemsByType(inventory, type, fallback) {
   return fallback.map(item => ({ item, type, available: true }));
 }
 
-function isInventoryAvailable(inventory, type, item) {
-  const fallback = type === "milk" ? MILKS : SYRUPS;
-  const found = inventoryItemsByType(inventory, type, fallback).find(x => x.item === item);
-  return found ? found.available !== false : true;
-}
-
-async function apiGet(action, params = {}) {
-  const url = new URL(BACKEND_URL);
-  if (action) url.searchParams.set("action", action);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  url.searchParams.set("t", Date.now());
-  const res = await fetch(url.toString());
-  return await res.json();
-}
-
-async function apiPost(payload) {
-  const res = await fetch(BACKEND_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
+function buildInventoryLookup(inventory) {
+  const lookup = {};
+  [...inventoryItemsByType(inventory, "syrup", SYRUPS), ...inventoryItemsByType(inventory, "milk", MILKS)].forEach(x => {
+    lookup[x.item] = x.available !== false;
   });
-  return await res.json();
+  return lookup;
 }
+
+function isInventoryAvailable(inventoryLookup, item) {
+  return inventoryLookup[item] !== false;
+}
+
 
 function statusLabel(status) {
   if (status === "making") return "Being made";
@@ -68,6 +81,41 @@ function statusLabel(status) {
 
 function estimateWaitMinutes(position) {
   return Math.max(0, Math.max(0, position - 1) * 3);
+}
+
+function waitText(position) {
+  const ahead = Math.max(0, position - 1);
+
+  if (ahead === 0) return "You're up next";
+
+  const minutes = ahead * 4;
+
+  return `Estimated wait: ~${minutes} min`;
+}
+
+function ordersAheadText(position) {
+  const ahead = Math.max(0, position - 1);
+  if (ahead === 0) return "No orders ahead of you.";
+  return `${ahead} order${ahead === 1 ? "" : "s"} ahead of you.`;
+}
+
+function statusEmoji(status) {
+  if (status === "making") return "🟠";
+  if (status === "ready") return "🟢";
+  if (status === "complete") return "✅";
+  return "🟡";
+}
+
+function normalizeOrderFromSingle(order) {
+  if (!order) return null;
+  const ordersAhead = Number(order.ordersAhead ?? order.ahead ?? NaN);
+  const position = Number(order.position || order.queuePosition || 0) || (Number.isFinite(ordersAhead) ? ordersAhead + 1 : undefined);
+  return {
+    ...order,
+    syrups: Array.isArray(order.syrups) ? order.syrups.join(", ") : order.syrups,
+    position,
+    ordersAhead
+  };
 }
 
 function ringReadyAlert() {
@@ -97,6 +145,7 @@ function ringReadyAlert() {
 }
 
 function Header({ isOpen, statusText }) {
+  const isAdminPage = window.location.pathname.toLowerCase().startsWith("/admin");
   return (
     <header>
       <a className="brand" href="/">
@@ -104,7 +153,7 @@ function Header({ isOpen, statusText }) {
         <div><h1>Arise Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
-      <a className="adminLink" href="/admin">Admin</a>
+      {!isAdminPage && <a className="adminLink" href="/admin">Admin</a>}
     </header>
   );
 }
@@ -118,7 +167,7 @@ function PinGate({ onSuccess }) {
     setBusy(true);
     setError("");
     try {
-      const result = await apiPost({ action: "admin", pin: value });
+      const result = await apiPost({ action: "login", pin: value });
       if (result.ok) onSuccess(value);
       else {
         setError("Wrong PIN");
@@ -138,7 +187,7 @@ function PinGate({ onSuccess }) {
         <p>Enter the PIN from the Settings tab.</p>
         <div className="pinDots">{[0,1,2,3].map(i => <span key={i} className={pin.length > i ? "filled" : ""} />)}</div>
         {error && <div className="errorText">{error}</div>}
-        {busy && <div className="muted small">Checking…</div>}
+        {busy && <div className="checkingLine"><span className="miniSpinner"></span>Checking PIN…</div>}
         <div className="numpad">
           {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((k, i) => (
             <button key={i} disabled={busy || k === ""} className={k === "" ? "hiddenKey" : ""} onClick={() => {
@@ -159,27 +208,71 @@ function AdminPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
-  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
+  const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const ordersLoadingRef = useRef(false);
+  const statusLoadingRef = useRef(false);
+  const inventoryLoadingRef = useRef(false);
 
-  async function refresh() {
+  async function refreshOrders() {
+    if (ordersLoadingRef.current) return;
+    ordersLoadingRef.current = true;
     try {
       const data = await apiGet("orders");
       if (data.ok) {
-        setIsOpen(Boolean(data.isOpen));
-        setMessage(data.message || "");
         setOrders(data.orders || []);
-        if (data.inventory) setInventory(data.inventory);
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
       }
-    } catch {}
+    } catch {
+    } finally {
+      ordersLoadingRef.current = false;
+    }
+  }
+
+  async function refreshStatus() {
+    if (statusLoadingRef.current) return;
+    statusLoadingRef.current = true;
+    try {
+      const data = await apiGet("status");
+      if (data.ok) {
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
+      }
+    } catch {
+    } finally {
+      statusLoadingRef.current = false;
+    }
+  }
+
+  async function refreshInventory() {
+    if (inventoryLoadingRef.current) return;
+    inventoryLoadingRef.current = true;
+    try {
+      const data = await apiGet("inventory");
+      if (data.ok && data.inventory) setInventory(cacheInventory(data.inventory));
+    } catch {
+    } finally {
+      inventoryLoadingRef.current = false;
+    }
+  }
+
+  async function refreshAdminData() {
+    await Promise.all([refreshOrders(), refreshStatus(), refreshInventory()]);
   }
 
   useEffect(() => {
     if (!pin) return;
-    refresh();
-    const id = setInterval(refresh, 5000);
-    return () => clearInterval(id);
+    refreshAdminData();
+    const ordersId = setInterval(refreshOrders, 3000);
+    const statusId = setInterval(refreshStatus, 6000);
+    const inventoryId = setInterval(refreshInventory, 60000);
+    return () => {
+      clearInterval(ordersId);
+      clearInterval(statusId);
+      clearInterval(inventoryId);
+    };
   }, [pin]);
 
   async function saveAdmin(payload) {
@@ -189,7 +282,9 @@ function AdminPage() {
       const data = await apiPost({ action: "admin", pin, ...payload });
       if (data.ok) {
         setNotice("Saved");
-        await refresh();
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
+        if (Array.isArray(data.orders)) setOrders(data.orders);
       } else setNotice(data.error || "Could not save");
     } catch { setNotice("Connection error"); }
     setBusy(false);
@@ -199,7 +294,16 @@ function AdminPage() {
     setBusy(true);
     try {
       const data = await apiPost({ action: "updateStatus", pin, id: orderId, status });
-      if (data.ok) setOrders(data.orders || []);
+      if (data.ok) {
+        if (data.order) {
+          setOrders(current => {
+            const exists = current.some(o => o.id === data.order.id);
+            return exists ? current.map(o => o.id === data.order.id ? data.order : o) : [...current, data.order];
+          });
+        } else {
+          setOrders(data.orders || []);
+        }
+      }
       else alert(data.error || "Could not update order");
     } catch { alert("Connection error"); }
     setBusy(false);
@@ -210,8 +314,7 @@ function AdminPage() {
     try {
       const data = await apiPost({ action: "setInventory", pin, item, available });
       if (data.ok) {
-        setInventory(data.inventory || inventory);
-        await refresh();
+        setInventory(data.inventory ? cacheInventory(data.inventory) : inventory);
       } else {
         alert(data.error || "Could not update inventory");
       }
@@ -279,7 +382,7 @@ function AdminPage() {
         </section>
 
         <section className="toolbar">
-          <button className="ghostBtn" onClick={refresh}>Refresh</button>
+          <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
           <button className="ghostBtn" onClick={clearCompleted}>Clear completed</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
@@ -367,7 +470,7 @@ function DonationModal({ onClose }) {
   }
 
   return (
-    <div className="modalOverlay">
+    <div className="modalOverlay donationOverlay">
       <div className="donationModal">
         <div className="donationIcon">☕</div>
         <h2>Support HTC</h2>
@@ -394,52 +497,120 @@ function DonationModal({ onClose }) {
 }
 
 function CustomerPage() {
-  const [form, setForm] = useState(defaultForm());
+  const [form, setForm] = useState(() => {
+    const savedName = localStorage.getItem("arise-customer-name") || "";
+    return { ...defaultForm(), name: savedName };
+  });
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
-  const [orders, setOrders] = useState([]);
-  const [inventory, setInventory] = useState({ syrups: [], milks: [] });
+  const [inventory, setInventory] = useState(loadCachedInventory);
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
+  const [myOrderPosition, setMyOrderPosition] = useState(1);
   const [busy, setBusy] = useState(false);
   const [showDonation, setShowDonation] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
+  const submittingRef = useRef(false);
+  const orderLoadingRef = useRef(false);
+  const statusLoadingRef = useRef(false);
+  const inventoryLoadingRef = useRef(false);
   const previousStatusRef = useRef("");
   const nameRef = useRef(null);
 
   const drink = getDrink(form.drinkId);
+  const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
 
-  async function refresh() {
+  function updateMyOrder(order, positionFromResponse) {
+    const found = normalizeOrderFromSingle(order);
+    if (!found) {
+      setMyOrder(null);
+      return;
+    }
+
+    const nextPosition = found.position || Number(positionFromResponse || 0) || 1;
+    setMyOrderPosition(nextPosition);
+    setMyOrder({ ...found, position: nextPosition });
+
+    if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
+      ringReadyAlert();
+      setReadyAlertShown(true);
+    }
+
+    previousStatusRef.current = found.status;
+  }
+
+  async function refreshOrder() {
+    if (!myOrderId) return;
+    if (orderLoadingRef.current) return;
+    orderLoadingRef.current = true;
     try {
-      const data = await apiGet("orders");
+      const data = await apiGet("order", { id: myOrderId });
+      if (data.ok === false) return;
+      if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+      if (typeof data.message === "string") setMessage(data.message || "");
+      if (data.inventory) setInventory(cacheInventory(data.inventory));
+      updateMyOrder(data.order, data.position);
+      refreshInventoryOnly();
+    } catch {
+    } finally {
+      orderLoadingRef.current = false;
+    }
+  }
+
+  async function refreshInitialCustomerData() {
+    try {
+      const data = await apiGet();
+      if (data.ok) {
+        if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+        if (typeof data.message === "string") setMessage(data.message || "");
+      }
+    } catch {}
+    await refreshInventoryOnly();
+  }
+
+  async function refreshInventoryOnly() {
+    if (inventoryLoadingRef.current) return;
+    inventoryLoadingRef.current = true;
+    try {
+      const data = await apiGet("inventory");
+      if (data.ok && data.inventory) setInventory(cacheInventory(data.inventory));
+    } catch {
+    } finally {
+      inventoryLoadingRef.current = false;
+    }
+  }
+
+  async function refreshStatusOnly() {
+    if (statusLoadingRef.current) return isOpen;
+    statusLoadingRef.current = true;
+    try {
+      const data = await apiGet("status");
       if (data.ok) {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
-        setOrders(data.orders || []);
-        if (data.inventory) setInventory(data.inventory);
-        if (myOrderId) {
-          const found = (data.orders || []).find(o => o.id === myOrderId);
-          if (found) {
-            setMyOrder(found);
-            if (found.status === "ready" && previousStatusRef.current !== "ready" && !readyAlertShown) {
-              ringReadyAlert();
-              setReadyAlertShown(true);
-            }
-            previousStatusRef.current = found.status;
-          } else {
-            const single = await apiGet("order", { id: myOrderId });
-            setMyOrder(single.order || null);
-          }
-        }
+        return Boolean(data.isOpen);
       }
-    } catch {}
+    } catch {
+    } finally {
+      statusLoadingRef.current = false;
+    }
+    return isOpen;
   }
 
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 5000);
-    return () => clearInterval(id);
+    if (myOrderId) refreshOrder();
+    else refreshInitialCustomerData();
+
+    const orderId = myOrderId ? setInterval(refreshOrder, 6000) : null;
+    const inventoryId = setInterval(refreshInventoryOnly, 60000);
+    const statusId = setInterval(refreshStatusOnly, 6000);
+
+    return () => {
+      if (orderId) clearInterval(orderId);
+      clearInterval(inventoryId);
+      clearInterval(statusId);
+    };
   }, [myOrderId]);
 
   useEffect(() => {
@@ -460,24 +631,33 @@ function CustomerPage() {
     const e = {};
     if (!form.name.trim()) e.name = "Please enter your name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
-    if (form.milk && !isInventoryAvailable(inventory, "milk", form.milk)) e.milk = form.milk + " is out of stock";
-    const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventory, "syrup", s));
+    if (form.milk && !isInventoryAvailable(inventoryLookup, form.milk)) e.milk = form.milk + " is out of stock";
+    const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventoryLookup, s));
     if (outSyrup) e.syrups = outSyrup + " is out of stock";
     return e;
   }
 
   async function submit() {
-    await refresh();
-    if (!isOpen) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setBusy(true);
+
+    const queueIsOpen = await refreshStatusOnly();
+    if (!queueIsOpen) {
+      setBusy(false);
+      submittingRef.current = false;
+      return;
+    }
 
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
       if (e.name) nameRef.current?.focus();
+      setBusy(false);
+      submittingRef.current = false;
       return;
     }
 
-    setBusy(true);
     try {
       const data = await apiPost({
         action: "order",
@@ -492,15 +672,18 @@ function CustomerPage() {
 
       if (!data.ok) {
         alert(data.error || "Could not place order");
-        await refresh();
+        await refreshStatusOnly();
         setBusy(false);
+        submittingRef.current = false;
         return;
       }
 
+      localStorage.setItem("arise-customer-name", form.name.trim());
       localStorage.setItem("coffee-my-order-id", data.id);
       setReadyAlertShown(false);
       previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
+      setMyOrderPosition(Number(data.position || 1));
       setMyOrder({
         id: data.id,
         name: form.name.trim(),
@@ -509,21 +692,23 @@ function CustomerPage() {
         milk: form.milk,
         syrups: form.syrups.join(", "),
         notes: form.notes,
-        status: "waiting"
+        status: "waiting",
+        position: Number(data.position || 1)
       });
       setForm(defaultForm());
       setShowDonation(true);
-      await refresh();
     } catch {
       alert("Connection error. Try again.");
     }
     setBusy(false);
+    submittingRef.current = false;
   }
 
   function clearMyTicket() {
     localStorage.removeItem("coffee-my-order-id");
     setMyOrderId("");
     setMyOrder(null);
+    setMyOrderPosition(1);
   }
 
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
@@ -535,7 +720,7 @@ function CustomerPage() {
         <div className="closedIcon">🚫</div>
         <h1>We're closed</h1>
         <p>{message || "Orders aren't being taken right now. Check back soon!"}</p>
-        <button className="ghostBtn" onClick={refresh}>Refresh status</button>
+        <button className="ghostBtn" onClick={refreshStatusOnly}>Refresh status</button>
       </main>
     </>;
   }
@@ -545,33 +730,6 @@ function CustomerPage() {
       <Header isOpen={isOpen} />
       <main className="layout">
         <section className="formCol">
-          {myOrder && (() => {
-            const currentPosition = Math.max(1, orders.findIndex(o => o.id === myOrder.id) + 1);
-            const wait = estimateWaitMinutes(currentPosition);
-            return (
-              <div className={"myTicket " + myOrder.status}>
-                <div className="label gold">Your Order</div>
-                <div className="ticketLine">
-                  <div className="queueNumSmall">#{String(currentPosition).padStart(3, "0")}</div>
-                  <div>
-                    <strong>{statusLabel(myOrder.status)}</strong>
-                    <p>{myOrder.temp} {myOrder.drink}{myOrder.milk ? ` · ${myOrder.milk}` : ""}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
-                  </div>
-                </div>
-
-                <div className="statusSteps">
-                  <span className={["waiting","making","ready","complete"].includes(myOrder.status) ? "done" : ""}>Received</span>
-                  <span className={["making","ready","complete"].includes(myOrder.status) ? "done" : ""}>Making</span>
-                  <span className={["ready","complete"].includes(myOrder.status) ? "done" : ""}>Ready</span>
-                </div>
-
-                {myOrder.status === "waiting" && <div className="waitEstimate">{currentPosition - 1} order{currentPosition - 1 === 1 ? "" : "s"} ahead · about {wait} min</div>}
-                {myOrder.status === "making" && <div className="makingNotice">Your drink is being made now.</div>}
-                {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
-                {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Clear my ticket</button>}
-              </div>
-            );
-          })()}
 
           <h2>Place your order</h2>
           <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
@@ -650,18 +808,71 @@ function CustomerPage() {
           )}
         </section>
 
-        <section className="queueCol">
-          <h2>Live Queue</h2>
-          <p className="sub">{orders.length === 0 ? "No active orders." : `${orders.length} active order${orders.length > 1 ? "s" : ""}`}</p>
-          {orders.length === 0 ? <div className="empty"><div>☕</div><p>The queue is empty.</p></div> : orders.map((o, idx) => (
-            <div className={"queueItem " + o.status} key={o.id}>
-              <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
-              <div>
-                <strong>{o.name}</strong>
-                <p>{o.temp} {o.drink} · {statusLabel(o.status)}{o.status === "waiting" ? ` · ~${estimateWaitMinutes(idx + 1)} min` : ""}</p>
-              </div>
+        <section className="queueCol privateStatusCol">
+          <h2>Order Status</h2>
+          <p className="sub">This screen only shows your order.</p>
+
+          {!myOrder ? (
+            <div className="empty privateEmpty">
+              <div>☕</div>
+              <p>Place an order and your live status will appear here.</p>
             </div>
-          ))}
+          ) : (() => {
+            const currentPosition = Math.max(1, Number(myOrder.position || myOrderPosition || 1));
+            return (
+              <div className={"customerStatusCard " + myOrder.status}>
+                <div className="statusHero">
+                  <span>{statusEmoji(myOrder.status)}</span>
+                  <div>
+                    <div className="label gold">Your Order</div>
+                    <h3>#{String(currentPosition).padStart(3, "0")}</h3>
+                  </div>
+                </div>
+
+                <div className="statusBig">{statusLabel(myOrder.status)}</div>
+
+                <div className="customerDrinkSummary">
+                  <strong>{myOrder.temp} {myOrder.drink}</strong>
+                  <p>{myOrder.milk ? myOrder.milk : "No milk"}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
+                  {myOrder.notes && <em>"{myOrder.notes}"</em>}
+                </div>
+
+                <div className="progressRail">
+                  <div className={["waiting","making","ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
+                    <span>✓</span>
+                    <p>Received</p>
+                  </div>
+                  <div className={["making","ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
+                    <span>{["making","ready","complete"].includes(myOrder.status) ? "✓" : "○"}</span>
+                    <p>Making</p>
+                  </div>
+                  <div className={["ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
+                    <span>{["ready","complete"].includes(myOrder.status) ? "✓" : "○"}</span>
+                    <p>Ready</p>
+                  </div>
+                </div>
+
+                {myOrder.status === "waiting" && (
+                  <div className="etaBox">
+                    <strong>{waitText(currentPosition)}</strong>
+                    <span>{ordersAheadText(currentPosition)}</span>
+                    <small>Wait times are estimates and may vary.</small>
+                  </div>
+                )}
+
+                {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
+                {myOrder.status === "ready" && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
+
+                {myOrder.status === "complete" && (
+                  <div className="completeBox">
+                    <strong>Thanks for supporting Arise Coffee!</strong>
+                    <p>See you next time ☕</p>
+                    <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </section>
       </main>
       {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
