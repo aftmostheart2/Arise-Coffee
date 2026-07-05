@@ -13,12 +13,25 @@ create table if not exists orders (
   status text not null default 'waiting'
 );
 
+alter table orders add column if not exists created_at timestamptz not null default now();
+alter table orders add column if not exists customer_name text;
+alter table orders add column if not exists drink text;
+alter table orders add column if not exists temperature text;
+alter table orders add column if not exists milk text;
+alter table orders add column if not exists syrups text[] default '{}';
+alter table orders add column if not exists notes text;
+alter table orders add column if not exists status text not null default 'waiting';
+
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
   item text not null unique,
   type text not null check (type in ('syrup', 'milk')),
   available boolean not null default true
 );
+
+alter table inventory add column if not exists item text;
+alter table inventory add column if not exists type text;
+alter table inventory add column if not exists available boolean not null default true;
 
 create table if not exists settings (
   key text primary key,
