@@ -233,25 +233,36 @@ as $$
 declare
   found_order orders;
   found_position integer;
+  found_id uuid;
 begin
-  select order_row, position::integer
-  into found_order, found_position
+  select id, position::integer
+  into found_id, found_position
   from (
     select
-      orders as order_row,
+      id,
       row_number() over (order by created_at) as position
     from orders
     where status <> 'complete'
   ) active
-  where (order_row).id = order_id
+  where id = order_id
   limit 1;
 
-  if found_order is null then
-    select orders, null::integer
-    into found_order, found_position
+  if found_id is null then
+    select id
+    into found_id
     from orders
     where id = order_id
       and status = 'complete'
+    limit 1;
+
+    found_position := null;
+  end if;
+
+  if found_id is not null then
+    select orders
+    into found_order
+    from orders
+    where id = found_id
     limit 1;
   end if;
 
