@@ -39,7 +39,16 @@ function mapInventory(rows = []) {
 
 function settingValue(settings, key, fallback = "") {
   const found = settings.find((row) => row.key === key);
-  return found ? found.value : fallback;
+  if (!found) return fallback;
+
+  const value = found.value;
+
+  if (typeof value === "string") return value;
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return String(value);
+  if (value === null || value === undefined) return fallback;
+
+  return String(value);
 }
 
 async function readSettings() {
