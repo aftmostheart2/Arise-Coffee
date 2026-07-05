@@ -118,6 +118,10 @@ function normalizeOrderFromSingle(order) {
   };
 }
 
+function hasFirstAndLastName(name) {
+  return name.trim().split(/\s+/).filter(Boolean).length >= 2;
+}
+
 function ringReadyAlert() {
   try {
     if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
@@ -630,6 +634,7 @@ function CustomerPage() {
   function validate() {
     const e = {};
     if (!form.name.trim()) e.name = "Please enter your name";
+    else if (!hasFirstAndLastName(form.name)) e.name = "Please enter first and last name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
     if (form.milk && !isInventoryAvailable(inventoryLookup, form.milk)) e.milk = form.milk + " is out of stock";
     const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventoryLookup, s));
@@ -738,7 +743,7 @@ function CustomerPage() {
             <>
               <div className="field">
                 {lbl("Your name")}
-                <input ref={nameRef} value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setErrors(er => ({...er, name: ""})); }} placeholder="e.g. Alex" />
+                <input ref={nameRef} value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setErrors(er => ({...er, name: ""})); }} placeholder="e.g. Alex Morgan" />
                 {errors.name && <div className="errorText">{errors.name}</div>}
               </div>
 
