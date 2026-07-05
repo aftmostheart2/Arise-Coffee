@@ -49,9 +49,9 @@ insert into inventory (item, type, available) values
 on conflict (item) do nothing;
 
 insert into settings (key, value) values
-('pin','8246'),
-('isOpen','true'),
-('message','')
+('pin','"8246"'),
+('isOpen','"true"'),
+('message','""')
 on conflict (key) do nothing;
 
 alter table orders enable row level security;
@@ -73,7 +73,7 @@ set search_path = public
 as $$
   select coalesce(
     (
-      select value
+      select trim(both '"' from value::text)
       from settings
       where key = input_key
       limit 1
@@ -303,13 +303,13 @@ begin
 
   if input_is_open is not null then
     insert into settings (key, value)
-    values ('isOpen', case when input_is_open then 'true' else 'false' end)
+    values ('isOpen', case when input_is_open then '"true"' else '"false"' end)
     on conflict (key) do update set value = excluded.value;
   end if;
 
   if input_message is not null then
     insert into settings (key, value)
-    values ('message', input_message)
+    values ('message', to_jsonb(input_message)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
