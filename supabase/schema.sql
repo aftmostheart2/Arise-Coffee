@@ -131,15 +131,15 @@ as $$
   select case
     when input_order is null then 'null'::jsonb
     else jsonb_build_object(
-      'id', input_order.id,
-      'time', input_order.created_at,
-      'name', input_order.customer_name,
-      'drink', input_order.drink,
-      'temp', input_order.temperature,
-      'milk', coalesce(input_order.milk, ''),
-      'syrups', array_to_string(coalesce(input_order.syrups, '{}'::text[]), ', '),
-      'notes', coalesce(input_order.notes, ''),
-      'status', coalesce(input_order.status, 'waiting'),
+      'id', (input_order).id,
+      'time', (input_order).created_at,
+      'name', (input_order).customer_name,
+      'drink', (input_order).drink,
+      'temp', (input_order).temperature,
+      'milk', coalesce((input_order).milk, ''),
+      'syrups', array_to_string(coalesce((input_order).syrups, '{}'::text[]), ', '),
+      'notes', coalesce((input_order).notes, ''),
+      'status', coalesce((input_order).status, 'waiting'),
       'position', input_position,
       'ordersAhead', case when input_position is null then null else greatest(0, input_position - 1) end
     )
