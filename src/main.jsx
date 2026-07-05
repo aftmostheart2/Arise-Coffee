@@ -20,7 +20,7 @@ const DRINKS = [
 
 const MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
 const SYRUPS = ["Caramel", "Sugar Free Caramel", "Vanilla", "Sugar Free Vanilla", "Mocha", "White Chocolate", "Honey", "Cinnamon Powder", "Hazelnut"];
-const MAX_SYRUPS = 3;
+const MAX_SYRUPS = 2;
 
 function getDrink(id) {
   return DRINKS.find(d => d.id === id) || DRINKS[1];
