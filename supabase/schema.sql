@@ -14,8 +14,10 @@ create table if not exists orders (
 );
 
 alter table orders add column if not exists created_at timestamptz not null default now();
+alter table orders add column if not exists name text;
 alter table orders add column if not exists customer_name text;
 alter table orders add column if not exists drink text;
+alter table orders add column if not exists temp text;
 alter table orders add column if not exists temperature text;
 alter table orders add column if not exists milk text;
 alter table orders add column if not exists syrups text[] default '{}';
@@ -149,9 +151,9 @@ as $$
     else jsonb_build_object(
       'id', (input_order).id,
       'time', (input_order).created_at,
-      'name', (input_order).customer_name,
+      'name', coalesce((input_order).customer_name, (input_order).name, ''),
       'drink', (input_order).drink,
-      'temp', (input_order).temperature,
+      'temp', coalesce((input_order).temperature, (input_order).temp, ''),
       'milk', coalesce((input_order).milk, ''),
       'syrups', array_to_string(coalesce((input_order).syrups, '{}'::text[]), ', '),
       'notes', coalesce((input_order).notes, ''),
@@ -294,10 +296,12 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Queue closed');
   end if;
 
-  insert into orders (customer_name, drink, temperature, milk, syrups, notes, status)
+  insert into orders (name, customer_name, drink, temp, temperature, milk, syrups, notes, status)
   values (
     coalesce(input_order->>'name', ''),
+    coalesce(input_order->>'name', ''),
     coalesce(input_order->>'drink', ''),
+    coalesce(input_order->>'temp', ''),
     coalesce(input_order->>'temp', ''),
     coalesce(input_order->>'milk', ''),
     coalesce(array(select jsonb_array_elements_text(coalesce(input_order->'syrups', '[]'::jsonb))), '{}'::text[]),
