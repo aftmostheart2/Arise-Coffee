@@ -372,7 +372,7 @@ function AdminPage() {
         <section className="adminTop">
           <div>
             <h2>Admin Control</h2>
-            <p className="sub">Orders update from the Google Sheet.</p>
+            <p className="sub">Orders update automatically.</p>
           </div>
           <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
         </section>
