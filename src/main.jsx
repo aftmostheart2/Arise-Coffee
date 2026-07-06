@@ -218,6 +218,13 @@ function AdminPage() {
   const ordersLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
+  const messageEditingRef = useRef(false);
+
+  function syncAdminMessage(nextMessage) {
+    if (!messageEditingRef.current && typeof nextMessage === "string") {
+      setMessage(nextMessage || "");
+    }
+  }
 
   async function refreshOrders() {
     if (ordersLoadingRef.current) return;
@@ -227,7 +234,7 @@ function AdminPage() {
       if (data.ok) {
         setOrders(data.orders || []);
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
-        if (typeof data.message === "string") setMessage(data.message || "");
+        syncAdminMessage(data.message);
       }
     } catch {
     } finally {
@@ -242,7 +249,7 @@ function AdminPage() {
       const data = await apiGet("status");
       if (data.ok) {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
-        if (typeof data.message === "string") setMessage(data.message || "");
+        syncAdminMessage(data.message);
       }
     } catch {
     } finally {
@@ -286,6 +293,7 @@ function AdminPage() {
       const data = await apiPost({ action: "admin", pin, ...payload });
       if (data.ok) {
         setNotice("Saved");
+        messageEditingRef.current = false;
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
         if (Array.isArray(data.orders)) setOrders(data.orders);
@@ -381,7 +389,16 @@ function AdminPage() {
 
         <section className="panel">
           <div className="label">Closed message</div>
-          <textarea value={message} onChange={e => setMessage(e.target.value)} rows={2} />
+          <textarea
+            value={message}
+            onFocus={() => { messageEditingRef.current = true; }}
+            onBlur={() => { messageEditingRef.current = false; }}
+            onChange={e => {
+              messageEditingRef.current = true;
+              setMessage(e.target.value);
+            }}
+            rows={2}
+          />
           <button className="primaryBtn" disabled={busy} onClick={() => saveAdmin({ isOpen, message })}>Save message</button>
           {notice && <div className="notice">{notice}</div>}
         </section>
