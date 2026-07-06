@@ -520,6 +520,65 @@ begin
 end;
 $$;
 
+create or replace function arise_archive(input_pin text, input_limit integer default 25)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when not arise_pin_matches(input_pin) then jsonb_build_object('ok', false, 'error', 'Wrong PIN')
+    else jsonb_build_object(
+      'ok', true,
+      'archive', coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'id', id,
+              'archivedAt', archived_at,
+              'originalOrderId', coalesce(original_order_id_text, original_order_id::text),
+              'time', original_created_at,
+              'name', coalesce(customer_name, ''),
+              'drink', coalesce(drink, ''),
+              'temp', coalesce(temperature, ''),
+              'milk', coalesce(milk, ''),
+              'syrups', coalesce(syrups, ''),
+              'notes', coalesce(notes, ''),
+              'status', coalesce(status, '')
+            )
+            order by archived_at desc
+          )
+          from (
+            select *
+            from archived_orders
+            order by archived_at desc
+            limit greatest(1, least(coalesce(input_limit, 25), 50))
+          ) recent_archive
+        ),
+        '[]'::jsonb
+      )
+    )
+  end;
+$$;
+
+create or replace function arise_clear_archive(input_pin text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+
+  delete from archived_orders;
+
+  return jsonb_build_object('ok', true, 'archive', '[]'::jsonb);
+end;
+$$;
+
 grant execute on function arise_status() to anon;
 grant execute on function arise_inventory() to anon;
 grant execute on function arise_login(text) to anon;
@@ -531,3 +590,5 @@ grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_update_inventory(text, text, boolean) to anon;
 grant execute on function arise_clear_completed(text) to anon;
 grant execute on function arise_clear_all(text) to anon;
+grant execute on function arise_archive(text, integer) to anon;
+grant execute on function arise_clear_archive(text) to anon;

@@ -107,6 +107,15 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .adminActions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
 .adminActions button{padding:9px;border-radius:4px;border:1px solid rgba(200,130,58,.2);background:#2C1400;color:#A08060}
 .completedOrder{padding:10px;border-bottom:1px solid rgba(200,130,58,.1);color:#8A9B8E;font-size:13px}
+.archivePanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:16px;margin-bottom:24px}
+.archiveHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.archiveHeader h2{font-size:20px;margin-bottom:4px}
+.archiveActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.archiveList{display:flex;flex-direction:column;gap:8px}
+.archiveOrder{display:flex;justify-content:space-between;gap:12px;background:#2C1400;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:12px}
+.archiveOrder strong{font-size:13px;color:#FFF8F0}
+.archiveOrder p,.archiveOrder em,.archiveOrder span{display:block;color:#8A9B8E;font-size:12px;margin-top:3px}
+.archiveOrder span{white-space:nowrap;text-align:right;color:#5A3A20}
 
 @media(max-width:760px){
   header{padding:13px 16px}
@@ -117,6 +126,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   .drink span{display:block;margin-left:0;margin-top:3px}
   .adminActions{grid-template-columns:repeat(2,1fr)}
   .adminTop{align-items:flex-start}
+  .archiveHeader,.archiveOrder{flex-direction:column}
+  .archiveActions{justify-content:flex-start}
+  .archiveOrder span{text-align:left;white-space:normal}
 }
 
 

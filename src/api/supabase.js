@@ -37,6 +37,8 @@ export async function apiPost(payload) {
   if (payload.action === "setInventory") return updateInventory(payload.pin, payload.item, payload.available);
   if (payload.action === "clearCompleted") return clearCompleted(payload.pin);
   if (payload.action === "clearAll") return clearAll(payload.pin);
+  if (payload.action === "archive") return getArchive(payload.pin);
+  if (payload.action === "clearArchive") return clearArchive(payload.pin);
 
   return { ok: false, error: "Unknown action" };
 }
@@ -145,6 +147,22 @@ export async function clearCompleted(pin) {
 export async function clearAll(pin) {
   try {
     return await callRpc("arise_clear_all", { input_pin: String(pin || "") });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function getArchive(pin) {
+  try {
+    return await callRpc("arise_archive", { input_pin: String(pin || ""), input_limit: 25 });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function clearArchive(pin) {
+  try {
+    return await callRpc("arise_clear_archive", { input_pin: String(pin || "") });
   } catch {
     return { ok: false, error: "Connection error" };
   }

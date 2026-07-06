@@ -212,9 +212,13 @@ function AdminPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [orders, setOrders] = useState([]);
+  const [archive, setArchive] = useState([]);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoaded, setArchiveLoaded] = useState(false);
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [archiveBusy, setArchiveBusy] = useState(false);
   const ordersLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
@@ -356,6 +360,37 @@ function AdminPage() {
     else alert(data.error || "Could not clear all");
   }
 
+  async function loadArchive() {
+    setArchiveBusy(true);
+    const data = await apiPost({ action: "archive", pin });
+    if (data.ok) {
+      setArchive(data.archive || []);
+      setArchiveLoaded(true);
+    } else {
+      alert(data.error || "Could not load archive");
+    }
+    setArchiveBusy(false);
+  }
+
+  async function toggleArchive() {
+    const nextOpen = !archiveOpen;
+    setArchiveOpen(nextOpen);
+    if (nextOpen && !archiveLoaded) await loadArchive();
+  }
+
+  async function clearArchive() {
+    if (!confirm("Clear archive? This permanently deletes archived orders.")) return;
+    setArchiveBusy(true);
+    const data = await apiPost({ action: "clearArchive", pin });
+    if (data.ok) {
+      setArchive([]);
+      setArchiveLoaded(true);
+    } else {
+      alert(data.error || "Could not clear archive");
+    }
+    setArchiveBusy(false);
+  }
+
   if (!pin) {
     return <>
       <Header isOpen={isOpen} statusText="Admin" />
@@ -406,8 +441,43 @@ function AdminPage() {
         <section className="toolbar">
           <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
           <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders</button>
+          <button className="ghostBtn" onClick={toggleArchive}>{archiveOpen ? "Hide archive" : "Archive"}</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
+
+        {archiveOpen && (
+          <section className="archivePanel">
+            <div className="archiveHeader">
+              <div>
+                <h2>Archive</h2>
+                <p className="sub">Latest 25 archived orders.</p>
+              </div>
+              <div className="archiveActions">
+                <button className="ghostBtn" disabled={archiveBusy} onClick={loadArchive}>Refresh</button>
+                <button className="dangerOutlineBtn" disabled={archiveBusy || archive.length === 0} onClick={clearArchive}>Clear archive</button>
+              </div>
+            </div>
+
+            {archiveBusy ? (
+              <div className="empty smallEmpty">Loading archive...</div>
+            ) : archive.length === 0 ? (
+              <div className="empty smallEmpty">No archived orders.</div>
+            ) : (
+              <div className="archiveList">
+                {archive.map(item => (
+                  <div className="archiveOrder" key={item.id}>
+                    <div>
+                      <strong>{item.name || "Unnamed order"}</strong>
+                      <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
+                      {item.notes && <em>"{item.notes}"</em>}
+                    </div>
+                    <span>{item.archivedAt ? new Date(item.archivedAt).toLocaleString() : ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="inventoryPanel">
           <h2>Syrup & Milk Inventory</h2>
