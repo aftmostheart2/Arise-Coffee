@@ -581,6 +581,81 @@ begin
 end;
 $$;
 
+create or replace function arise_analytics(input_pin text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with base as (
+    select
+      nullif(trim(coalesce(drink, '')), '') as drink,
+      nullif(trim(coalesce(temperature, '')), '') as temperature,
+      nullif(trim(coalesce(milk, '')), '') as milk,
+      nullif(trim(coalesce(syrups, '')), '') as syrups
+    from archived_orders
+  ),
+  syrup_items as (
+    select nullif(trim(syrup_value), '') as syrup
+    from base
+    cross join lateral regexp_split_to_table(coalesce(base.syrups, ''), '\s*,\s*') as syrup_value
+  )
+  select case
+    when not arise_pin_matches(input_pin) then jsonb_build_object('ok', false, 'error', 'Wrong PIN')
+    else jsonb_build_object(
+      'ok', true,
+      'analytics', jsonb_build_object(
+        'totalOrders', (select count(*) from archived_orders),
+        'hotOrders', (select count(*) from base where lower(temperature) = 'hot'),
+        'coldOrders', (select count(*) from base where lower(temperature) = 'cold'),
+        'topDrinks', coalesce(
+          (
+            select jsonb_agg(jsonb_build_object('item', drink, 'count', count) order by count desc, drink)
+            from (
+              select drink, count(*) as count
+              from base
+              where drink is not null
+              group by drink
+              order by count desc, drink
+              limit 5
+            ) ranked_drinks
+          ),
+          '[]'::jsonb
+        ),
+        'topMilks', coalesce(
+          (
+            select jsonb_agg(jsonb_build_object('item', milk, 'count', count) order by count desc, milk)
+            from (
+              select milk, count(*) as count
+              from base
+              where milk is not null
+              group by milk
+              order by count desc, milk
+              limit 5
+            ) ranked_milks
+          ),
+          '[]'::jsonb
+        ),
+        'topSyrups', coalesce(
+          (
+            select jsonb_agg(jsonb_build_object('item', syrup, 'count', count) order by count desc, syrup)
+            from (
+              select syrup, count(*) as count
+              from syrup_items
+              where syrup is not null
+              group by syrup
+              order by count desc, syrup
+              limit 5
+            ) ranked_syrups
+          ),
+          '[]'::jsonb
+        )
+      )
+    )
+  end;
+$$;
+
 grant execute on function arise_status() to anon;
 grant execute on function arise_inventory() to anon;
 grant execute on function arise_login(text) to anon;
@@ -594,3 +669,4 @@ grant execute on function arise_clear_completed(text) to anon;
 grant execute on function arise_clear_all(text) to anon;
 grant execute on function arise_archive(text, integer) to anon;
 grant execute on function arise_clear_archive(text) to anon;
+grant execute on function arise_analytics(text) to anon;

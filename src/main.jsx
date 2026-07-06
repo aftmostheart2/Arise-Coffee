@@ -215,10 +215,14 @@ function AdminPage() {
   const [archive, setArchive] = useState([]);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveLoaded, setArchiveLoaded] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
+  const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const ordersLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
@@ -401,6 +405,29 @@ function AdminPage() {
     }
   }
 
+  async function loadAnalytics() {
+    setAnalyticsBusy(true);
+    try {
+      const data = await apiPost({ action: "analytics", pin });
+      if (data.ok) {
+        setAnalytics(data.analytics || null);
+        setAnalyticsLoaded(true);
+      } else {
+        alert(data.error || "Could not load analytics");
+      }
+    } catch {
+      alert("Connection error");
+    } finally {
+      setAnalyticsBusy(false);
+    }
+  }
+
+  async function toggleAnalytics() {
+    const nextOpen = !analyticsOpen;
+    setAnalyticsOpen(nextOpen);
+    if (nextOpen && !analyticsLoaded) await loadAnalytics();
+  }
+
   if (!pin) {
     return <>
       <Header isOpen={isOpen} statusText="Admin" />
@@ -452,6 +479,7 @@ function AdminPage() {
           <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
           <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders</button>
           <button className="ghostBtn" onClick={toggleArchive}>{archiveOpen ? "Hide archive" : "Archive"}</button>
+          <button className="ghostBtn" onClick={toggleAnalytics}>{analyticsOpen ? "Hide analytics" : "Analytics"}</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
 
@@ -485,6 +513,49 @@ function AdminPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </section>
+        )}
+
+        {analyticsOpen && (
+          <section className="analyticsPanel">
+            <div className="archiveHeader">
+              <div>
+                <h2>Analytics</h2>
+                <p className="sub">Based on archived orders.</p>
+              </div>
+              <div className="archiveActions">
+                <button className="ghostBtn" disabled={analyticsBusy} onClick={loadAnalytics}>Refresh</button>
+              </div>
+            </div>
+
+            {analyticsBusy ? (
+              <div className="empty smallEmpty">Loading analytics...</div>
+            ) : !analytics || Number(analytics.totalOrders || 0) === 0 ? (
+              <div className="empty smallEmpty">No archived orders to analyze.</div>
+            ) : (
+              <>
+                <div className="analyticsSummary">
+                  <div>
+                    <span>Total orders</span>
+                    <strong>{analytics.totalOrders || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Hot</span>
+                    <strong>{analytics.hotOrders || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Cold</span>
+                    <strong>{analytics.coldOrders || 0}</strong>
+                  </div>
+                </div>
+
+                <div className="analyticsGrid">
+                  <AnalyticsList title="Top Drinks" items={analytics.topDrinks || []} />
+                  <AnalyticsList title="Top Milks" items={analytics.topMilks || []} />
+                  <AnalyticsList title="Top Syrups" items={analytics.topSyrups || []} />
+                </div>
+              </>
             )}
           </section>
         )}
@@ -551,6 +622,22 @@ function AdminPage() {
         </section>
       </main>
     </>
+  );
+}
+
+function AnalyticsList({ title, items }) {
+  return (
+    <div className="analyticsList">
+      <h3>{title}</h3>
+      {items.length === 0 ? (
+        <p className="muted">No data yet.</p>
+      ) : items.map(item => (
+        <div className="analyticsRow" key={item.item}>
+          <span>{item.item}</span>
+          <strong>{item.count}</strong>
+        </div>
+      ))}
+    </div>
   );
 }
 

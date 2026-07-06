@@ -39,6 +39,7 @@ export async function apiPost(payload) {
   if (payload.action === "clearAll") return clearAll(payload.pin);
   if (payload.action === "archive") return getArchive(payload.pin);
   if (payload.action === "clearArchive") return clearArchive(payload.pin);
+  if (payload.action === "analytics") return getAnalytics(payload.pin);
 
   return { ok: false, error: "Unknown action" };
 }
@@ -163,6 +164,14 @@ export async function getArchive(pin) {
 export async function clearArchive(pin) {
   try {
     return await callRpc("arise_clear_archive", { input_pin: String(pin || "") });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function getAnalytics(pin) {
+  try {
+    return await callRpc("arise_analytics", { input_pin: String(pin || "") });
   } catch {
     return { ok: false, error: "Connection error" };
   }
