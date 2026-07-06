@@ -339,10 +339,10 @@ function AdminPage() {
   }
 
   async function clearCompleted() {
-    if (!confirm("Clear completed orders? They will move to Archive.")) return;
+    if (!confirm("Archive ready orders? They will move to Archive.")) return;
     const data = await apiPost({ action: "clearCompleted", pin });
     if (data.ok) setOrders(data.orders || []);
-    else alert(data.error || "Could not clear completed");
+    else alert(data.error || "Could not archive ready orders");
   }
 
   async function clearAll() {
@@ -405,7 +405,7 @@ function AdminPage() {
 
         <section className="toolbar">
           <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
-          <button className="ghostBtn" onClick={clearCompleted}>Clear completed</button>
+          <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
 

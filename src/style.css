@@ -159,8 +159,10 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 }
 .readyNotice{
   color:#6BBF6B;
-  background:rgba(107,191,107,.12);
-  border:1px solid rgba(107,191,107,.35);
+  background:rgba(107,191,107,.16);
+  border:1px solid rgba(107,191,107,.48);
+  padding:12px 14px;
+  font-size:14px;
 }
 .adminActions button:nth-child(2){
   color:#C8823A;
@@ -338,7 +340,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   background:linear-gradient(180deg, rgba(107,191,107,.13), rgba(36,16,0,.95));
 }
 .customerStatusCard.complete{
-  border-color:rgba(200,130,58,.35);
+  border-color:rgba(107,191,107,.58);
+  background:linear-gradient(180deg, rgba(107,191,107,.18), rgba(36,16,0,.95));
+  box-shadow:0 18px 54px rgba(0,0,0,.22),0 0 0 1px rgba(107,191,107,.12);
 }
 .statusHero{
   display:flex;
@@ -415,7 +419,8 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   background:rgba(200,130,58,.18);
   border-color:rgba(200,130,58,.35);
 }
-.customerStatusCard.ready .progressStep.done{
+.customerStatusCard.ready .progressStep.done,
+.customerStatusCard.complete .progressStep.done{
   background:rgba(107,191,107,.16);
   border-color:rgba(107,191,107,.35);
 }
