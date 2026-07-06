@@ -15,7 +15,7 @@ const DRINKS = [
   { id: "cortado", label: "Cortado", desc: "More coffee forward, less milk", temps: ["Hot"], milk: true, syrups: true },
   { id: "espresso", label: "Double Shot Espresso", desc: "Pure espresso — no milk, water or syrup", temps: ["Hot"], milk: false, syrups: false },
   { id: "hotchoc", label: "Hot Chocolate", desc: "Rich hot chocolate", temps: ["Hot"], milk: true, syrups: false },
-  { id: "coldchoc", label: "Cold Chocolate Milk", desc: "Chilled chocolate milk", temps: ["Cold"], milk: true, syrups: false },
+  { id: "coldchoc", label: "Cold Chocolate Milk", desc: "Chilled chocolate milk", temps: ["Cold"], milk: true, syrups: false, showTemp: false },
 ];
 
 const MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
@@ -769,12 +769,12 @@ function CustomerPage() {
                 </div>
               </div>
 
-              {drink.temps.length > 1 ? (
+              {drink.showTemp !== false && (drink.temps.length > 1 ? (
                 <div className="field">
                   {lbl("Temperature")}
                   <div className="row">{drink.temps.map(t => <button key={t} className={form.temp === t ? "choice active" : "choice"} onClick={() => setForm(f => ({...f, temp: t}))}>{t === "Hot" ? "🔥 Hot" : "🧊 Cold"}</button>)}</div>
                 </div>
-              ) : <div className="servedOnly">{drink.temps[0] === "Hot" ? "🔥" : "🧊"} Served <strong>{drink.temps[0].toLowerCase()}</strong> only</div>}
+              ) : <div className="servedOnly">{drink.temps[0] === "Hot" ? "🔥" : "🧊"} Served <strong>{drink.temps[0].toLowerCase()}</strong> only</div>)}
 
               {drink.milk && <div className="field">
                 {lbl("Milk", "(required)")}
