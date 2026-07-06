@@ -97,6 +97,7 @@ revoke all on orders from anon;
 revoke all on inventory from anon;
 revoke all on settings from anon;
 revoke all on archived_orders from anon;
+grant delete on archived_orders to anon;
 
 drop function if exists arise_order(uuid);
 drop function if exists arise_update_status(text, uuid, text);
@@ -573,7 +574,8 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
-  delete from archived_orders;
+  delete from archived_orders
+  where true;
 
   return jsonb_build_object('ok', true, 'archive', '[]'::jsonb);
 end;

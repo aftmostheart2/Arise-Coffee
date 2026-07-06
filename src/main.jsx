@@ -362,14 +362,19 @@ function AdminPage() {
 
   async function loadArchive() {
     setArchiveBusy(true);
-    const data = await apiPost({ action: "archive", pin });
-    if (data.ok) {
-      setArchive(data.archive || []);
-      setArchiveLoaded(true);
-    } else {
-      alert(data.error || "Could not load archive");
+    try {
+      const data = await apiPost({ action: "archive", pin });
+      if (data.ok) {
+        setArchive(data.archive || []);
+        setArchiveLoaded(true);
+      } else {
+        alert(data.error || "Could not load archive");
+      }
+    } catch {
+      alert("Connection error");
+    } finally {
+      setArchiveBusy(false);
     }
-    setArchiveBusy(false);
   }
 
   async function toggleArchive() {
@@ -381,14 +386,19 @@ function AdminPage() {
   async function clearArchive() {
     if (!confirm("Clear archive? This permanently deletes archived orders.")) return;
     setArchiveBusy(true);
-    const data = await apiPost({ action: "clearArchive", pin });
-    if (data.ok) {
-      setArchive([]);
-      setArchiveLoaded(true);
-    } else {
-      alert(data.error || "Could not clear archive");
+    try {
+      const data = await apiPost({ action: "clearArchive", pin });
+      if (data.ok) {
+        setArchive([]);
+        setArchiveLoaded(true);
+      } else {
+        alert(data.error || "Could not clear archive");
+      }
+    } catch {
+      alert("Connection error");
+    } finally {
+      setArchiveBusy(false);
     }
-    setArchiveBusy(false);
   }
 
   if (!pin) {
