@@ -303,6 +303,8 @@ function AdminPage() {
   }
 
   async function updateStatus(orderId, status) {
+    if (status === "complete" && !confirm("Mark this order ready for pickup? It will leave the active admin list.")) return;
+
     setBusy(true);
     try {
       const data = await apiPost({ action: "updateStatus", pin, id: orderId, status });
