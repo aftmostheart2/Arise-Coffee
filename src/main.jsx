@@ -154,7 +154,7 @@ function Header({ isOpen, statusText }) {
     <header>
       <a className="brand" href="/">
         <span>☕</span>
-        <div><h1>Arise Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
+        <div><h1>Arise! Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
       {!isAdminPage && <a className="adminLink" href="/admin">Admin</a>}
@@ -658,7 +658,7 @@ function DonationModal({ onClose }) {
         <div className="donationIcon">☕</div>
         <h2>Support HTC</h2>
         <p>
-          Arise Coffee is free, but donations help support Holy Transfiguration Church.
+          Arise! Coffee is free, but donations help support Holy Transfiguration Church.
           Thank you for helping keep this going.
         </p>
 
