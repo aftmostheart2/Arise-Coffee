@@ -72,6 +72,9 @@ function isInventoryAvailable(inventoryLookup, item) {
   return inventoryLookup[item] !== false;
 }
 
+function isPageVisible() {
+  return typeof document === "undefined" || document.visibilityState === "visible";
+}
 
 function statusLabel(status) {
   if (status === "making") return "Being made";
@@ -374,13 +377,26 @@ function AdminPage() {
   useEffect(() => {
     if (!pin) return;
     refreshAdminData();
-    const ordersId = setInterval(refreshOrders, 3000);
-    const statusId = setInterval(refreshStatus, 6000);
-    const inventoryId = setInterval(refreshInventory, 60000);
+    const ordersId = setInterval(() => {
+      if (isPageVisible()) refreshOrders();
+    }, 3000);
+    const statusId = setInterval(() => {
+      if (isPageVisible()) refreshStatus();
+    }, 6000);
+    const inventoryId = setInterval(() => {
+      if (isPageVisible()) refreshInventory();
+    }, 60000);
+
+    function refreshWhenVisible() {
+      if (isPageVisible()) refreshAdminData();
+    }
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       clearInterval(ordersId);
       clearInterval(statusId);
       clearInterval(inventoryId);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [pin]);
 
@@ -919,14 +935,29 @@ function CustomerPage() {
     if (myOrderId) refreshOrder();
     else refreshInitialCustomerData();
 
-    const orderId = myOrderId ? setInterval(refreshOrder, 6000) : null;
-    const inventoryId = setInterval(refreshInventoryOnly, 60000);
-    const statusId = setInterval(refreshStatusOnly, 6000);
+    const orderId = myOrderId ? setInterval(() => {
+      if (isPageVisible()) refreshOrder();
+    }, 6000) : null;
+    const inventoryId = setInterval(() => {
+      if (isPageVisible()) refreshInventoryOnly();
+    }, 60000);
+    const statusId = setInterval(() => {
+      if (isPageVisible()) refreshStatusOnly();
+    }, 6000);
+
+    function refreshWhenVisible() {
+      if (!isPageVisible()) return;
+      if (myOrderId) refreshOrder();
+      else refreshInitialCustomerData();
+    }
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       if (orderId) clearInterval(orderId);
       clearInterval(inventoryId);
       clearInterval(statusId);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [myOrderId]);
 
