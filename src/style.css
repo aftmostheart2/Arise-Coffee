@@ -85,10 +85,14 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .muted{color:#5A3A20;font-size:12px}
 .small{font-size:11px}
 .notice{margin-top:10px;color:#8A9B8E;font-size:13px;text-align:center}
-.textSizeControl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 18px}
-.textSizeControl span{font-size:11px;color:#8A9B8E;text-transform:uppercase;letter-spacing:1px}
-.textSizeControl button{padding:7px 10px;border-radius:20px;border:1px solid rgba(200,130,58,.18);background:#2C1400;color:#8A9B8E;font-size:12px;font-weight:700}
-.textSizeControl button.active{color:#FFF8F0;background:rgba(200,130,58,.22);border-color:rgba(200,130,58,.45)}
+.customerSectionHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px}
+.customerSectionHead .sub{margin-bottom:0}
+.customerTools{display:flex;justify-content:flex-end;margin-bottom:18px}
+.closedTools{position:absolute;top:18px;right:18px}
+.textSizeToggle{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:20px;border:1px solid rgba(200,130,58,.18);background:#2C1400;color:#8A9B8E;font-size:12px;font-weight:700;white-space:nowrap}
+.textSizeToggle span{font-family:"Playfair Display",Georgia,serif;color:#C8823A;font-size:16px;line-height:1}
+.textSizeToggle.active{color:#FFF8F0;background:rgba(200,130,58,.22);border-color:rgba(200,130,58,.45)}
+.textSizeToggle.active span{color:#FFF8F0}
 
 .adminPage{max-width:980px;margin:0 auto;padding:28px 18px 60px}
 .adminTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
@@ -488,10 +492,10 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   font-size:13px;
   margin-bottom:10px;
 }
-.customerLargeText h2{font-size:28px}
+.customerLargeText h2{font-size:30px}
 .closedPage.customerLargeText h1{font-size:34px}
 .closedPage.customerLargeText p{font-size:18px}
-.customerLargeText .sub{font-size:16px;line-height:1.5}
+.customerLargeText .sub{font-size:17px;line-height:1.55}
 .customerLargeText .label{font-size:12px}
 .customerLargeText input,
 .customerLargeText textarea,
@@ -499,7 +503,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .customerLargeText .choice,
 .customerLargeText .syrup,
 .customerLargeText .joinBtn,
-.customerLargeText .ghostBtn{font-size:16px}
+.customerLargeText .ghostBtn{font-size:17px}
 .customerLargeText .drink span,
 .customerLargeText .muted,
 .customerLargeText .small,
@@ -519,6 +523,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .customerLargeText .makingNotice,
 .customerLargeText .readyNotice{font-size:16px}
 @media(max-width:760px){
+  .customerSectionHead{align-items:flex-start}
+  .customerSectionHead .textSizeToggle{margin-top:2px}
+  .closedTools{position:static;margin-bottom:18px}
   .customerStatusCard{
     margin-bottom:24px;
   }

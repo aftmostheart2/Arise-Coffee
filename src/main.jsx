@@ -130,11 +130,15 @@ function formatUpdatedAt(value) {
 
 function TextSizeControl({ largeText, onChange }) {
   return (
-    <div className="textSizeControl" aria-label="Text size">
-      <span>Text size</span>
-      <button className={!largeText ? "active" : ""} onClick={() => onChange(false)}>Normal</button>
-      <button className={largeText ? "active" : ""} onClick={() => onChange(true)}>Large</button>
-    </div>
+    <button
+      className={largeText ? "textSizeToggle active" : "textSizeToggle"}
+      aria-pressed={largeText}
+      title="Toggle larger text"
+      onClick={() => onChange(!largeText)}
+    >
+      <span>Aa</span>
+      {largeText ? "Large text" : "Text size"}
+    </button>
   );
 }
 
@@ -954,7 +958,9 @@ function CustomerPage() {
     return <>
       <Header isOpen={isOpen} />
       <main className={largeText ? "closedPage customerLargeText" : "closedPage"}>
-        <TextSizeControl largeText={largeText} onChange={updateTextSize} />
+        <div className="customerTools closedTools">
+          <TextSizeControl largeText={largeText} onChange={updateTextSize} />
+        </div>
         <div className="closedIcon">🚫</div>
         <h1>We're closed</h1>
         <p>{message || "Orders aren't being taken right now. Check back soon!"}</p>
@@ -969,9 +975,13 @@ function CustomerPage() {
       <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
 
-          <h2>Place your order</h2>
-          <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
-          <TextSizeControl largeText={largeText} onChange={updateTextSize} />
+          <div className="customerSectionHead">
+            <div>
+              <h2>Place your order</h2>
+              <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
+            </div>
+            <TextSizeControl largeText={largeText} onChange={updateTextSize} />
+          </div>
 
           {isOpen && (
             <>
