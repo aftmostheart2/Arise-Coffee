@@ -200,8 +200,9 @@ function PinGate({ onSuccess }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
   async function tryPin(value) {
-    if (value.length < 4) return;
+    if (value.length < 4 || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -218,6 +219,46 @@ function PinGate({ onSuccess }) {
     setBusy(false);
   }
 
+  function addPinDigit(digit) {
+    if (busy) return;
+    setError("");
+    setPin(current => {
+      if (current.length >= 4) return current;
+      const next = current + digit;
+      tryPin(next);
+      return next;
+    });
+  }
+
+  function removePinDigit() {
+    if (busy) return;
+    setPin(current => current.slice(0, -1));
+  }
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key >= "0" && event.key <= "9") {
+        event.preventDefault();
+        addPinDigit(event.key);
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        removePinDigit();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        tryPin(pin);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pin, busy]);
+
   return (
     <main className="pinPage">
       <div className="modal pinModal static">
@@ -229,10 +270,11 @@ function PinGate({ onSuccess }) {
         <div className="numpad">
           {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((k, i) => (
             <button key={i} disabled={busy || k === ""} className={k === "" ? "hiddenKey" : ""} onClick={() => {
-              if (k === "⌫") { setPin(p => p.slice(0, -1)); return; }
-              const next = pin + k;
-              setPin(next);
-              tryPin(next);
+              if (k === "⌫") {
+                removePinDigit();
+                return;
+              }
+              addPinDigit(String(k));
             }}>{k}</button>
           ))}
         </div>
