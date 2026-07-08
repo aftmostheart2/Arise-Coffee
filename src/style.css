@@ -492,36 +492,36 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   font-size:13px;
   margin-bottom:10px;
 }
-.customerLargeText h2{font-size:30px}
-.closedPage.customerLargeText h1{font-size:34px}
-.closedPage.customerLargeText p{font-size:18px}
-.customerLargeText .sub{font-size:17px;line-height:1.55}
-.customerLargeText .label{font-size:12px}
+.customerLargeText h2{font-size:32px}
+.closedPage.customerLargeText h1{font-size:38px}
+.closedPage.customerLargeText p{font-size:20px}
+.customerLargeText .sub{font-size:19px;line-height:1.6}
+.customerLargeText .label{font-size:13px}
 .customerLargeText input,
 .customerLargeText textarea,
 .customerLargeText .drink,
 .customerLargeText .choice,
 .customerLargeText .syrup,
 .customerLargeText .joinBtn,
-.customerLargeText .ghostBtn{font-size:17px}
+.customerLargeText .ghostBtn{font-size:19px;line-height:1.35}
 .customerLargeText .drink span,
 .customerLargeText .muted,
 .customerLargeText .small,
-.customerLargeText .errorText{font-size:14px}
-.customerLargeText .customerStatusCard{padding:22px}
-.customerLargeText .statusHero > span{width:66px;height:66px;font-size:34px}
-.customerLargeText .statusHero h3{font-size:42px}
-.customerLargeText .statusBig{font-size:30px}
-.customerLargeText .customerDrinkSummary strong{font-size:19px}
+.customerLargeText .errorText{font-size:16px}
+.customerLargeText .customerStatusCard{padding:24px}
+.customerLargeText .statusHero > span{width:72px;height:72px;font-size:38px}
+.customerLargeText .statusHero h3{font-size:48px}
+.customerLargeText .statusBig{font-size:34px}
+.customerLargeText .customerDrinkSummary strong{font-size:22px}
 .customerLargeText .customerDrinkSummary p,
-.customerLargeText .customerDrinkSummary em{font-size:16px}
-.customerLargeText .progressStep span{font-size:22px}
-.customerLargeText .progressStep p{font-size:13px}
-.customerLargeText .etaBox strong{font-size:18px}
+.customerLargeText .customerDrinkSummary em{font-size:18px}
+.customerLargeText .progressStep span{font-size:26px}
+.customerLargeText .progressStep p{font-size:15px}
+.customerLargeText .etaBox strong{font-size:21px}
 .customerLargeText .etaBox span,
 .customerLargeText .etaBox small,
 .customerLargeText .makingNotice,
-.customerLargeText .readyNotice{font-size:16px}
+.customerLargeText .readyNotice{font-size:19px;line-height:1.45}
 @media(max-width:760px){
   .customerSectionHead{align-items:flex-start}
   .customerSectionHead .textSizeToggle{margin-top:2px}
