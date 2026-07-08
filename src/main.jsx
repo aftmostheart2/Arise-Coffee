@@ -7,6 +7,7 @@ const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-Orth
 const DONATION_ZELLE = "htacoc@gmail.com";
 const INVENTORY_CACHE_KEY = "arise-inventory-cache";
 const INVENTORY_CACHE_MS = 5 * 60 * 1000;
+const TEXT_SIZE_KEY = "arise-text-size";
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -125,6 +126,16 @@ function hasFirstAndLastName(name) {
 function formatUpdatedAt(value) {
   if (!value) return "Not updated yet";
   return value.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function TextSizeControl({ largeText, onChange }) {
+  return (
+    <div className="textSizeControl" aria-label="Text size">
+      <span>Text size</span>
+      <button className={!largeText ? "active" : ""} onClick={() => onChange(false)}>Normal</button>
+      <button className={largeText ? "active" : ""} onClick={() => onChange(true)}>Large</button>
+    </div>
+  );
 }
 
 function ringReadyAlert() {
@@ -727,6 +738,7 @@ function CustomerPage() {
   const [busy, setBusy] = useState(false);
   const [showDonation, setShowDonation] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
+  const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
   const submittingRef = useRef(false);
   const orderLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
@@ -736,6 +748,11 @@ function CustomerPage() {
 
   const drink = getDrink(form.drinkId);
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
+
+  function updateTextSize(nextLargeText) {
+    setLargeText(nextLargeText);
+    localStorage.setItem(TEXT_SIZE_KEY, nextLargeText ? "large" : "normal");
+  }
 
   function updateMyOrder(order, positionFromResponse) {
     const found = normalizeOrderFromSingle(order);
@@ -936,7 +953,8 @@ function CustomerPage() {
   if (!isOpen && !myOrder) {
     return <>
       <Header isOpen={isOpen} />
-      <main className="closedPage">
+      <main className={largeText ? "closedPage customerLargeText" : "closedPage"}>
+        <TextSizeControl largeText={largeText} onChange={updateTextSize} />
         <div className="closedIcon">🚫</div>
         <h1>We're closed</h1>
         <p>{message || "Orders aren't being taken right now. Check back soon!"}</p>
@@ -948,11 +966,12 @@ function CustomerPage() {
   return (
     <>
       <Header isOpen={isOpen} />
-      <main className="layout">
+      <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
 
           <h2>Place your order</h2>
           <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
+          <TextSizeControl largeText={largeText} onChange={updateTextSize} />
 
           {isOpen && (
             <>
