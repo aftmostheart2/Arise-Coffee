@@ -100,6 +100,20 @@ function ordersAheadText(position) {
   return `${ahead} order${ahead === 1 ? "" : "s"} ahead of you.`;
 }
 
+function orderAgeText(time) {
+  const startedAt = Date.parse(time);
+  if (!Number.isFinite(startedAt)) return "";
+
+  const minutes = Math.max(0, Math.floor((Date.now() - startedAt) / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (remainingMinutes === 0) return `${hours} hr ago`;
+  return `${hours} hr ${remainingMinutes} min ago`;
+}
+
 function statusEmoji(status) {
   if (status === "making") return "🟠";
   if (status === "ready") return "🟢";
@@ -246,6 +260,7 @@ function AdminPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [connectionOk, setConnectionOk] = useState(true);
   const [readyArchiveCount, setReadyArchiveCount] = useState(0);
+  const [collapsedPanels, setCollapsedPanels] = useState({ inventory: false, orders: false });
   const ordersLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
@@ -471,6 +486,10 @@ function AdminPage() {
     if (nextOpen && !analyticsLoaded) await loadAnalytics();
   }
 
+  function togglePanel(panel) {
+    setCollapsedPanels(current => ({ ...current, [panel]: !current[panel] }));
+  }
+
   if (!pin) {
     return <>
       <Header isOpen={isOpen} statusText="Admin" />
@@ -609,64 +628,80 @@ function AdminPage() {
         )}
 
         <section className="inventoryPanel">
-          <h2>Syrup & Milk Inventory</h2>
-          <p className="sub">Tap an item to mark it available or out of stock.</p>
-
-          <div className="inventoryGroup">
-            <div className="label">Syrups</div>
-            <div className="inventoryGrid">
-              {inventoryItemsByType(inventory, "syrup", SYRUPS).map(x => (
-                <button
-                  key={x.item}
-                  disabled={busy}
-                  className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
-                  onClick={() => toggleInventory(x.item, !x.available)}
-                >
-                  <span>{x.item}</span>
-                  <strong>{x.available ? "Available" : "Out of stock"}</strong>
-                </button>
-              ))}
+          <div className="sectionHeader">
+            <div>
+              <h2>Syrup & Milk Inventory</h2>
+              <p className="sub">Tap an item to mark it available or out of stock.</p>
             </div>
+            <button className="collapseBtn" onClick={() => togglePanel("inventory")}>{collapsedPanels.inventory ? "Show" : "Hide"}</button>
           </div>
 
-          <div className="inventoryGroup">
-            <div className="label">Milks</div>
-            <div className="inventoryGrid">
-              {inventoryItemsByType(inventory, "milk", MILKS).map(x => (
-                <button
-                  key={x.item}
-                  disabled={busy}
-                  className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
-                  onClick={() => toggleInventory(x.item, !x.available)}
-                >
-                  <span>{x.item}</span>
-                  <strong>{x.available ? "Available" : "Out of stock"}</strong>
-                </button>
-              ))}
-            </div>
-          </div>
+          {!collapsedPanels.inventory && (
+            <>
+              <div className="inventoryGroup">
+                <div className="label">Syrups</div>
+                <div className="inventoryGrid">
+                  {inventoryItemsByType(inventory, "syrup", SYRUPS).map(x => (
+                    <button
+                      key={x.item}
+                      disabled={busy}
+                      className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
+                      onClick={() => toggleInventory(x.item, !x.available)}
+                    >
+                      <span>{x.item}</span>
+                      <strong>{x.available ? "Available" : "Out of stock"}</strong>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="inventoryGroup">
+                <div className="label">Milks</div>
+                <div className="inventoryGrid">
+                  {inventoryItemsByType(inventory, "milk", MILKS).map(x => (
+                    <button
+                      key={x.item}
+                      disabled={busy}
+                      className={x.available ? "inventoryToggle available" : "inventoryToggle out"}
+                      onClick={() => toggleInventory(x.item, !x.available)}
+                    >
+                      <span>{x.item}</span>
+                      <strong>{x.available ? "Available" : "Out of stock"}</strong>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </section>
 
         <section className="orders">
-          <h2>Active Orders</h2>
-          {visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
-            <div className={"adminOrder " + o.status} key={o.id}>
-              <div className="orderTop">
-                <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
-                <div>
-                  <strong>{o.name}</strong>
-                  <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
-                  {o.notes && <em>"{o.notes}"</em>}
+          <div className="sectionHeader">
+            <h2>Active Orders</h2>
+            <button className="collapseBtn" onClick={() => togglePanel("orders")}>{collapsedPanels.orders ? "Show" : "Hide"}</button>
+          </div>
+
+          {!collapsedPanels.orders && (
+            visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
+              <div className={"adminOrder " + o.status} key={o.id}>
+                <div className="orderTop">
+                  <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
+                  <div>
+                    <strong>{o.name}</strong>
+                    <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
+                    {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
+                    {o.notes && <em>"{o.notes}"</em>}
+                  </div>
+                  <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
                 </div>
-                <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
+                <div className="adminActions">
+                  <button onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
+                  <button onClick={() => updateStatus(o.id, "making")}>Start Making</button>
+                  <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
+                </div>
               </div>
-              <div className="adminActions">
-                <button onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
-                <button onClick={() => updateStatus(o.id, "making")}>Start Making</button>
-                <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </section>
       </main>
     </>
