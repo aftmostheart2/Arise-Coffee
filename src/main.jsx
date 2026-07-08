@@ -1109,9 +1109,9 @@ function CustomerPage() {
               {drink.showTemp !== false && (drink.temps.length > 1 ? (
                 <div className="field">
                   {lbl("Temperature")}
-                  <div className="row">{drink.temps.map(t => <button key={t} className={form.temp === t ? "choice active" : "choice"} onClick={() => setForm(f => ({...f, temp: t}))}>{t === "Hot" ? "🔥 Hot" : "🧊 Cold"}</button>)}</div>
+                  <div className="row">{drink.temps.map(t => <button key={t} className={form.temp === t ? "choice active" : "choice"} onClick={() => setForm(f => ({...f, temp: t}))}>{t}</button>)}</div>
                 </div>
-              ) : <div className="servedOnly">{drink.temps[0] === "Hot" ? "🔥" : "🧊"} Served <strong>{drink.temps[0].toLowerCase()}</strong> only</div>)}
+              ) : <div className="servedOnly">Served <strong>{drink.temps[0].toLowerCase()}</strong> only</div>)}
 
               {drink.milk && <div className="field">
                 {lbl("Milk", "(required)")}
