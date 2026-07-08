@@ -122,6 +122,11 @@ function hasFirstAndLastName(name) {
   return name.trim().split(/\s+/).filter(Boolean).length >= 2;
 }
 
+function formatUpdatedAt(value) {
+  if (!value) return "Not updated yet";
+  return value.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 function ringReadyAlert() {
   try {
     if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
@@ -223,6 +228,9 @@ function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [connectionOk, setConnectionOk] = useState(true);
+  const [readyArchiveCount, setReadyArchiveCount] = useState(0);
   const ordersLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
@@ -243,8 +251,13 @@ function AdminPage() {
         setOrders(data.orders || []);
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         syncAdminMessage(data.message);
+        setLastUpdated(new Date());
+        setConnectionOk(true);
+      } else {
+        setConnectionOk(false);
       }
     } catch {
+      setConnectionOk(false);
     } finally {
       ordersLoadingRef.current = false;
     }
@@ -258,8 +271,13 @@ function AdminPage() {
       if (data.ok) {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         syncAdminMessage(data.message);
+        setLastUpdated(new Date());
+        setConnectionOk(true);
+      } else {
+        setConnectionOk(false);
       }
     } catch {
+      setConnectionOk(false);
     } finally {
       statusLoadingRef.current = false;
     }
@@ -305,8 +323,10 @@ function AdminPage() {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
         if (Array.isArray(data.orders)) setOrders(data.orders);
+        setLastUpdated(new Date());
+        setConnectionOk(true);
       } else setNotice(data.error || "Could not save");
-    } catch { setNotice("Connection error"); }
+    } catch { setNotice("Connection error"); setConnectionOk(false); }
     setBusy(false);
   }
 
@@ -317,6 +337,7 @@ function AdminPage() {
       if (data.ok) {
         if (status === "complete") {
           setOrders(current => current.filter(o => o.id !== orderId));
+          setReadyArchiveCount(count => count + 1);
         } else if (data.order) {
           setOrders(current => {
             const exists = current.some(o => o.id === data.order.id);
@@ -325,9 +346,11 @@ function AdminPage() {
         } else {
           setOrders(data.orders || []);
         }
+        setLastUpdated(new Date());
+        setConnectionOk(true);
       }
       else alert(data.error || "Could not update order");
-    } catch { alert("Connection error"); }
+    } catch { alert("Connection error"); setConnectionOk(false); }
     setBusy(false);
   }
 
@@ -349,7 +372,12 @@ function AdminPage() {
   async function clearCompleted() {
     if (!confirm("Archive ready orders? They will move to Archive.")) return;
     const data = await apiPost({ action: "clearCompleted", pin });
-    if (data.ok) setOrders(data.orders || []);
+    if (data.ok) {
+      setOrders(data.orders || []);
+      setReadyArchiveCount(0);
+      setLastUpdated(new Date());
+      setConnectionOk(true);
+    }
     else alert(data.error || "Could not archive ready orders");
   }
 
@@ -445,6 +473,11 @@ function AdminPage() {
           <div>
             <h2>Admin Control</h2>
             <p className="sub">Orders update automatically.</p>
+            <div className="adminMeta">
+              <span>Active orders: {visibleOrders.length}</span>
+              <span className={connectionOk ? "online" : "offline"}>{connectionOk ? "Online" : "Connection issue"}</span>
+              <span>Updated {formatUpdatedAt(lastUpdated)}</span>
+            </div>
           </div>
           <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
         </section>
@@ -477,7 +510,7 @@ function AdminPage() {
 
         <section className="toolbar">
           <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
-          <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders</button>
+          <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders ({readyArchiveCount})</button>
           <button className="ghostBtn" onClick={toggleArchive}>{archiveOpen ? "Hide archive" : "Archive"}</button>
           <button className="ghostBtn" onClick={toggleAnalytics}>{analyticsOpen ? "Hide analytics" : "Analytics"}</button>
           <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>

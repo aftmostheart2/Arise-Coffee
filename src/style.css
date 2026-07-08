@@ -88,6 +88,10 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 
 .adminPage{max-width:980px;margin:0 auto;padding:28px 18px 60px}
 .adminTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.adminMeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.adminMeta span{font-size:11px;color:#8A9B8E;background:#2C1400;border:1px solid rgba(200,130,58,.14);border-radius:20px;padding:5px 8px}
+.adminMeta .online{color:#6BBF6B;border-color:rgba(107,191,107,.28)}
+.adminMeta .offline{color:#E05252;border-color:rgba(224,82,82,.28)}
 .adminCard,.panel{background:#2C1400;border-radius:8px;padding:16px;margin-bottom:16px}
 .adminCard{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .statusOpen,.statusClosed{font-family:"Playfair Display",Georgia,serif;font-size:17px}
