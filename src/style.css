@@ -142,6 +142,18 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .analyticsRow{display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(200,130,58,.10);padding:8px 0;color:#8A9B8E;font-size:12px}
 .analyticsRow:first-of-type{border-top:none}
 .analyticsRow strong{color:#C8823A}
+.menuPanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:16px;margin-bottom:24px}
+.compactPrimary{width:auto;margin-top:0;padding:10px 14px}
+.menuEditorList{display:flex;flex-direction:column;gap:12px}
+.menuEditorItem{background:#2C1400;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:14px}
+.menuEditorItem.inactive{opacity:.72}
+.menuEditorTop{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.menuFields{display:grid;grid-template-columns:minmax(160px,1fr) minmax(220px,2fr);gap:8px;width:100%}
+.menuOptionGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.adminCheck{display:flex;align-items:center;gap:8px;background:#241000;border:1px solid rgba(200,130,58,.12);border-radius:6px;padding:9px 10px;color:#8A9B8E;font-size:12px}
+.adminCheck input{width:auto}
+.menuTempRow{display:flex;gap:8px;margin-bottom:10px}
+.menuItemActions{display:flex;gap:8px;flex-wrap:wrap}
 
 @media(max-width:760px){
   header{padding:13px 16px}
@@ -157,6 +169,8 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   .archiveActions{justify-content:flex-start}
   .archiveOrder span{text-align:left;white-space:normal}
   .analyticsSummary,.analyticsGrid{grid-template-columns:1fr}
+  .menuFields,.menuOptionGrid{grid-template-columns:1fr}
+  .menuEditorTop{flex-direction:column}
 }
 
 

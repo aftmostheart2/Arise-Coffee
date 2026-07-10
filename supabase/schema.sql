@@ -35,6 +35,29 @@ alter table inventory add column if not exists item text;
 alter table inventory add column if not exists type text;
 alter table inventory add column if not exists available boolean not null default true;
 
+create table if not exists menu_drinks (
+  id text primary key,
+  label text not null,
+  description text not null default '',
+  temps text[] not null default array['Hot','Cold'],
+  has_milk boolean not null default true,
+  has_syrups boolean not null default true,
+  show_temp boolean not null default true,
+  active boolean not null default true,
+  sort_order integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+alter table menu_drinks add column if not exists label text;
+alter table menu_drinks add column if not exists description text not null default '';
+alter table menu_drinks add column if not exists temps text[] not null default array['Hot','Cold'];
+alter table menu_drinks add column if not exists has_milk boolean not null default true;
+alter table menu_drinks add column if not exists has_syrups boolean not null default true;
+alter table menu_drinks add column if not exists show_temp boolean not null default true;
+alter table menu_drinks add column if not exists active boolean not null default true;
+alter table menu_drinks add column if not exists sort_order integer not null default 0;
+alter table menu_drinks add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists settings (
   key text primary key,
   value text
@@ -82,6 +105,16 @@ insert into inventory (item, type, available) values
 ('Whole milk','milk',false)
 on conflict (item) do nothing;
 
+insert into menu_drinks (id, label, description, temps, has_milk, has_syrups, show_temp, active, sort_order) values
+('americano','Americano','No milk, water only',array['Hot','Cold'],false,true,true,true,0),
+('latte','Latte','Standard milk and coffee drink',array['Hot','Cold'],true,true,true,true,1),
+('cappuccino','Cappuccino','More milk foam',array['Hot','Cold'],true,true,true,true,2),
+('cortado','Cortado','More coffee forward, less milk',array['Hot'],true,true,true,true,3),
+('espresso','Double Shot Espresso','Pure espresso — no milk, water or syrup',array['Hot'],false,false,true,true,4),
+('hotchoc','Hot Chocolate','Rich hot chocolate',array['Hot'],true,false,true,true,5),
+('coldchoc','Cold Chocolate Milk','Chilled chocolate milk',array['Cold'],true,false,false,true,6)
+on conflict (id) do nothing;
+
 insert into settings (key, value) values
 ('pin','"8246"'),
 ('isOpen','"true"'),
@@ -90,11 +123,13 @@ on conflict (key) do nothing;
 
 alter table orders enable row level security;
 alter table inventory enable row level security;
+alter table menu_drinks enable row level security;
 alter table settings enable row level security;
 alter table archived_orders enable row level security;
 
 revoke all on orders from anon;
 revoke all on inventory from anon;
+revoke all on menu_drinks from anon;
 revoke all on settings from anon;
 revoke all on archived_orders from anon;
 grant delete on archived_orders to anon;
@@ -157,6 +192,47 @@ as $$
     )
   )
   from sorted;
+$$;
+
+create or replace function arise_menu_json(input_include_inactive boolean default false)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', id,
+        'label', label,
+        'desc', description,
+        'temps', to_jsonb(temps),
+        'milk', has_milk,
+        'syrups', has_syrups,
+        'showTemp', show_temp,
+        'active', active,
+        'sortOrder', sort_order
+      )
+      order by sort_order, label
+    ),
+    '[]'::jsonb
+  )
+  from menu_drinks
+  where input_include_inactive or active = true;
+$$;
+
+create or replace function arise_menu(input_pin text default null)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'ok', true,
+    'drinks', arise_menu_json(arise_pin_matches(input_pin))
+  );
 $$;
 
 create or replace function arise_order_json(input_order orders, input_position integer default null)
@@ -427,6 +503,85 @@ begin
 end;
 $$;
 
+create or replace function arise_save_menu(input_pin text, input_drinks jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  drink_item jsonb;
+  cleaned_temps text[];
+  drink_index integer := 0;
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+
+  if jsonb_typeof(coalesce(input_drinks, '[]'::jsonb)) <> 'array' then
+    return jsonb_build_object('ok', false, 'error', 'Invalid menu');
+  end if;
+
+  delete from menu_drinks;
+
+  for drink_item in
+    select value
+    from jsonb_array_elements(input_drinks)
+  loop
+    cleaned_temps := array(
+      select temp_option
+      from (values ('Hot', 1), ('Cold', 2)) as allowed(temp_option, sort_order)
+      where exists (
+        select 1
+        from jsonb_array_elements_text(coalesce(drink_item->'temps', '["Hot"]'::jsonb)) as temp_value
+        where temp_value = allowed.temp_option
+      )
+      order by sort_order
+    );
+
+    if array_length(cleaned_temps, 1) is null then
+      cleaned_temps := array['Hot'];
+    end if;
+
+    insert into menu_drinks (
+      id,
+      label,
+      description,
+      temps,
+      has_milk,
+      has_syrups,
+      show_temp,
+      active,
+      sort_order
+    ) values (
+      left(coalesce(nullif(trim(drink_item->>'id'), ''), 'drink-' || drink_index::text), 80),
+      left(coalesce(nullif(trim(drink_item->>'label'), ''), 'Drink'), 80),
+      left(coalesce(drink_item->>'desc', ''), 180),
+      cleaned_temps,
+      coalesce((drink_item->>'milk')::boolean, true),
+      coalesce((drink_item->>'syrups')::boolean, true),
+      coalesce((drink_item->>'showTemp')::boolean, true),
+      coalesce((drink_item->>'active')::boolean, true),
+      drink_index
+    )
+    on conflict (id) do update set
+      label = excluded.label,
+      description = excluded.description,
+      temps = excluded.temps,
+      has_milk = excluded.has_milk,
+      has_syrups = excluded.has_syrups,
+      show_temp = excluded.show_temp,
+      active = excluded.active,
+      sort_order = excluded.sort_order,
+      updated_at = now();
+
+    drink_index := drink_index + 1;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'drinks', arise_menu_json(true));
+end;
+$$;
+
 create or replace function arise_clear_completed(input_pin text)
 returns jsonb
 language plpgsql
@@ -658,6 +813,7 @@ $$;
 
 grant execute on function arise_status() to anon;
 grant execute on function arise_inventory() to anon;
+grant execute on function arise_menu(text) to anon;
 grant execute on function arise_login(text) to anon;
 grant execute on function arise_orders() to anon;
 grant execute on function arise_order(text) to anon;
@@ -665,6 +821,7 @@ grant execute on function arise_place_order(jsonb) to anon;
 grant execute on function arise_update_admin(text, boolean, text) to anon;
 grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_update_inventory(text, text, boolean) to anon;
+grant execute on function arise_save_menu(text, jsonb) to anon;
 grant execute on function arise_clear_completed(text) to anon;
 grant execute on function arise_clear_all(text) to anon;
 grant execute on function arise_archive(text, integer) to anon;

@@ -23,8 +23,44 @@ const MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
 const SYRUPS = ["Caramel", "Sugar Free Caramel", "Vanilla", "Sugar Free Vanilla", "Mocha", "White Chocolate", "Honey", "Cinnamon Powder", "Hazelnut"];
 const MAX_SYRUPS = 2;
 
-function getDrink(id) {
-  return DRINKS.find(d => d.id === id) || DRINKS[1];
+function makeDrinkId(label) {
+  const base = String(label || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return base || `drink-${Date.now()}`;
+}
+
+function normalizeDrinkItem(drink, index = 0) {
+  const temps = Array.isArray(drink?.temps) && drink.temps.length
+    ? drink.temps.filter(t => t === "Hot" || t === "Cold")
+    : ["Hot"];
+
+  return {
+    id: String(drink?.id || makeDrinkId(drink?.label || `Drink ${index + 1}`)),
+    label: String(drink?.label || "Drink").trim() || "Drink",
+    desc: String(drink?.desc || "").trim(),
+    temps: temps.length ? [...new Set(temps)] : ["Hot"],
+    milk: Boolean(drink?.milk),
+    syrups: Boolean(drink?.syrups),
+    showTemp: drink?.showTemp === false ? false : true,
+    active: drink?.active !== false,
+    sortOrder: Number.isFinite(Number(drink?.sortOrder)) ? Number(drink.sortOrder) : index,
+  };
+}
+
+function normalizeMenuDrinks(drinks, includeInactive = false) {
+  const source = Array.isArray(drinks) && drinks.length ? drinks : DRINKS;
+  return source
+    .map(normalizeDrinkItem)
+    .filter(drink => includeInactive || drink.active !== false)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
+}
+
+function getDrink(id, drinks = DRINKS) {
+  const normalized = normalizeMenuDrinks(drinks);
+  return normalized.find(d => d.id === id) || normalized[0] || normalizeDrinkItem(DRINKS[1], 1);
 }
 
 function defaultForm() {
@@ -297,11 +333,15 @@ function AdminPage() {
   const [analytics, setAnalytics] = useState(null);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuLoaded, setMenuLoaded] = useState(false);
+  const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS, true));
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
+  const [menuBusy, setMenuBusy] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [connectionOk, setConnectionOk] = useState(true);
   const [readyArchiveCount, setReadyArchiveCount] = useState(0);
@@ -544,6 +584,95 @@ function AdminPage() {
     if (nextOpen && !analyticsLoaded) await loadAnalytics();
   }
 
+  async function loadMenu() {
+    setMenuBusy(true);
+    try {
+      const data = await apiGet("menu", { pin });
+      if (data.ok && Array.isArray(data.drinks)) {
+        setMenuDrinks(normalizeMenuDrinks(data.drinks, true));
+        setMenuLoaded(true);
+      } else if (!menuLoaded) {
+        setMenuDrinks(normalizeMenuDrinks(DRINKS, true));
+      }
+    } catch {
+      if (!menuLoaded) setMenuDrinks(normalizeMenuDrinks(DRINKS, true));
+    } finally {
+      setMenuBusy(false);
+    }
+  }
+
+  async function openMenuScreen() {
+    setMenuOpen(true);
+    if (!menuLoaded) await loadMenu();
+  }
+
+  function updateMenuDrink(id, patch) {
+    setMenuDrinks(current => current.map(drink => drink.id === id ? normalizeDrinkItem({ ...drink, ...patch }, drink.sortOrder) : drink));
+  }
+
+  function addMenuDrink() {
+    const nextIndex = menuDrinks.length;
+    const id = makeDrinkId(`Custom Drink ${Date.now()}`);
+    setMenuDrinks(current => [...current, normalizeDrinkItem({
+      id,
+      label: "New Drink",
+      desc: "",
+      temps: ["Hot", "Cold"],
+      milk: true,
+      syrups: true,
+      showTemp: true,
+      active: true,
+      sortOrder: nextIndex,
+    }, nextIndex)]);
+  }
+
+  function removeMenuDrink(id) {
+    if (menuDrinks.length <= 1) {
+      alert("Keep at least one drink on the menu.");
+      return;
+    }
+    setMenuDrinks(current => current.filter(drink => drink.id !== id).map((drink, index) => ({ ...drink, sortOrder: index })));
+  }
+
+  function moveMenuDrink(id, direction) {
+    setMenuDrinks(current => {
+      const next = [...current];
+      const index = next.findIndex(drink => drink.id === id);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= next.length) return current;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next.map((drink, sortOrder) => ({ ...drink, sortOrder }));
+    });
+  }
+
+  async function saveMenuDrinks() {
+    const cleaned = normalizeMenuDrinks(menuDrinks, true).map((drink, index) => ({ ...drink, sortOrder: index }));
+    if (cleaned.some(drink => !drink.label.trim())) {
+      alert("Every drink needs a name.");
+      return;
+    }
+    if (!cleaned.some(drink => drink.active)) {
+      alert("Keep at least one active drink.");
+      return;
+    }
+
+    setMenuBusy(true);
+    try {
+      const data = await apiPost({ action: "saveMenu", pin, drinks: cleaned });
+      if (data.ok) {
+        setMenuDrinks(normalizeMenuDrinks(data.drinks || cleaned, true));
+        setMenuLoaded(true);
+        setNotice("Menu saved");
+      } else {
+        alert(data.error || "Could not save menu");
+      }
+    } catch {
+      alert("Connection error");
+    } finally {
+      setMenuBusy(false);
+    }
+  }
+
   function togglePanel(panel) {
     setCollapsedPanels(current => ({ ...current, [panel]: !current[panel] }));
   }
@@ -556,6 +685,34 @@ function AdminPage() {
   }
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
+
+  if (menuOpen) {
+    return (
+      <>
+        <Header isOpen={isOpen} />
+        <main className="adminPage">
+          <section className="adminTop">
+            <div>
+              <h2>Menu</h2>
+              <p className="sub">Add drinks and control what customers can order.</p>
+            </div>
+            <button className="ghostBtn" onClick={() => setMenuOpen(false)}>Back to orders</button>
+          </section>
+
+          <MenuEditor
+            drinks={menuDrinks}
+            busy={menuBusy}
+            onAdd={addMenuDrink}
+            onRefresh={loadMenu}
+            onSave={saveMenuDrinks}
+            onRemove={removeMenuDrink}
+            onMove={moveMenuDrink}
+            onUpdate={updateMenuDrink}
+          />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -602,6 +759,7 @@ function AdminPage() {
 
         <section className="toolbar">
           <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
+          <button className="ghostBtn" onClick={openMenuScreen}>Menu</button>
           <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders ({readyArchiveCount})</button>
           <button className="ghostBtn" onClick={toggleArchive}>{archiveOpen ? "Hide archive" : "Archive"}</button>
           <button className="ghostBtn" onClick={toggleAnalytics}>{analyticsOpen ? "Hide analytics" : "Analytics"}</button>
@@ -766,6 +924,85 @@ function AdminPage() {
   );
 }
 
+function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, onUpdate }) {
+  function toggleTemp(drink, temp) {
+    const hasTemp = drink.temps.includes(temp);
+    const nextTemps = hasTemp ? drink.temps.filter(t => t !== temp) : [...drink.temps, temp];
+    onUpdate(drink.id, {
+      temps: nextTemps.length ? nextTemps : [temp],
+      showTemp: nextTemps.length > 1 ? drink.showTemp : false,
+    });
+  }
+
+  return (
+    <section className="menuPanel">
+      <div className="sectionHeader">
+        <div>
+          <h2>Drinks</h2>
+          <p className="sub">Customer menu changes only save when you press Save menu.</p>
+        </div>
+        <div className="archiveActions">
+          <button className="ghostBtn" disabled={busy} onClick={onRefresh}>Refresh</button>
+          <button className="ghostBtn" disabled={busy} onClick={onAdd}>Add drink</button>
+          <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
+        </div>
+      </div>
+
+      <div className="menuEditorList">
+        {drinks.map((drink, index) => (
+          <div className={drink.active ? "menuEditorItem" : "menuEditorItem inactive"} key={drink.id}>
+            <div className="menuEditorTop">
+              <div className="orderNum">#{String(index + 1).padStart(2, "0")}</div>
+              <div className="menuFields">
+                <input
+                  value={drink.label}
+                  onChange={e => onUpdate(drink.id, { label: e.target.value })}
+                  placeholder="Drink name"
+                />
+                <input
+                  value={drink.desc}
+                  onChange={e => onUpdate(drink.id, { desc: e.target.value })}
+                  placeholder="Short description"
+                />
+              </div>
+            </div>
+
+            <div className="menuOptionGrid">
+              <label className="adminCheck">
+                <input type="checkbox" checked={drink.active} onChange={e => onUpdate(drink.id, { active: e.target.checked })} />
+                Active
+              </label>
+              <label className="adminCheck">
+                <input type="checkbox" checked={drink.milk} onChange={e => onUpdate(drink.id, { milk: e.target.checked })} />
+                Needs milk
+              </label>
+              <label className="adminCheck">
+                <input type="checkbox" checked={drink.syrups} onChange={e => onUpdate(drink.id, { syrups: e.target.checked })} />
+                Allows syrup
+              </label>
+              <label className="adminCheck">
+                <input type="checkbox" checked={drink.showTemp !== false && drink.temps.length > 1} disabled={drink.temps.length < 2} onChange={e => onUpdate(drink.id, { showTemp: e.target.checked })} />
+                Show temp choice
+              </label>
+            </div>
+
+            <div className="menuTempRow">
+              <button className={drink.temps.includes("Hot") ? "choice active" : "choice"} onClick={() => toggleTemp(drink, "Hot")}>Hot</button>
+              <button className={drink.temps.includes("Cold") ? "choice active" : "choice"} onClick={() => toggleTemp(drink, "Cold")}>Cold</button>
+            </div>
+
+            <div className="menuItemActions">
+              <button className="ghostBtn" disabled={busy || index === 0} onClick={() => onMove(drink.id, -1)}>Move up</button>
+              <button className="ghostBtn" disabled={busy || index === drinks.length - 1} onClick={() => onMove(drink.id, 1)}>Move down</button>
+              <button className="dangerOutlineBtn" disabled={busy || drinks.length <= 1} onClick={() => onRemove(drink.id)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AnalyticsList({ title, items }) {
   return (
     <div className="analyticsList">
@@ -828,6 +1065,7 @@ function CustomerPage() {
   const [errors, setErrors] = useState({});
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
+  const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS));
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
@@ -840,10 +1078,12 @@ function CustomerPage() {
   const orderLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
+  const menuLoadingRef = useRef(false);
   const previousStatusRef = useRef("");
   const nameRef = useRef(null);
 
-  const drink = getDrink(form.drinkId);
+  const customerDrinks = useMemo(() => normalizeMenuDrinks(menuDrinks), [menuDrinks]);
+  const drink = getDrink(form.drinkId, customerDrinks);
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
 
   function updateTextSize(nextLargeText) {
@@ -914,6 +1154,18 @@ function CustomerPage() {
     }
   }
 
+  async function refreshMenuOnly() {
+    if (menuLoadingRef.current) return;
+    menuLoadingRef.current = true;
+    try {
+      const data = await apiGet("menu");
+      if (data.ok && Array.isArray(data.drinks)) setMenuDrinks(normalizeMenuDrinks(data.drinks));
+    } catch {
+    } finally {
+      menuLoadingRef.current = false;
+    }
+  }
+
   async function refreshStatusOnly() {
     if (statusLoadingRef.current) return isOpen;
     statusLoadingRef.current = true;
@@ -934,6 +1186,7 @@ function CustomerPage() {
   useEffect(() => {
     if (myOrderId) refreshOrder();
     else refreshInitialCustomerData();
+    refreshMenuOnly();
 
     const orderId = myOrderId ? setInterval(() => {
       if (isPageVisible()) refreshOrder();
@@ -962,10 +1215,16 @@ function CustomerPage() {
   }, [myOrderId]);
 
   useEffect(() => {
-    const d = getDrink(form.drinkId);
+    const d = getDrink(form.drinkId, customerDrinks);
     setForm(f => ({ ...f, temp: d.temps[0], milk: "", syrups: [] }));
     setErrors({});
-  }, [form.drinkId]);
+  }, [form.drinkId, customerDrinks]);
+
+  useEffect(() => {
+    if (!customerDrinks.some(d => d.id === form.drinkId)) {
+      setForm(f => ({ ...f, drinkId: customerDrinks[0]?.id || "latte" }));
+    }
+  }, [customerDrinks, form.drinkId]);
 
   function toggleSyrup(s) {
     setForm(f => {
@@ -1102,7 +1361,7 @@ function CustomerPage() {
               <div className="field">
                 {lbl("Drink")}
                 <div className="drinkList">
-                  {DRINKS.map(d => <button key={d.id} className={form.drinkId === d.id ? "drink active" : "drink"} onClick={() => setForm(f => ({...f, drinkId: d.id}))}><strong>{d.label}</strong><span>{d.desc}</span></button>)}
+                  {customerDrinks.map(d => <button key={d.id} className={form.drinkId === d.id ? "drink active" : "drink"} onClick={() => setForm(f => ({...f, drinkId: d.id}))}><strong>{d.label}</strong><span>{d.desc}</span></button>)}
                 </div>
               </div>
 

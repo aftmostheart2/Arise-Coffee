@@ -16,6 +16,7 @@ export async function apiGet(action, params = {}) {
   if (action === "orders") return getOrders();
   if (action === "order") return getOrder(params.id);
   if (action === "inventory") return getInventory();
+  if (action === "menu") return getMenu(params.pin);
 
   return { ok: false, error: "Unknown action" };
 }
@@ -37,6 +38,7 @@ export async function apiPost(payload) {
   if (payload.action === "archive") return getArchive(payload.pin);
   if (payload.action === "clearArchive") return clearArchive(payload.pin);
   if (payload.action === "analytics") return getAnalytics(payload.pin);
+  if (payload.action === "saveMenu") return saveMenu(payload.pin, payload.drinks);
 
   return { ok: false, error: "Unknown action" };
 }
@@ -76,6 +78,14 @@ export async function getOrder(id) {
 export async function getInventory() {
   try {
     return await callRpc("arise_inventory");
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function getMenu(pin = null) {
+  try {
+    return await callRpc("arise_menu", { input_pin: pin ? String(pin) : null });
   } catch {
     return { ok: false, error: "Connection error" };
   }
@@ -169,6 +179,17 @@ export async function clearArchive(pin) {
 export async function getAnalytics(pin) {
   try {
     return await callRpc("arise_analytics", { input_pin: String(pin || "") });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function saveMenu(pin, drinks) {
+  try {
+    return await callRpc("arise_save_menu", {
+      input_pin: String(pin || ""),
+      input_drinks: Array.isArray(drinks) ? drinks : [],
+    });
   } catch {
     return { ok: false, error: "Connection error" };
   }
