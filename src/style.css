@@ -8,15 +8,15 @@ button:disabled{opacity:.55;cursor:not-allowed}
 a{color:inherit;text-decoration:none}
 
 header{background:#140800;padding:14px 24px;border-bottom:1px solid rgba(200,130,58,.15);display:flex;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto;min-width:0}
 .brand span{font-size:22px}
 header h1,h2,.modal h2{font-family:"Playfair Display",Georgia,serif;font-weight:700}
 header h1{font-size:19px}
 header p{font-size:10px;color:#5A3A20;letter-spacing:1.5px;text-transform:uppercase}
-.adminLink{margin-left:auto;color:#5A3A20;font-size:12px}
+.adminLink{color:#FFF8F0;font-size:12px;font-weight:700;border:1px solid rgba(200,130,58,.35);background:#2C1400;border-radius:4px;padding:8px 10px;white-space:nowrap}
 .pill{margin-left:12px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .pill.open{background:rgba(107,191,107,.12);color:#6BBF6B;border:1px solid rgba(107,191,107,.3)}
-.pill.closedPage{background:rgba(224,82,82,.12);color:#E05252;border:1px solid rgba(224,82,82,.3)}
+.pill.closed{background:rgba(224,82,82,.12);color:#E05252;border:1px solid rgba(224,82,82,.3)}
 
 .layout{display:grid;grid-template-columns:1fr min(360px,38%);max-width:1080px;width:100%;margin:0 auto;padding:0 24px 48px}
 .formCol{padding:32px 28px 32px 0;border-right:1px solid rgba(200,130,58,.1)}
@@ -142,22 +142,31 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .analyticsRow{display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(200,130,58,.10);padding:8px 0;color:#8A9B8E;font-size:12px}
 .analyticsRow:first-of-type{border-top:none}
 .analyticsRow strong{color:#C8823A}
-.menuPanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:16px;margin-bottom:24px}
+.menuPanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:18px;margin-bottom:24px}
 .compactPrimary{width:auto;margin-top:0;padding:10px 14px}
-.menuEditorList{display:flex;flex-direction:column;gap:12px}
-.menuEditorItem{background:#2C1400;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:14px}
+.menuEditorList{display:grid;grid-template-columns:1fr;gap:14px}
+.menuEditorItem{background:#2C1400;border:1px solid rgba(200,130,58,.16);border-radius:8px;padding:14px;box-shadow:0 12px 28px rgba(0,0,0,.12)}
 .menuEditorItem.inactive{opacity:.72}
+.menuCardHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(200,130,58,.10)}
+.menuCardHeader div{display:flex;align-items:center;gap:10px;min-width:0}
+.menuCardHeader strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menuOrder{font-family:"Playfair Display",Georgia,serif;color:#C8823A;font-weight:700}
+.menuState{font-size:11px;border:1px solid rgba(224,82,82,.28);color:#E05252;border-radius:20px;padding:4px 8px;white-space:nowrap}
+.menuState.active{border-color:rgba(107,191,107,.3);color:#6BBF6B}
 .menuEditorTop{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
 .menuFields{display:grid;grid-template-columns:minmax(160px,1fr) minmax(220px,2fr);gap:8px;width:100%}
+.menuFields label{display:flex;flex-direction:column;gap:6px}
+.menuFields label span{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#8A9B8E}
 .menuOptionGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
-.adminCheck{display:flex;align-items:center;gap:8px;background:#241000;border:1px solid rgba(200,130,58,.12);border-radius:6px;padding:9px 10px;color:#8A9B8E;font-size:12px}
+.adminCheck{display:flex;align-items:center;gap:8px;background:#241000;border:1px solid rgba(200,130,58,.12);border-radius:6px;padding:10px;color:#8A9B8E;font-size:12px}
 .adminCheck input{width:auto}
-.menuTempRow{display:flex;gap:8px;margin-bottom:10px}
+.menuTempRow{display:flex;gap:8px;margin-bottom:12px}
 .menuItemActions{display:flex;gap:8px;flex-wrap:wrap}
 
 @media(max-width:760px){
   header{padding:13px 16px}
-  .adminLink{font-size:11px}
+  .adminLink{font-size:11px;padding:7px 8px}
+  .pill{margin-left:0}
   .layout{grid-template-columns:1fr;padding:0 18px 36px}
   .formCol{padding-right:0;border-right:none}
   .queueCol{padding-left:0;padding-top:0}

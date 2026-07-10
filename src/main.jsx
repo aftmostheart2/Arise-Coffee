@@ -229,8 +229,8 @@ function Header({ isOpen, statusText }) {
         <span>☕</span>
         <div><h1>Arise! Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
+      {!isAdminPage && <a className="adminLink" href="/admin">Admin Access</a>}
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
-      {!isAdminPage && <a className="adminLink" href="/admin">Admin</a>}
     </header>
   );
 }
@@ -951,19 +951,32 @@ function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, 
       <div className="menuEditorList">
         {drinks.map((drink, index) => (
           <div className={drink.active ? "menuEditorItem" : "menuEditorItem inactive"} key={drink.id}>
+            <div className="menuCardHeader">
+              <div>
+                <span className="menuOrder">#{String(index + 1).padStart(2, "0")}</span>
+                <strong>{drink.label || "New Drink"}</strong>
+              </div>
+              <span className={drink.active ? "menuState active" : "menuState"}>{drink.active ? "Visible" : "Hidden"}</span>
+            </div>
+
             <div className="menuEditorTop">
-              <div className="orderNum">#{String(index + 1).padStart(2, "0")}</div>
               <div className="menuFields">
-                <input
-                  value={drink.label}
-                  onChange={e => onUpdate(drink.id, { label: e.target.value })}
-                  placeholder="Drink name"
-                />
-                <input
-                  value={drink.desc}
-                  onChange={e => onUpdate(drink.id, { desc: e.target.value })}
-                  placeholder="Short description"
-                />
+                <label>
+                  <span>Name</span>
+                  <input
+                    value={drink.label}
+                    onChange={e => onUpdate(drink.id, { label: e.target.value })}
+                    placeholder="Drink name"
+                  />
+                </label>
+                <label>
+                  <span>Description</span>
+                  <input
+                    value={drink.desc}
+                    onChange={e => onUpdate(drink.id, { desc: e.target.value })}
+                    placeholder="Short description"
+                  />
+                </label>
               </div>
             </div>
 
