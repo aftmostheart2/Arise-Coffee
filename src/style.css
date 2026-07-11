@@ -1,7 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
 
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#1C0A00;color:#FFF8F0;font-family:Inter,sans-serif}
+html{background:#120700;min-height:100%;overscroll-behavior-y:none}
+body{background:#1C0A00;color:#FFF8F0;font-family:Inter,sans-serif;min-height:100vh;min-height:100dvh}
+#root{min-height:100vh;min-height:100dvh;background:#1C0A00}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
 button:disabled{opacity:.55;cursor:not-allowed}
@@ -615,7 +617,14 @@ body{
   background:
     radial-gradient(circle at 50% -20%, rgba(212,147,77,.10), transparent 38%),
     linear-gradient(180deg, #160800 0%, var(--bg) 42%, #0D0500 100%);
+  background-color:var(--bg);
   color:var(--text);
+}
+#root{
+  background:
+    radial-gradient(circle at 50% -20%, rgba(212,147,77,.10), transparent 38%),
+    linear-gradient(180deg, #160800 0%, var(--bg) 42%, #0D0500 100%);
+  background-color:var(--bg);
 }
 
 header{
@@ -889,6 +898,13 @@ input:focus,textarea:focus{
 }
 
 @media(max-width:760px){
+  html,body,#root{
+    background-color:var(--bg);
+  }
+  body{
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
   header{
     flex-wrap:wrap;
   }
