@@ -593,3 +593,318 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 @keyframes spin{
   to{transform:rotate(360deg)}
 }
+
+/* 2026 UI refresh */
+:root{
+  --bg:#120700;
+  --bg-2:#1C0A00;
+  --surface:#281302;
+  --surface-2:#331A06;
+  --line:rgba(205,140,72,.18);
+  --line-strong:rgba(205,140,72,.34);
+  --text:#FFF8F0;
+  --muted:#9D8B78;
+  --dim:#6F513A;
+  --gold:#D4934D;
+  --gold-2:#F0B66D;
+  --green:#78C77A;
+  --red:#E06458;
+}
+
+body{
+  background:
+    radial-gradient(circle at 50% -20%, rgba(212,147,77,.10), transparent 38%),
+    linear-gradient(180deg, #160800 0%, var(--bg) 42%, #0D0500 100%);
+  color:var(--text);
+}
+
+header{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:rgba(18,7,0,.92);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 12px 36px rgba(0,0,0,.16);
+}
+.brand span{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(212,147,77,.13);
+  border:1px solid var(--line);
+}
+header h1{font-size:21px;line-height:1}
+header p{color:var(--dim)}
+.adminLink,.textSizeToggle,.pill{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+}
+.adminLink,.textSizeToggle{
+  background:rgba(51,26,6,.82);
+  border-color:var(--line-strong);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.adminLink:hover,.textSizeToggle:hover,.ghostBtn:hover{
+  border-color:rgba(212,147,77,.55);
+  color:var(--text);
+}
+.pill{
+  padding:6px 12px;
+}
+
+.layout{
+  max-width:1180px;
+  gap:28px;
+  padding-top:32px;
+}
+.formCol,.queueCol{
+  padding-top:0;
+}
+.formCol{
+  background:rgba(40,19,2,.42);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:24px;
+  box-shadow:0 22px 70px rgba(0,0,0,.18);
+}
+.queueCol{
+  background:rgba(40,19,2,.30);
+  border:1px solid rgba(205,140,72,.12);
+  border-radius:14px;
+  padding:22px;
+  align-self:start;
+}
+h2{
+  font-size:28px;
+  line-height:1.1;
+}
+.sub{
+  color:var(--muted);
+  line-height:1.5;
+}
+.label{
+  color:#9EB19E;
+  font-weight:700;
+}
+input,textarea{
+  background:rgba(18,7,0,.72);
+  border-color:var(--line);
+  border-radius:8px;
+  min-height:44px;
+}
+input:focus,textarea:focus{
+  outline:none;
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(212,147,77,.18);
+}
+
+.drinkList{
+  gap:10px;
+}
+.drink{
+  display:block;
+  padding:14px 15px;
+  background:rgba(18,7,0,.58);
+  border-color:var(--line);
+  border-radius:10px;
+  color:var(--muted);
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
+}
+.drink:hover{
+  transform:translateY(-1px);
+  border-color:rgba(212,147,77,.42);
+  background:rgba(51,26,6,.72);
+}
+.drink.active{
+  background:linear-gradient(180deg, rgba(212,147,77,.95), rgba(180,102,37,.95));
+  color:var(--text);
+  border-color:rgba(240,182,109,.82);
+  box-shadow:0 10px 26px rgba(180,102,37,.18);
+}
+.drink strong{
+  display:block;
+  margin-bottom:3px;
+}
+.drink span{
+  display:block;
+  margin-left:0;
+  color:inherit;
+}
+.row{gap:10px}
+.choice,.syrup{
+  background:rgba(18,7,0,.58);
+  border-color:var(--line);
+  border-radius:999px;
+  color:var(--muted);
+}
+.choice.active,.syrup.active{
+  background:rgba(212,147,77,.22);
+  color:var(--gold-2);
+  border-color:rgba(212,147,77,.62);
+}
+.syrup{
+  padding:10px 14px;
+}
+.servedOnly{
+  background:rgba(51,26,6,.62);
+  color:var(--muted);
+  border-color:var(--line);
+  border-radius:10px;
+}
+
+.joinBtn,.primaryBtn{
+  border-radius:10px;
+  background:linear-gradient(180deg, var(--gold-2), var(--gold));
+  color:#1C0A00;
+  box-shadow:0 14px 34px rgba(212,147,77,.20);
+}
+.joinBtn{
+  min-height:54px;
+  font-size:16px;
+}
+.ghostBtn,.dangerOutlineBtn,.collapseBtn{
+  border-radius:10px;
+}
+.ghostBtn{
+  background:rgba(18,7,0,.34);
+  color:var(--muted);
+  border-color:var(--line);
+}
+.dangerOutlineBtn{
+  background:rgba(224,100,88,.06);
+}
+
+.closedPage{
+  background:
+    linear-gradient(180deg, rgba(18,7,0,.15), rgba(18,7,0,.72)),
+    radial-gradient(circle at center 38%, rgba(212,147,77,.10), transparent 26%);
+}
+.closedIcon{
+  width:72px;
+  height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(51,26,6,.65);
+  border:1px solid var(--line);
+  border-radius:20px;
+  opacity:1;
+  font-size:40px;
+  margin-bottom:18px;
+}
+.closedPage h1{
+  font-size:38px;
+}
+.closedPage p{
+  color:var(--muted);
+  font-size:16px;
+  max-width:420px;
+}
+
+.adminPage{
+  max-width:1100px;
+}
+.adminTop,.adminCard,.panel,.inventoryPanel,.archivePanel,.analyticsPanel,.menuPanel,.orders{
+  background:rgba(40,19,2,.56);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:0 18px 60px rgba(0,0,0,.14);
+}
+.adminTop{
+  padding:18px;
+}
+.adminCard,.panel,.inventoryPanel,.archivePanel,.analyticsPanel,.menuPanel{
+  padding:18px;
+}
+.toolbar{
+  background:rgba(18,7,0,.38);
+  border:1px solid rgba(205,140,72,.12);
+  border-radius:14px;
+  padding:12px;
+}
+.adminOrder,.archiveOrder,.analyticsSummary div,.analyticsList,.inventoryToggle,.menuEditorItem,.ingredientEditorItem{
+  background:rgba(18,7,0,.55);
+  border-color:var(--line);
+  border-radius:12px;
+}
+.adminOrder{
+  padding:16px;
+}
+.statusBadge,.adminMeta span,.menuState,.menuSubhead span{
+  background:rgba(18,7,0,.55);
+}
+.inventoryToggle{
+  padding:14px;
+}
+.inventoryToggle.available{
+  border-color:rgba(120,199,122,.24);
+}
+.inventoryToggle.available strong{
+  color:var(--green);
+}
+.inventoryToggle.out{
+  border-color:rgba(224,100,88,.34);
+}
+
+.customerStatusCard{
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(51,26,6,.82), rgba(18,7,0,.84));
+  border-color:var(--line-strong);
+}
+.statusHero > span{
+  border-radius:18px;
+  background:rgba(18,7,0,.62);
+}
+.customerDrinkSummary,.etaBox,.progressStep{
+  border-radius:12px;
+}
+.progressStep.done{
+  background:rgba(212,147,77,.20);
+}
+
+.menuEditorList{
+  gap:16px;
+}
+.menuEditorItem,.ingredientEditorItem{
+  padding:16px;
+}
+.menuOptionGrid{
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+}
+.adminCheck{
+  background:rgba(18,7,0,.48);
+  border-radius:10px;
+}
+.ingredientEditorGrid{
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+}
+.menuItemActions .ghostBtn,.menuItemActions .dangerOutlineBtn{
+  padding:8px 11px;
+  font-size:12px;
+}
+
+@media(max-width:760px){
+  header{
+    flex-wrap:wrap;
+  }
+  .brand{
+    flex:1 1 100%;
+  }
+  .adminLink{
+    margin-left:0;
+  }
+  .layout{
+    gap:18px;
+    padding-top:18px;
+  }
+  .formCol,.queueCol{
+    padding:18px;
+  }
+  h2{font-size:25px}
+  .closedPage h1{font-size:32px}
+}
