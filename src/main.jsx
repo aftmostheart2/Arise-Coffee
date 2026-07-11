@@ -58,6 +58,34 @@ function normalizeMenuDrinks(drinks, includeInactive = false) {
     .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
 }
 
+function makeIngredientId(item) {
+  return String(item || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || `item-${Date.now()}`;
+}
+
+function normalizeIngredientItem(item, type, index = 0) {
+  const name = typeof item === "string" ? item : item?.item;
+  return {
+    id: String(item?.id || makeIngredientId(name || `${type}-${index + 1}`)),
+    item: String(name || "").trim() || `${type === "milk" ? "Milk" : "Syrup"} ${index + 1}`,
+    type,
+    available: item?.available !== false,
+    active: item?.active !== false,
+    sortOrder: Number.isFinite(Number(item?.sortOrder)) ? Number(item.sortOrder) : index,
+  };
+}
+
+function normalizeIngredientList(items, type, fallback, includeInactive = false) {
+  const source = Array.isArray(items) && items.length ? items : fallback;
+  return source
+    .map((item, index) => normalizeIngredientItem(item, type, index))
+    .filter(item => includeInactive || item.active !== false)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.item.localeCompare(b.item));
+}
+
 function getDrink(id, drinks = DRINKS) {
   const normalized = normalizeMenuDrinks(drinks);
   return normalized.find(d => d.id === id) || normalized[0] || normalizeDrinkItem(DRINKS[1], 1);
@@ -92,8 +120,7 @@ function cacheInventory(inventory) {
 function inventoryItemsByType(inventory, type, fallback) {
   const key = type + "s";
   const list = inventory?.[key];
-  if (Array.isArray(list) && list.length) return list;
-  return fallback.map(item => ({ item, type, available: true }));
+  return normalizeIngredientList(list, type, fallback);
 }
 
 function buildInventoryLookup(inventory) {
@@ -336,6 +363,8 @@ function AdminPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuLoaded, setMenuLoaded] = useState(false);
   const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS, true));
+  const [menuMilks, setMenuMilks] = useState(() => normalizeIngredientList(null, "milk", MILKS, true));
+  const [menuSyrups, setMenuSyrups] = useState(() => normalizeIngredientList(null, "syrup", SYRUPS, true));
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -590,12 +619,20 @@ function AdminPage() {
       const data = await apiGet("menu", { pin });
       if (data.ok && Array.isArray(data.drinks)) {
         setMenuDrinks(normalizeMenuDrinks(data.drinks, true));
+        setMenuMilks(normalizeIngredientList(data.milks, "milk", MILKS, true));
+        setMenuSyrups(normalizeIngredientList(data.syrups, "syrup", SYRUPS, true));
         setMenuLoaded(true);
       } else if (!menuLoaded) {
         setMenuDrinks(normalizeMenuDrinks(DRINKS, true));
+        setMenuMilks(normalizeIngredientList(null, "milk", MILKS, true));
+        setMenuSyrups(normalizeIngredientList(null, "syrup", SYRUPS, true));
       }
     } catch {
-      if (!menuLoaded) setMenuDrinks(normalizeMenuDrinks(DRINKS, true));
+      if (!menuLoaded) {
+        setMenuDrinks(normalizeMenuDrinks(DRINKS, true));
+        setMenuMilks(normalizeIngredientList(null, "milk", MILKS, true));
+        setMenuSyrups(normalizeIngredientList(null, "syrup", SYRUPS, true));
+      }
     } finally {
       setMenuBusy(false);
     }
@@ -645,10 +682,57 @@ function AdminPage() {
     });
   }
 
+  function updateMenuIngredient(type, id, patch) {
+    const setter = type === "milk" ? setMenuMilks : setMenuSyrups;
+    setter(current => current.map(item => item.id === id ? normalizeIngredientItem({ ...item, ...patch }, type, item.sortOrder) : item));
+  }
+
+  function addMenuIngredient(type) {
+    const setter = type === "milk" ? setMenuMilks : setMenuSyrups;
+    const label = type === "milk" ? "New milk" : "New syrup";
+    setter(current => [...current, normalizeIngredientItem({
+      id: makeIngredientId(`${label}-${Date.now()}`),
+      item: label,
+      type,
+      available: true,
+      active: true,
+      sortOrder: current.length,
+    }, type, current.length)]);
+  }
+
+  function removeMenuIngredient(type, id) {
+    const setter = type === "milk" ? setMenuMilks : setMenuSyrups;
+    setter(current => {
+      if (current.length <= 1) {
+        alert(`Keep at least one ${type === "milk" ? "milk" : "syrup"} item.`);
+        return current;
+      }
+      return current.filter(item => item.id !== id).map((item, index) => ({ ...item, sortOrder: index }));
+    });
+  }
+
+  function moveMenuIngredient(type, id, direction) {
+    const setter = type === "milk" ? setMenuMilks : setMenuSyrups;
+    setter(current => {
+      const next = [...current];
+      const index = next.findIndex(item => item.id === id);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= next.length) return current;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next.map((item, sortOrder) => ({ ...item, sortOrder }));
+    });
+  }
+
   async function saveMenuDrinks() {
     const cleaned = normalizeMenuDrinks(menuDrinks, true).map((drink, index) => ({ ...drink, sortOrder: index }));
+    const cleanedMilks = normalizeIngredientList(menuMilks, "milk", MILKS, true).map((item, index) => ({ ...item, sortOrder: index }));
+    const cleanedSyrups = normalizeIngredientList(menuSyrups, "syrup", SYRUPS, true).map((item, index) => ({ ...item, sortOrder: index }));
     if (cleaned.some(drink => !drink.label.trim())) {
       alert("Every drink needs a name.");
+      return;
+    }
+    if ([...cleanedMilks, ...cleanedSyrups].some(item => !item.item.trim())) {
+      alert("Every milk and syrup needs a name.");
       return;
     }
     if (!cleaned.some(drink => drink.active)) {
@@ -658,10 +742,16 @@ function AdminPage() {
 
     setMenuBusy(true);
     try {
-      const data = await apiPost({ action: "saveMenu", pin, drinks: cleaned });
+      const data = await apiPost({ action: "saveMenu", pin, drinks: cleaned, milks: cleanedMilks, syrups: cleanedSyrups });
       if (data.ok) {
         setMenuDrinks(normalizeMenuDrinks(data.drinks || cleaned, true));
+        setMenuMilks(normalizeIngredientList(data.milks || cleanedMilks, "milk", MILKS, true));
+        setMenuSyrups(normalizeIngredientList(data.syrups || cleanedSyrups, "syrup", SYRUPS, true));
         setMenuLoaded(true);
+        setInventory(cacheInventory({
+          milks: normalizeIngredientList(data.milks || cleanedMilks, "milk", MILKS, true),
+          syrups: normalizeIngredientList(data.syrups || cleanedSyrups, "syrup", SYRUPS, true),
+        }));
         setNotice("Menu saved");
       } else {
         alert(data.error || "Could not save menu");
@@ -701,13 +791,19 @@ function AdminPage() {
 
           <MenuEditor
             drinks={menuDrinks}
+            milks={menuMilks}
+            syrups={menuSyrups}
             busy={menuBusy}
             onAdd={addMenuDrink}
+            onAddIngredient={addMenuIngredient}
             onRefresh={loadMenu}
             onSave={saveMenuDrinks}
             onRemove={removeMenuDrink}
+            onRemoveIngredient={removeMenuIngredient}
             onMove={moveMenuDrink}
+            onMoveIngredient={moveMenuIngredient}
             onUpdate={updateMenuDrink}
+            onUpdateIngredient={updateMenuIngredient}
           />
         </main>
       </>
@@ -924,7 +1020,22 @@ function AdminPage() {
   );
 }
 
-function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, onUpdate }) {
+function MenuEditor({
+  drinks,
+  milks,
+  syrups,
+  busy,
+  onAdd,
+  onAddIngredient,
+  onRefresh,
+  onSave,
+  onRemove,
+  onRemoveIngredient,
+  onMove,
+  onMoveIngredient,
+  onUpdate,
+  onUpdateIngredient,
+}) {
   function toggleTemp(drink, temp) {
     const hasTemp = drink.temps.includes(temp);
     const nextTemps = hasTemp ? drink.temps.filter(t => t !== temp) : [...drink.temps, temp];
@@ -938,7 +1049,7 @@ function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, 
     <section className="menuPanel">
       <div className="sectionHeader">
         <div>
-          <h2>Drinks</h2>
+          <h2>Menu</h2>
           <p className="sub">Customer menu changes only save when you press Save menu.</p>
         </div>
         <div className="archiveActions">
@@ -946,6 +1057,11 @@ function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, 
           <button className="ghostBtn" disabled={busy} onClick={onAdd}>Add drink</button>
           <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
         </div>
+      </div>
+
+      <div className="menuSubhead">
+        <h3>Drinks</h3>
+        <span>{drinks.filter(drink => drink.active).length} visible</span>
       </div>
 
       <div className="menuEditorList">
@@ -982,10 +1098,6 @@ function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, 
 
             <div className="menuOptionGrid">
               <label className="adminCheck">
-                <input type="checkbox" checked={drink.active} onChange={e => onUpdate(drink.id, { active: e.target.checked })} />
-                Active
-              </label>
-              <label className="adminCheck">
                 <input type="checkbox" checked={drink.milk} onChange={e => onUpdate(drink.id, { milk: e.target.checked })} />
                 Needs milk
               </label>
@@ -1005,6 +1117,7 @@ function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, 
             </div>
 
             <div className="menuItemActions">
+              <button className="ghostBtn" disabled={busy} onClick={() => onUpdate(drink.id, { active: !drink.active })}>{drink.active ? "Hide" : "Show"}</button>
               <button className="ghostBtn" disabled={busy || index === 0} onClick={() => onMove(drink.id, -1)}>Move up</button>
               <button className="ghostBtn" disabled={busy || index === drinks.length - 1} onClick={() => onMove(drink.id, 1)}>Move down</button>
               <button className="dangerOutlineBtn" disabled={busy || drinks.length <= 1} onClick={() => onRemove(drink.id)}>Delete</button>
@@ -1012,7 +1125,70 @@ function MenuEditor({ drinks, busy, onAdd, onRefresh, onSave, onRemove, onMove, 
           </div>
         ))}
       </div>
+
+      <IngredientMenuSection
+        title="Milks"
+        type="milk"
+        items={milks}
+        busy={busy}
+        onAdd={onAddIngredient}
+        onUpdate={onUpdateIngredient}
+        onMove={onMoveIngredient}
+        onRemove={onRemoveIngredient}
+      />
+
+      <IngredientMenuSection
+        title="Syrups"
+        type="syrup"
+        items={syrups}
+        busy={busy}
+        onAdd={onAddIngredient}
+        onUpdate={onUpdateIngredient}
+        onMove={onMoveIngredient}
+        onRemove={onRemoveIngredient}
+      />
     </section>
+  );
+}
+
+function IngredientMenuSection({ title, type, items, busy, onAdd, onUpdate, onMove, onRemove }) {
+  return (
+    <div className="ingredientMenuSection">
+      <div className="menuSubhead">
+        <h3>{title}</h3>
+        <div className="menuSubActions">
+          <span>{items.filter(item => item.active).length} visible</span>
+          <button className="ghostBtn" disabled={busy} onClick={() => onAdd(type)}>Add {type === "milk" ? "milk" : "syrup"}</button>
+        </div>
+      </div>
+
+      <div className="ingredientEditorGrid">
+        {items.map((item, index) => (
+          <div className={item.active ? "ingredientEditorItem" : "ingredientEditorItem inactive"} key={item.id}>
+            <div className="menuCardHeader">
+              <div>
+                <span className="menuOrder">#{String(index + 1).padStart(2, "0")}</span>
+                <strong>{item.item}</strong>
+              </div>
+              <span className={item.active ? "menuState active" : "menuState"}>{item.active ? "Visible" : "Hidden"}</span>
+            </div>
+
+            <label className="menuNameField">
+              <span>Name</span>
+              <input value={item.item} onChange={e => onUpdate(type, item.id, { item: e.target.value })} />
+            </label>
+
+            <div className="menuItemActions">
+              <button className="ghostBtn" disabled={busy} onClick={() => onUpdate(type, item.id, { active: !item.active })}>{item.active ? "Hide" : "Show"}</button>
+              <button className="ghostBtn" disabled={busy} onClick={() => onUpdate(type, item.id, { available: !item.available })}>{item.available ? "Mark out" : "Mark available"}</button>
+              <button className="ghostBtn" disabled={busy || index === 0} onClick={() => onMove(type, item.id, -1)}>Up</button>
+              <button className="ghostBtn" disabled={busy || index === items.length - 1} onClick={() => onMove(type, item.id, 1)}>Down</button>
+              <button className="dangerOutlineBtn" disabled={busy || items.length <= 1} onClick={() => onRemove(type, item.id)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

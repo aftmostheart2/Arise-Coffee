@@ -13,8 +13,8 @@ header{background:#140800;padding:14px 24px;border-bottom:1px solid rgba(200,130
 header h1,h2,.modal h2{font-family:"Playfair Display",Georgia,serif;font-weight:700}
 header h1{font-size:19px}
 header p{font-size:10px;color:#5A3A20;letter-spacing:1.5px;text-transform:uppercase}
-.adminLink{color:#FFF8F0;font-size:12px;font-weight:700;border:1px solid rgba(200,130,58,.35);background:#2C1400;border-radius:4px;padding:8px 10px;white-space:nowrap}
-.pill{margin-left:12px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.adminLink{color:#FFF8F0;font-size:12px;font-weight:700;border:1px solid rgba(200,130,58,.35);background:#2C1400;border-radius:4px;padding:8px 10px;white-space:nowrap;margin-left:10px}
+.pill{margin-left:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .pill.open{background:rgba(107,191,107,.12);color:#6BBF6B;border:1px solid rgba(107,191,107,.3)}
 .pill.closed{background:rgba(224,82,82,.12);color:#E05252;border:1px solid rgba(224,82,82,.3)}
 
@@ -68,6 +68,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .readyNotice{margin-top:12px;background:rgba(107,191,107,.12);color:#6BBF6B;border:1px solid rgba(107,191,107,.3);padding:10px;border-radius:4px;font-weight:600}
 
 .closedPage,.pinPage{min-height:calc(100vh - 66px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 24px}
+.closedPage{justify-content:flex-start;padding-top:34vh}
 .closedIcon{font-size:52px;opacity:.4;margin-bottom:24px}
 .closedPage h1{font-family:"Playfair Display",Georgia,serif;font-size:28px;margin-bottom:12px}
 .closedPage p{color:#8A9B8E;max-width:320px;line-height:1.6}
@@ -157,11 +158,21 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .menuFields{display:grid;grid-template-columns:minmax(160px,1fr) minmax(220px,2fr);gap:8px;width:100%}
 .menuFields label{display:flex;flex-direction:column;gap:6px}
 .menuFields label span{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#8A9B8E}
+.menuSubhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 12px}
+.menuSubhead h3{font-size:16px;color:#FFF8F0}
+.menuSubhead span{font-size:11px;color:#8A9B8E;border:1px solid rgba(200,130,58,.16);background:#2C1400;border-radius:20px;padding:5px 8px;white-space:nowrap}
+.menuSubActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .menuOptionGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
 .adminCheck{display:flex;align-items:center;gap:8px;background:#241000;border:1px solid rgba(200,130,58,.12);border-radius:6px;padding:10px;color:#8A9B8E;font-size:12px}
 .adminCheck input{width:auto}
 .menuTempRow{display:flex;gap:8px;margin-bottom:12px}
 .menuItemActions{display:flex;gap:8px;flex-wrap:wrap}
+.ingredientMenuSection{margin-top:22px;border-top:1px solid rgba(200,130,58,.12);padding-top:2px}
+.ingredientEditorGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.ingredientEditorItem{background:#2C1400;border:1px solid rgba(200,130,58,.16);border-radius:8px;padding:14px}
+.ingredientEditorItem.inactive{opacity:.72}
+.menuNameField{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.menuNameField span{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#8A9B8E}
 
 @media(max-width:760px){
   header{padding:13px 16px}
@@ -180,6 +191,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   .analyticsSummary,.analyticsGrid{grid-template-columns:1fr}
   .menuFields,.menuOptionGrid{grid-template-columns:1fr}
   .menuEditorTop{flex-direction:column}
+  .closedPage{padding-top:24vh}
 }
 
 

@@ -28,12 +28,16 @@ create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
   item text not null unique,
   type text not null check (type in ('syrup', 'milk')),
-  available boolean not null default true
+  available boolean not null default true,
+  active boolean not null default true,
+  sort_order integer not null default 0
 );
 
 alter table inventory add column if not exists item text;
 alter table inventory add column if not exists type text;
 alter table inventory add column if not exists available boolean not null default true;
+alter table inventory add column if not exists active boolean not null default true;
+alter table inventory add column if not exists sort_order integer not null default 0;
 
 create table if not exists menu_drinks (
   id text primary key,
@@ -105,6 +109,35 @@ insert into inventory (item, type, available) values
 ('Whole milk','milk',false)
 on conflict (item) do nothing;
 
+update inventory
+set sort_order = ranked.sort_order
+from (
+  select item, row_number() over (
+    partition by type
+    order by
+      case item
+        when 'Whole milk' then 0
+        when 'Almond milk' then 1
+        when 'Oat milk' then 2
+        when 'Soy milk' then 3
+        when 'Caramel' then 0
+        when 'Sugar Free Caramel' then 1
+        when 'Vanilla' then 2
+        when 'Sugar Free Vanilla' then 3
+        when 'Mocha' then 4
+        when 'White Chocolate' then 5
+        when 'Honey' then 6
+        when 'Cinnamon Powder' then 7
+        when 'Hazelnut' then 8
+        else 99
+      end,
+      item
+  ) - 1 as sort_order
+  from inventory
+) ranked
+where inventory.item = ranked.item
+  and inventory.sort_order = 0;
+
 insert into menu_drinks (id, label, description, temps, has_milk, has_syrups, show_temp, active, sort_order) values
 ('americano','Americano','No milk, water only',array['Hot','Cold'],false,true,true,true,0),
 ('latte','Latte','Standard milk and coffee drink',array['Hot','Cold'],true,true,true,true,1),
@@ -173,20 +206,53 @@ security definer
 set search_path = public
 as $$
   with sorted as (
-    select item, type, available
+    select item, type, available, active, sort_order
     from inventory
+    where active = true
     order by
       case type when 'syrup' then 0 when 'milk' then 1 else 2 end,
+      sort_order,
       item
   )
   select jsonb_build_object(
     'syrups', coalesce(
-      jsonb_agg(jsonb_build_object('item', item, 'type', 'syrup', 'available', available))
+      jsonb_agg(jsonb_build_object('item', item, 'type', 'syrup', 'available', available, 'active', active, 'sortOrder', sort_order))
         filter (where type = 'syrup'),
       '[]'::jsonb
     ),
     'milks', coalesce(
-      jsonb_agg(jsonb_build_object('item', item, 'type', 'milk', 'available', available))
+      jsonb_agg(jsonb_build_object('item', item, 'type', 'milk', 'available', available, 'active', active, 'sortOrder', sort_order))
+        filter (where type = 'milk'),
+      '[]'::jsonb
+    )
+  )
+  from sorted;
+$$;
+
+create or replace function arise_inventory_menu_json(input_include_inactive boolean default false)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with sorted as (
+    select item, type, available, active, sort_order
+    from inventory
+    where input_include_inactive or active = true
+    order by
+      case type when 'syrup' then 0 when 'milk' then 1 else 2 end,
+      sort_order,
+      item
+  )
+  select jsonb_build_object(
+    'syrups', coalesce(
+      jsonb_agg(jsonb_build_object('id', lower(regexp_replace(item, '[^a-zA-Z0-9]+', '-', 'g')), 'item', item, 'type', 'syrup', 'available', available, 'active', active, 'sortOrder', sort_order))
+        filter (where type = 'syrup'),
+      '[]'::jsonb
+    ),
+    'milks', coalesce(
+      jsonb_agg(jsonb_build_object('id', lower(regexp_replace(item, '[^a-zA-Z0-9]+', '-', 'g')), 'item', item, 'type', 'milk', 'available', available, 'active', active, 'sortOrder', sort_order))
         filter (where type = 'milk'),
       '[]'::jsonb
     )
@@ -231,7 +297,9 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'ok', true,
-    'drinks', arise_menu_json(arise_pin_matches(input_pin))
+    'drinks', arise_menu_json(arise_pin_matches(input_pin)),
+    'milks', arise_inventory_menu_json(arise_pin_matches(input_pin))->'milks',
+    'syrups', arise_inventory_menu_json(arise_pin_matches(input_pin))->'syrups'
   );
 $$;
 
@@ -503,7 +571,9 @@ begin
 end;
 $$;
 
-create or replace function arise_save_menu(input_pin text, input_drinks jsonb)
+drop function if exists arise_save_menu(text, jsonb);
+
+create or replace function arise_save_menu(input_pin text, input_drinks jsonb, input_milks jsonb default '[]'::jsonb, input_syrups jsonb default '[]'::jsonb)
 returns jsonb
 language plpgsql
 security definer
@@ -511,14 +581,18 @@ set search_path = public
 as $$
 declare
   drink_item jsonb;
+  ingredient_item jsonb;
   cleaned_temps text[];
   drink_index integer := 0;
+  ingredient_index integer := 0;
 begin
   if not arise_pin_matches(input_pin) then
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
-  if jsonb_typeof(coalesce(input_drinks, '[]'::jsonb)) <> 'array' then
+  if jsonb_typeof(coalesce(input_drinks, '[]'::jsonb)) <> 'array'
+    or jsonb_typeof(coalesce(input_milks, '[]'::jsonb)) <> 'array'
+    or jsonb_typeof(coalesce(input_syrups, '[]'::jsonb)) <> 'array' then
     return jsonb_build_object('ok', false, 'error', 'Invalid menu');
   end if;
 
@@ -578,7 +652,59 @@ begin
     drink_index := drink_index + 1;
   end loop;
 
-  return jsonb_build_object('ok', true, 'drinks', arise_menu_json(true));
+  delete from inventory;
+
+  ingredient_index := 0;
+  for ingredient_item in
+    select value
+    from jsonb_array_elements(input_milks)
+  loop
+    insert into inventory (item, type, available, active, sort_order)
+    values (
+      left(coalesce(nullif(trim(ingredient_item->>'item'), ''), 'Milk'), 80),
+      'milk',
+      coalesce((ingredient_item->>'available')::boolean, true),
+      coalesce((ingredient_item->>'active')::boolean, true),
+      ingredient_index
+    )
+    on conflict (item) do update set
+      type = excluded.type,
+      available = excluded.available,
+      active = excluded.active,
+      sort_order = excluded.sort_order;
+
+    ingredient_index := ingredient_index + 1;
+  end loop;
+
+  ingredient_index := 0;
+  for ingredient_item in
+    select value
+    from jsonb_array_elements(input_syrups)
+  loop
+    insert into inventory (item, type, available, active, sort_order)
+    values (
+      left(coalesce(nullif(trim(ingredient_item->>'item'), ''), 'Syrup'), 80),
+      'syrup',
+      coalesce((ingredient_item->>'available')::boolean, true),
+      coalesce((ingredient_item->>'active')::boolean, true),
+      ingredient_index
+    )
+    on conflict (item) do update set
+      type = excluded.type,
+      available = excluded.available,
+      active = excluded.active,
+      sort_order = excluded.sort_order;
+
+    ingredient_index := ingredient_index + 1;
+  end loop;
+
+  return jsonb_build_object(
+    'ok', true,
+    'drinks', arise_menu_json(true),
+    'milks', arise_inventory_menu_json(true)->'milks',
+    'syrups', arise_inventory_menu_json(true)->'syrups',
+    'inventory', arise_inventory_json()
+  );
 end;
 $$;
 
@@ -821,7 +947,7 @@ grant execute on function arise_place_order(jsonb) to anon;
 grant execute on function arise_update_admin(text, boolean, text) to anon;
 grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_update_inventory(text, text, boolean) to anon;
-grant execute on function arise_save_menu(text, jsonb) to anon;
+grant execute on function arise_save_menu(text, jsonb, jsonb, jsonb) to anon;
 grant execute on function arise_clear_completed(text) to anon;
 grant execute on function arise_clear_all(text) to anon;
 grant execute on function arise_archive(text, integer) to anon;

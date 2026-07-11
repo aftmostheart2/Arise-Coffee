@@ -38,7 +38,11 @@ export async function apiPost(payload) {
   if (payload.action === "archive") return getArchive(payload.pin);
   if (payload.action === "clearArchive") return clearArchive(payload.pin);
   if (payload.action === "analytics") return getAnalytics(payload.pin);
-  if (payload.action === "saveMenu") return saveMenu(payload.pin, payload.drinks);
+  if (payload.action === "saveMenu") return saveMenu(payload.pin, {
+    drinks: payload.drinks,
+    milks: payload.milks,
+    syrups: payload.syrups,
+  });
 
   return { ok: false, error: "Unknown action" };
 }
@@ -184,11 +188,13 @@ export async function getAnalytics(pin) {
   }
 }
 
-export async function saveMenu(pin, drinks) {
+export async function saveMenu(pin, menu) {
   try {
     return await callRpc("arise_save_menu", {
       input_pin: String(pin || ""),
-      input_drinks: Array.isArray(drinks) ? drinks : [],
+      input_drinks: Array.isArray(menu?.drinks) ? menu.drinks : [],
+      input_milks: Array.isArray(menu?.milks) ? menu.milks : [],
+      input_syrups: Array.isArray(menu?.syrups) ? menu.syrups : [],
     });
   } catch {
     return { ok: false, error: "Connection error" };
