@@ -824,20 +824,45 @@ function AdminPage() {
               <span>Updated {formatUpdatedAt(lastUpdated)}</span>
             </div>
           </div>
-          <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
+          <div className="adminTopActions">
+            <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
+            <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
+          </div>
         </section>
 
-        <section className="adminCard">
-          <div>
-            <div className="label">Queue Status</div>
-            <div className={isOpen ? "statusOpen" : "statusClosed"}>{isOpen ? "● Open" : "● Closed"}</div>
+        <section className="adminCommandCenter">
+          <div className="queueCommand">
+            <div>
+              <div className="label">Queue Status</div>
+              <div className={isOpen ? "statusOpen" : "statusClosed"}>{isOpen ? "● Open" : "● Closed"}</div>
+            </div>
+            <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message })}>
+              {isOpen ? "Close Queue" : "Open Queue"}
+            </button>
           </div>
-          <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message })}>
-            {isOpen ? "Close Queue" : "Open Queue"}
+
+          <div className="adminQuickActions">
+            <button className="ghostBtn" onClick={clearCompleted}>Archive ready ({readyArchiveCount})</button>
+            <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
+          </div>
+        </section>
+
+        <section className="adminTools">
+          <button className="toolTile" onClick={openMenuScreen}>
+            <strong>Menu</strong>
+            <span>Drinks, milks, syrups</span>
+          </button>
+          <button className={archiveOpen ? "toolTile active" : "toolTile"} onClick={toggleArchive}>
+            <strong>Archive</strong>
+            <span>{archiveOpen ? "Hide archive" : "View past orders"}</span>
+          </button>
+          <button className={analyticsOpen ? "toolTile active" : "toolTile"} onClick={toggleAnalytics}>
+            <strong>Analytics</strong>
+            <span>{analyticsOpen ? "Hide analytics" : "Popular items"}</span>
           </button>
         </section>
 
-        <section className="panel">
+        <section className="panel closedMessagePanel">
           <div className="label">Closed message</div>
           <textarea
             value={message}
@@ -851,15 +876,6 @@ function AdminPage() {
           />
           <button className="primaryBtn" disabled={busy} onClick={() => saveAdmin({ isOpen, message })}>Save message</button>
           {notice && <div className="notice">{notice}</div>}
-        </section>
-
-        <section className="toolbar">
-          <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
-          <button className="ghostBtn" onClick={openMenuScreen}>Menu</button>
-          <button className="ghostBtn" onClick={clearCompleted}>Archive ready orders ({readyArchiveCount})</button>
-          <button className="ghostBtn" onClick={toggleArchive}>{archiveOpen ? "Hide archive" : "Archive"}</button>
-          <button className="ghostBtn" onClick={toggleAnalytics}>{analyticsOpen ? "Hide analytics" : "Analytics"}</button>
-          <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
         </section>
 
         {archiveOpen && (
