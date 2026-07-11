@@ -361,6 +361,7 @@ function AdminPage() {
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adminView, setAdminView] = useState("dashboard");
   const [menuLoaded, setMenuLoaded] = useState(false);
   const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS, true));
   const [menuMilks, setMenuMilks] = useState(() => normalizeIngredientList(null, "milk", MILKS, true));
@@ -567,9 +568,9 @@ function AdminPage() {
   }
 
   async function toggleArchive() {
-    const nextOpen = !archiveOpen;
-    setArchiveOpen(nextOpen);
-    if (nextOpen && !archiveLoaded) await loadArchive();
+    setArchiveOpen(true);
+    setAdminView("archive");
+    if (!archiveLoaded) await loadArchive();
   }
 
   async function clearArchive() {
@@ -608,9 +609,9 @@ function AdminPage() {
   }
 
   async function toggleAnalytics() {
-    const nextOpen = !analyticsOpen;
-    setAnalyticsOpen(nextOpen);
-    if (nextOpen && !analyticsLoaded) await loadAnalytics();
+    setAnalyticsOpen(true);
+    setAdminView("analytics");
+    if (!analyticsLoaded) await loadAnalytics();
   }
 
   async function loadMenu() {
@@ -640,6 +641,7 @@ function AdminPage() {
 
   async function openMenuScreen() {
     setMenuOpen(true);
+    setAdminView("menu");
     if (!menuLoaded) await loadMenu();
   }
 
@@ -776,7 +778,7 @@ function AdminPage() {
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
 
-  if (menuOpen) {
+  if (adminView === "menu") {
     return (
       <>
         <Header isOpen={isOpen} />
@@ -786,7 +788,7 @@ function AdminPage() {
               <h2>Menu</h2>
               <p className="sub">Add drinks and control what customers can order.</p>
             </div>
-            <button className="ghostBtn" onClick={() => setMenuOpen(false)}>Back to orders</button>
+            <button className="ghostBtn" onClick={() => { setMenuOpen(false); setAdminView("dashboard"); }}>Back to dashboard</button>
           </section>
 
           <MenuEditor
@@ -805,6 +807,108 @@ function AdminPage() {
             onUpdate={updateMenuDrink}
             onUpdateIngredient={updateMenuIngredient}
           />
+        </main>
+      </>
+    );
+  }
+
+  if (adminView === "archive") {
+    return (
+      <>
+        <Header isOpen={isOpen} />
+        <main className="adminPage">
+          <section className="adminTop">
+            <div>
+              <h2>Archive</h2>
+              <p className="sub">Latest 25 archived orders.</p>
+            </div>
+            <div className="adminTopActions">
+              <button className="ghostBtn" disabled={archiveBusy} onClick={loadArchive}>Refresh</button>
+              <button className="ghostBtn" onClick={() => { setArchiveOpen(false); setAdminView("dashboard"); }}>Back to dashboard</button>
+            </div>
+          </section>
+
+          <section className="archivePanel">
+            <div className="archiveHeader">
+              <div>
+                <h2>Orders</h2>
+                <p className="sub">Use this when you need to look back after the rush.</p>
+              </div>
+              <div className="archiveActions">
+                <button className="dangerOutlineBtn" disabled={archiveBusy || archive.length === 0} onClick={clearArchive}>Clear archive</button>
+              </div>
+            </div>
+
+            {archiveBusy ? (
+              <div className="empty smallEmpty">Loading archive...</div>
+            ) : archive.length === 0 ? (
+              <div className="empty smallEmpty">No archived orders.</div>
+            ) : (
+              <div className="archiveList">
+                {archive.map(item => (
+                  <div className="archiveOrder" key={item.id}>
+                    <div>
+                      <strong>{item.name || "Unnamed order"}</strong>
+                      <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
+                      {item.notes && <em>"{item.notes}"</em>}
+                    </div>
+                    <span>{item.archivedAt ? new Date(item.archivedAt).toLocaleString() : ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </main>
+      </>
+    );
+  }
+
+  if (adminView === "analytics") {
+    return (
+      <>
+        <Header isOpen={isOpen} />
+        <main className="adminPage">
+          <section className="adminTop">
+            <div>
+              <h2>Analytics</h2>
+              <p className="sub">Popular items based on archived orders.</p>
+            </div>
+            <div className="adminTopActions">
+              <button className="ghostBtn" disabled={analyticsBusy} onClick={loadAnalytics}>Refresh</button>
+              <button className="ghostBtn" onClick={() => { setAnalyticsOpen(false); setAdminView("dashboard"); }}>Back to dashboard</button>
+            </div>
+          </section>
+
+          <section className="analyticsPanel">
+            {analyticsBusy ? (
+              <div className="empty smallEmpty">Loading analytics...</div>
+            ) : !analytics || Number(analytics.totalOrders || 0) === 0 ? (
+              <div className="empty smallEmpty">No archived orders to analyze.</div>
+            ) : (
+              <>
+                <div className="analyticsSummary">
+                  <div>
+                    <span>Total orders</span>
+                    <strong>{analytics.totalOrders || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Hot</span>
+                    <strong>{analytics.hotOrders || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Cold</span>
+                    <strong>{analytics.coldOrders || 0}</strong>
+                  </div>
+                </div>
+
+                <div className="analyticsGrid">
+                  <AnalyticsList title="Top Drinks" items={analytics.topDrinks || []} />
+                  <AnalyticsList title="Top Milks" items={analytics.topMilks || []} />
+                  <AnalyticsList title="Top Syrups" items={analytics.topSyrups || []} />
+                </div>
+              </>
+            )}
+          </section>
         </main>
       </>
     );
@@ -854,11 +958,11 @@ function AdminPage() {
           </button>
           <button className={archiveOpen ? "toolTile active" : "toolTile"} onClick={toggleArchive}>
             <strong>Archive</strong>
-            <span>{archiveOpen ? "Hide archive" : "View past orders"}</span>
+            <span>View past orders</span>
           </button>
           <button className={analyticsOpen ? "toolTile active" : "toolTile"} onClick={toggleAnalytics}>
             <strong>Analytics</strong>
-            <span>{analyticsOpen ? "Hide analytics" : "Popular items"}</span>
+            <span>Popular items</span>
           </button>
         </section>
 
@@ -877,83 +981,6 @@ function AdminPage() {
           <button className="primaryBtn" disabled={busy} onClick={() => saveAdmin({ isOpen, message })}>Save message</button>
           {notice && <div className="notice">{notice}</div>}
         </section>
-
-        {archiveOpen && (
-          <section className="archivePanel">
-            <div className="archiveHeader">
-              <div>
-                <h2>Archive</h2>
-                <p className="sub">Latest 25 archived orders.</p>
-              </div>
-              <div className="archiveActions">
-                <button className="ghostBtn" disabled={archiveBusy} onClick={loadArchive}>Refresh</button>
-                <button className="dangerOutlineBtn" disabled={archiveBusy || archive.length === 0} onClick={clearArchive}>Clear archive</button>
-              </div>
-            </div>
-
-            {archiveBusy ? (
-              <div className="empty smallEmpty">Loading archive...</div>
-            ) : archive.length === 0 ? (
-              <div className="empty smallEmpty">No archived orders.</div>
-            ) : (
-              <div className="archiveList">
-                {archive.map(item => (
-                  <div className="archiveOrder" key={item.id}>
-                    <div>
-                      <strong>{item.name || "Unnamed order"}</strong>
-                      <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
-                      {item.notes && <em>"{item.notes}"</em>}
-                    </div>
-                    <span>{item.archivedAt ? new Date(item.archivedAt).toLocaleString() : ""}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {analyticsOpen && (
-          <section className="analyticsPanel">
-            <div className="archiveHeader">
-              <div>
-                <h2>Analytics</h2>
-                <p className="sub">Based on archived orders.</p>
-              </div>
-              <div className="archiveActions">
-                <button className="ghostBtn" disabled={analyticsBusy} onClick={loadAnalytics}>Refresh</button>
-              </div>
-            </div>
-
-            {analyticsBusy ? (
-              <div className="empty smallEmpty">Loading analytics...</div>
-            ) : !analytics || Number(analytics.totalOrders || 0) === 0 ? (
-              <div className="empty smallEmpty">No archived orders to analyze.</div>
-            ) : (
-              <>
-                <div className="analyticsSummary">
-                  <div>
-                    <span>Total orders</span>
-                    <strong>{analytics.totalOrders || 0}</strong>
-                  </div>
-                  <div>
-                    <span>Hot</span>
-                    <strong>{analytics.hotOrders || 0}</strong>
-                  </div>
-                  <div>
-                    <span>Cold</span>
-                    <strong>{analytics.coldOrders || 0}</strong>
-                  </div>
-                </div>
-
-                <div className="analyticsGrid">
-                  <AnalyticsList title="Top Drinks" items={analytics.topDrinks || []} />
-                  <AnalyticsList title="Top Milks" items={analytics.topMilks || []} />
-                  <AnalyticsList title="Top Syrups" items={analytics.topSyrups || []} />
-                </div>
-              </>
-            )}
-          </section>
-        )}
 
         <section className="inventoryPanel">
           <div className="sectionHeader">
