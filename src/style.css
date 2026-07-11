@@ -157,11 +157,15 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .menuState{font-size:11px;border:1px solid rgba(224,82,82,.28);color:#E05252;border-radius:20px;padding:4px 8px;white-space:nowrap}
 .menuState.active{border-color:rgba(107,191,107,.3);color:#6BBF6B}
 .menuEditorTop{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.menuCardBody{display:grid;grid-template-columns:minmax(180px,.85fr) minmax(260px,1.4fr);gap:12px;margin-bottom:14px}
+.menuCardBody label{display:flex;flex-direction:column}
+.menuCardControls{display:grid;grid-template-columns:minmax(180px,.6fr) minmax(260px,1.4fr);gap:14px;align-items:start}
 .menuFields{display:grid;grid-template-columns:minmax(160px,1fr) minmax(220px,2fr);gap:8px;width:100%}
 .menuFields label{display:flex;flex-direction:column;gap:6px}
 .menuFields label span{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#8A9B8E}
 .menuSubhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 12px}
 .menuSubhead h3{font-size:16px;color:#FFF8F0}
+.menuSubhead p{color:#8A9B8E;font-size:12px;margin-top:3px}
 .menuSubhead span{font-size:11px;color:#8A9B8E;border:1px solid rgba(200,130,58,.16);background:#2C1400;border-radius:20px;padding:5px 8px;white-space:nowrap}
 .menuSubActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .menuOptionGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
@@ -169,7 +173,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .adminCheck input{width:auto}
 .menuTempRow{display:flex;gap:8px;margin-bottom:12px}
 .menuItemActions{display:flex;gap:8px;flex-wrap:wrap}
-.ingredientMenuSection{margin-top:22px;border-top:1px solid rgba(200,130,58,.12);padding-top:2px}
+.menuSectionCard{background:rgba(18,7,0,.28);border:1px solid rgba(200,130,58,.12);border-radius:14px;padding:16px;margin-top:16px}
+.menuSectionCard .menuSubhead{margin-top:0}
+.ingredientMenuSection{margin-top:18px}
 .ingredientEditorGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .ingredientEditorItem{background:#2C1400;border:1px solid rgba(200,130,58,.16);border-radius:8px;padding:14px}
 .ingredientEditorItem.inactive{opacity:.72}
@@ -192,6 +198,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   .archiveOrder span{text-align:left;white-space:normal}
   .analyticsSummary,.analyticsGrid{grid-template-columns:1fr}
   .menuFields,.menuOptionGrid{grid-template-columns:1fr}
+  .menuCardBody,.menuCardControls{grid-template-columns:1fr}
   .menuEditorTop{flex-direction:column}
   .closedPage{padding-top:24vh}
 }
@@ -1130,6 +1137,79 @@ input:focus,textarea:focus{
     align-items:stretch;
   }
   .adminTopActions{
+    justify-content:flex-start;
+  }
+}
+
+/* Menu page organization */
+.menuPanel > .sectionHeader{
+  background:rgba(18,7,0,.32);
+  border:1px solid rgba(205,140,72,.12);
+  border-radius:14px;
+  padding:14px;
+}
+.menuPanel .archiveActions{
+  align-items:center;
+}
+.menuSectionCard{
+  background:linear-gradient(180deg, rgba(51,26,6,.48), rgba(18,7,0,.30));
+  border-color:rgba(205,140,72,.16);
+}
+.menuSectionCard .menuSubhead{
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(205,140,72,.10);
+}
+.menuEditorItem{
+  display:grid;
+  gap:12px;
+}
+.menuEditorItem.inactive,.ingredientEditorItem.inactive{
+  opacity:.62;
+}
+.menuCardHeader{
+  margin-bottom:0;
+}
+.menuCardBody input,.menuNameField input{
+  background:rgba(12,5,0,.62);
+}
+.menuCardControls{
+  background:rgba(12,5,0,.26);
+  border:1px solid rgba(205,140,72,.10);
+  border-radius:12px;
+  padding:12px;
+}
+.menuTempRow .choice{
+  min-width:92px;
+}
+.menuOptionGrid{
+  gap:10px;
+}
+.adminCheck{
+  min-height:44px;
+  justify-content:flex-start;
+}
+.menuItemActions{
+  border-top:1px solid rgba(205,140,72,.10);
+  padding-top:12px;
+}
+.ingredientEditorGrid{
+  margin-top:12px;
+}
+.ingredientEditorItem{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.ingredientEditorItem .menuCardHeader,.ingredientEditorItem .menuNameField{
+  margin-bottom:0;
+}
+
+@media(max-width:760px){
+  .menuPanel > .sectionHeader,.menuSubhead{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .menuPanel .archiveActions,.menuSubActions{
     justify-content:flex-start;
   }
 }

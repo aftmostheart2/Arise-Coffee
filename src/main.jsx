@@ -1102,71 +1102,74 @@ function MenuEditor({
         </div>
       </div>
 
-      <div className="menuSubhead">
-        <h3>Drinks</h3>
-        <span>{drinks.filter(drink => drink.active).length} visible</span>
-      </div>
-
-      <div className="menuEditorList">
-        {drinks.map((drink, index) => (
-          <div className={drink.active ? "menuEditorItem" : "menuEditorItem inactive"} key={drink.id}>
-            <div className="menuCardHeader">
-              <div>
-                <span className="menuOrder">#{String(index + 1).padStart(2, "0")}</span>
-                <strong>{drink.label || "New Drink"}</strong>
-              </div>
-              <span className={drink.active ? "menuState active" : "menuState"}>{drink.active ? "Visible" : "Hidden"}</span>
-            </div>
-
-            <div className="menuEditorTop">
-              <div className="menuFields">
-                <label>
-                  <span>Name</span>
-                  <input
-                    value={drink.label}
-                    onChange={e => onUpdate(drink.id, { label: e.target.value })}
-                    placeholder="Drink name"
-                  />
-                </label>
-                <label>
-                  <span>Description</span>
-                  <input
-                    value={drink.desc}
-                    onChange={e => onUpdate(drink.id, { desc: e.target.value })}
-                    placeholder="Short description"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="menuOptionGrid">
-              <label className="adminCheck">
-                <input type="checkbox" checked={drink.milk} onChange={e => onUpdate(drink.id, { milk: e.target.checked })} />
-                Needs milk
-              </label>
-              <label className="adminCheck">
-                <input type="checkbox" checked={drink.syrups} onChange={e => onUpdate(drink.id, { syrups: e.target.checked })} />
-                Allows syrup
-              </label>
-              <label className="adminCheck">
-                <input type="checkbox" checked={drink.showTemp !== false && drink.temps.length > 1} disabled={drink.temps.length < 2} onChange={e => onUpdate(drink.id, { showTemp: e.target.checked })} />
-                Show temp choice
-              </label>
-            </div>
-
-            <div className="menuTempRow">
-              <button className={drink.temps.includes("Hot") ? "choice active" : "choice"} onClick={() => toggleTemp(drink, "Hot")}>Hot</button>
-              <button className={drink.temps.includes("Cold") ? "choice active" : "choice"} onClick={() => toggleTemp(drink, "Cold")}>Cold</button>
-            </div>
-
-            <div className="menuItemActions">
-              <button className="ghostBtn" disabled={busy} onClick={() => onUpdate(drink.id, { active: !drink.active })}>{drink.active ? "Hide" : "Show"}</button>
-              <button className="ghostBtn" disabled={busy || index === 0} onClick={() => onMove(drink.id, -1)}>Move up</button>
-              <button className="ghostBtn" disabled={busy || index === drinks.length - 1} onClick={() => onMove(drink.id, 1)}>Move down</button>
-              <button className="dangerOutlineBtn" disabled={busy || drinks.length <= 1} onClick={() => onRemove(drink.id)}>Delete</button>
-            </div>
+      <div className="menuSectionCard">
+        <div className="menuSubhead">
+          <div>
+            <h3>Drinks</h3>
+            <p>Control the order form drink choices.</p>
           </div>
-        ))}
+          <span>{drinks.filter(drink => drink.active).length} visible</span>
+        </div>
+
+        <div className="menuEditorList">
+          {drinks.map((drink, index) => (
+            <div className={drink.active ? "menuEditorItem" : "menuEditorItem inactive"} key={drink.id}>
+              <div className="menuCardHeader">
+                <div>
+                  <span className="menuOrder">#{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{drink.label || "New Drink"}</strong>
+                </div>
+                <span className={drink.active ? "menuState active" : "menuState"}>{drink.active ? "Visible" : "Hidden"}</span>
+              </div>
+
+              <div className="menuCardBody">
+                <label>
+                  <span className="label">Name</span>
+                  <input value={drink.label} onChange={e => onUpdate(drink.id, { label: e.target.value })} placeholder="Drink name" />
+                </label>
+                <label>
+                  <span className="label">Description</span>
+                  <input value={drink.desc} onChange={e => onUpdate(drink.id, { desc: e.target.value })} placeholder="Short description" />
+                </label>
+              </div>
+
+              <div className="menuCardControls">
+                <div>
+                  <div className="label">Temperature</div>
+                  <div className="menuTempRow">
+                    <button className={drink.temps.includes("Hot") ? "choice active" : "choice"} onClick={() => toggleTemp(drink, "Hot")}>Hot</button>
+                    <button className={drink.temps.includes("Cold") ? "choice active" : "choice"} onClick={() => toggleTemp(drink, "Cold")}>Cold</button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="label">Options</div>
+                  <div className="menuOptionGrid">
+                    <label className="adminCheck">
+                      <input type="checkbox" checked={drink.milk} onChange={e => onUpdate(drink.id, { milk: e.target.checked })} />
+                      Needs milk
+                    </label>
+                    <label className="adminCheck">
+                      <input type="checkbox" checked={drink.syrups} onChange={e => onUpdate(drink.id, { syrups: e.target.checked })} />
+                      Allows syrup
+                    </label>
+                    <label className="adminCheck">
+                      <input type="checkbox" checked={drink.showTemp !== false && drink.temps.length > 1} disabled={drink.temps.length < 2} onChange={e => onUpdate(drink.id, { showTemp: e.target.checked })} />
+                      Show temp choice
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="menuItemActions">
+                <button className="ghostBtn" disabled={busy} onClick={() => onUpdate(drink.id, { active: !drink.active })}>{drink.active ? "Hide" : "Show"}</button>
+                <button className="ghostBtn" disabled={busy || index === 0} onClick={() => onMove(drink.id, -1)}>Move up</button>
+                <button className="ghostBtn" disabled={busy || index === drinks.length - 1} onClick={() => onMove(drink.id, 1)}>Move down</button>
+                <button className="dangerOutlineBtn" disabled={busy || drinks.length <= 1} onClick={() => onRemove(drink.id)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <IngredientMenuSection
@@ -1196,9 +1199,12 @@ function MenuEditor({
 
 function IngredientMenuSection({ title, type, items, busy, onAdd, onUpdate, onMove, onRemove }) {
   return (
-    <div className="ingredientMenuSection">
+    <div className="menuSectionCard ingredientMenuSection">
       <div className="menuSubhead">
-        <h3>{title}</h3>
+        <div>
+          <h3>{title}</h3>
+          <p>{type === "milk" ? "Milk choices for drinks that need milk." : "Syrup choices shown to customers."}</p>
+        </div>
         <div className="menuSubActions">
           <span>{items.filter(item => item.active).length} visible</span>
           <button className="ghostBtn" disabled={busy} onClick={() => onAdd(type)}>Add {type === "milk" ? "milk" : "syrup"}</button>
