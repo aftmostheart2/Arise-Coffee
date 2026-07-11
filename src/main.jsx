@@ -390,6 +390,8 @@ function AdminPage() {
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
   const messageEditingRef = useRef(false);
+  const adminSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
+  const adminMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
 
   function syncAdminMessage(nextMessage) {
     if (!messageEditingRef.current && typeof nextMessage === "string") {
@@ -1019,7 +1021,7 @@ function AdminPage() {
               <div className="inventoryGroup">
                 <div className="label">Syrups</div>
                 <div className="inventoryGrid">
-                  {inventoryItemsByType(inventory, "syrup", SYRUPS).map(x => (
+                  {adminSyrups.map(x => (
                     <button
                       key={x.item}
                       disabled={busy}
@@ -1036,7 +1038,7 @@ function AdminPage() {
               <div className="inventoryGroup">
                 <div className="label">Milks</div>
                 <div className="inventoryGrid">
-                  {inventoryItemsByType(inventory, "milk", MILKS).map(x => (
+                  {adminMilks.map(x => (
                     <button
                       key={x.item}
                       disabled={busy}
@@ -1380,8 +1382,10 @@ function CustomerPage() {
   const nameRef = useRef(null);
 
   const customerDrinks = useMemo(() => normalizeMenuDrinks(menuDrinks), [menuDrinks]);
-  const drink = getDrink(form.drinkId, customerDrinks);
+  const drink = useMemo(() => getDrink(form.drinkId, customerDrinks), [form.drinkId, customerDrinks]);
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
+  const customerMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
+  const customerSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
 
   function updateTextSize(nextLargeText) {
     setLargeText(nextLargeText);
@@ -1421,7 +1425,6 @@ function CustomerPage() {
       if (typeof data.message === "string") setMessage(data.message || "");
       if (data.inventory) setInventory(cacheInventory(data.inventory));
       updateMyOrder(data.order, data.position);
-      refreshInventoryOnly();
     } catch {
     } finally {
       orderLoadingRef.current = false;
@@ -1491,7 +1494,7 @@ function CustomerPage() {
     const inventoryId = setInterval(() => {
       if (isPageVisible()) refreshInventoryOnly();
     }, 60000);
-    const statusId = setInterval(() => {
+    const statusId = myOrderId ? null : setInterval(() => {
       if (isPageVisible()) refreshStatusOnly();
     }, 6000);
 
@@ -1506,7 +1509,7 @@ function CustomerPage() {
     return () => {
       if (orderId) clearInterval(orderId);
       clearInterval(inventoryId);
-      clearInterval(statusId);
+      if (statusId) clearInterval(statusId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [myOrderId]);
@@ -1678,7 +1681,7 @@ function CustomerPage() {
 
               {drink.milk && <div className="field">
                 {lbl("Milk", "(required)")}
-                <div className="row wrap">{inventoryItemsByType(inventory, "milk", MILKS).map(m => (
+                <div className="row wrap">{customerMilks.map(m => (
                   <button
                     key={m.item}
                     disabled={!m.available}
@@ -1697,7 +1700,7 @@ function CustomerPage() {
 
               {drink.syrups && <div className="field">
                 {lbl("Syrup", `— pick up to ${MAX_SYRUPS}`)}
-                <div className="syrups">{inventoryItemsByType(inventory, "syrup", SYRUPS).map(s => {
+                <div className="syrups">{customerSyrups.map(s => {
                   const selected = form.syrups.includes(s.item);
                   const out = !s.available;
                   const maxed = !selected && form.syrups.length >= MAX_SYRUPS;
