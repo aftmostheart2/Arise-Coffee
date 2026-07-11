@@ -1125,6 +1125,54 @@ input:focus,textarea:focus{
   }
 }
 
+@media (min-width:901px) and (max-width:1180px) and (pointer:coarse){
+  .layout{
+    grid-template-columns:minmax(0,1.15fr) minmax(300px,.72fr);
+    align-items:start;
+  }
+  .formCol{
+    border-right:1px solid rgba(205,140,72,.10);
+  }
+  .queueCol{
+    position:sticky;
+    top:86px;
+    max-height:calc(100dvh - 110px);
+    overflow:auto;
+  }
+  .drinkList{
+    gap:10px;
+  }
+  .row.wrap,.syrups{
+    gap:10px;
+  }
+  .customerSectionHead{
+    align-items:center;
+  }
+  .adminPage{
+    max-width:1120px;
+  }
+  .adminCommandCenter{
+    grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
+  }
+  .orders{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+  }
+  .orders .sectionHeader,.orders .empty{
+    grid-column:1 / -1;
+  }
+  .adminOrder{
+    margin-bottom:0;
+  }
+  .menuPanel{
+    padding:20px;
+  }
+  .menuEditorList{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
 @media (min-width:761px) and (max-width:900px) and (pointer:coarse){
   .layout,.adminCommandCenter,.adminTools{
     grid-template-columns:1fr;
