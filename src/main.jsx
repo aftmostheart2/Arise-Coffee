@@ -86,6 +86,16 @@ function normalizeIngredientList(items, type, fallback, includeInactive = false)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.item.localeCompare(b.item));
 }
 
+function reorderItemsById(items, fromId, toId) {
+  const fromIndex = items.findIndex(item => item.id === fromId);
+  const toIndex = items.findIndex(item => item.id === toId);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return items;
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next.map((item, sortOrder) => ({ ...item, sortOrder }));
+}
+
 function getDrink(id, drinks = DRINKS) {
   const normalized = normalizeMenuDrinks(drinks);
   return normalized.find(d => d.id === id) || normalized[0] || normalizeDrinkItem(DRINKS[1], 1);
@@ -684,6 +694,11 @@ function AdminPage() {
     });
   }
 
+  function reorderMenuDrink(fromId, toId) {
+    if (!fromId || !toId || fromId === toId) return;
+    setMenuDrinks(current => reorderItemsById(current, fromId, toId));
+  }
+
   function updateMenuIngredient(type, id, patch) {
     const setter = type === "milk" ? setMenuMilks : setMenuSyrups;
     setter(current => current.map(item => item.id === id ? normalizeIngredientItem({ ...item, ...patch }, type, item.sortOrder) : item));
@@ -723,6 +738,12 @@ function AdminPage() {
       [next[index], next[target]] = [next[target], next[index]];
       return next.map((item, sortOrder) => ({ ...item, sortOrder }));
     });
+  }
+
+  function reorderMenuIngredient(type, fromId, toId) {
+    if (!fromId || !toId || fromId === toId) return;
+    const setter = type === "milk" ? setMenuMilks : setMenuSyrups;
+    setter(current => reorderItemsById(current, fromId, toId));
   }
 
   async function saveMenuDrinks() {
@@ -804,6 +825,8 @@ function AdminPage() {
             onRemoveIngredient={removeMenuIngredient}
             onMove={moveMenuDrink}
             onMoveIngredient={moveMenuIngredient}
+            onReorder={reorderMenuDrink}
+            onReorderIngredient={reorderMenuIngredient}
             onUpdate={updateMenuDrink}
             onUpdateIngredient={updateMenuIngredient}
           />
@@ -1076,6 +1099,8 @@ function MenuEditor({
   onRemoveIngredient,
   onMove,
   onMoveIngredient,
+  onReorder,
+  onReorderIngredient,
   onUpdate,
   onUpdateIngredient,
 }) {
@@ -1113,10 +1138,26 @@ function MenuEditor({
 
         <div className="menuEditorList">
           {drinks.map((drink, index) => (
-            <div className={drink.active ? "menuEditorItem" : "menuEditorItem inactive"} key={drink.id}>
+            <div
+              className={drink.active ? "menuEditorItem" : "menuEditorItem inactive"}
+              key={drink.id}
+              draggable={!busy}
+              onDragStart={event => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", drink.id);
+              }}
+              onDragOver={event => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={event => {
+                event.preventDefault();
+                onReorder(event.dataTransfer.getData("text/plain"), drink.id);
+              }}
+            >
               <div className="menuCardHeader">
                 <div>
-                  <span className="menuOrder">#{String(index + 1).padStart(2, "0")}</span>
+                  <span className="menuOrder" title="Drag to reorder">#{String(index + 1).padStart(2, "0")}</span>
                   <strong>{drink.label || "New Drink"}</strong>
                 </div>
                 <span className={drink.active ? "menuState active" : "menuState"}>{drink.active ? "Visible" : "Hidden"}</span>
@@ -1180,6 +1221,7 @@ function MenuEditor({
         onAdd={onAddIngredient}
         onUpdate={onUpdateIngredient}
         onMove={onMoveIngredient}
+        onReorder={onReorderIngredient}
         onRemove={onRemoveIngredient}
       />
 
@@ -1191,13 +1233,14 @@ function MenuEditor({
         onAdd={onAddIngredient}
         onUpdate={onUpdateIngredient}
         onMove={onMoveIngredient}
+        onReorder={onReorderIngredient}
         onRemove={onRemoveIngredient}
       />
     </section>
   );
 }
 
-function IngredientMenuSection({ title, type, items, busy, onAdd, onUpdate, onMove, onRemove }) {
+function IngredientMenuSection({ title, type, items, busy, onAdd, onUpdate, onMove, onReorder, onRemove }) {
   return (
     <div className="menuSectionCard ingredientMenuSection">
       <div className="menuSubhead">
@@ -1213,10 +1256,26 @@ function IngredientMenuSection({ title, type, items, busy, onAdd, onUpdate, onMo
 
       <div className="ingredientEditorGrid">
         {items.map((item, index) => (
-          <div className={item.active ? "ingredientEditorItem" : "ingredientEditorItem inactive"} key={item.id}>
+          <div
+            className={item.active ? "ingredientEditorItem" : "ingredientEditorItem inactive"}
+            key={item.id}
+            draggable={!busy}
+            onDragStart={event => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", item.id);
+            }}
+            onDragOver={event => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={event => {
+              event.preventDefault();
+              onReorder(type, event.dataTransfer.getData("text/plain"), item.id);
+            }}
+          >
             <div className="menuCardHeader">
               <div>
-                <span className="menuOrder">#{String(index + 1).padStart(2, "0")}</span>
+                <span className="menuOrder" title="Drag to reorder">#{String(index + 1).padStart(2, "0")}</span>
                 <strong>{item.item}</strong>
               </div>
               <span className={item.active ? "menuState active" : "menuState"}>{item.active ? "Visible" : "Hidden"}</span>

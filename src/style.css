@@ -1233,6 +1233,16 @@ input:focus,textarea:focus{
   gap:10px;
   padding:14px;
 }
+.menuEditorItem[draggable="true"],.ingredientEditorItem[draggable="true"]{
+  cursor:grab;
+}
+.menuEditorItem[draggable="true"]:active,.ingredientEditorItem[draggable="true"]:active{
+  cursor:grabbing;
+}
+.menuOrder{
+  cursor:grab;
+  user-select:none;
+}
 .menuCardBody{
   grid-template-columns:1fr;
   gap:9px;
