@@ -1348,3 +1348,59 @@ input:focus,textarea:focus{
     min-height:30px;
   }
 }
+
+/* Softer menu editor surfaces */
+.menuPanel{
+  background:rgba(40,19,2,.38);
+  border-color:rgba(205,140,72,.10);
+}
+.menuPanel > .sectionHeader{
+  border-color:rgba(205,140,72,.08);
+  box-shadow:0 12px 36px rgba(0,0,0,.10);
+}
+.menuSectionCard{
+  background:rgba(18,7,0,.18);
+  border-color:rgba(205,140,72,.08);
+}
+.menuSectionCard .menuSubhead{
+  border-bottom-color:rgba(205,140,72,.07);
+}
+.menuEditorItem,.ingredientEditorItem{
+  background:rgba(18,7,0,.36);
+  border-color:rgba(205,140,72,.09);
+  box-shadow:none;
+}
+.menuCardHeader{
+  border-bottom-color:rgba(205,140,72,.06);
+}
+.menuCardControls{
+  background:rgba(255,248,240,.025);
+  border-color:transparent;
+  padding:8px 0 0;
+}
+.menuCardBody input,.menuNameField input{
+  background:rgba(18,7,0,.42);
+  border-color:rgba(205,140,72,.11);
+}
+.menuCardBody input:focus,.menuNameField input:focus{
+  border-color:rgba(212,147,77,.65);
+}
+.adminCheck{
+  background:rgba(18,7,0,.28);
+  border-color:rgba(205,140,72,.08);
+}
+.menuTempRow .choice{
+  border-color:rgba(205,140,72,.12);
+  background:rgba(18,7,0,.30);
+}
+.menuTempRow .choice.active{
+  border-color:rgba(212,147,77,.48);
+  background:rgba(212,147,77,.18);
+}
+.menuItemActions{
+  border-top-color:rgba(205,140,72,.07);
+}
+.menuItemActions .ghostBtn{
+  border-color:rgba(205,140,72,.12);
+  background:rgba(18,7,0,.22);
+}
