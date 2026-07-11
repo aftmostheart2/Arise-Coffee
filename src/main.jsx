@@ -1641,14 +1641,6 @@ function CustomerPage() {
       <Header isOpen={isOpen} />
       <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
-          <div className="customerBrandHero">
-            <span>☕</span>
-            <div>
-              <h1>Arise! Coffee</h1>
-              <p>Fresh Coffee • Fast Pickup</p>
-            </div>
-          </div>
-
           <div className="customerSectionHead">
             <div>
               <h2>Place your order</h2>
