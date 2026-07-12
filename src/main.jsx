@@ -811,7 +811,14 @@ function AdminPage() {
               <h2>Menu</h2>
               <p className="sub">Add drinks and control what customers can order.</p>
             </div>
-            <button className="ghostBtn" onClick={() => { setMenuOpen(false); setAdminView("dashboard"); }}>Back to dashboard</button>
+            <div className="adminTopActions menuPageActions">
+              <div className="menuSaveBar">
+                <button className="primaryBtn compactPrimary" disabled={menuBusy} onClick={saveMenuDrinks}>{menuBusy ? "Saving..." : "Save menu"}</button>
+              </div>
+              <button className="ghostBtn" disabled={menuBusy} onClick={loadMenu}>Refresh</button>
+              <button className="ghostBtn" disabled={menuBusy} onClick={addMenuDrink}>Add drink</button>
+              <button className="ghostBtn" onClick={() => { setMenuOpen(false); setAdminView("dashboard"); }}>Back to dashboard</button>
+            </div>
           </section>
 
           <MenuEditor
@@ -819,10 +826,7 @@ function AdminPage() {
             milks={menuMilks}
             syrups={menuSyrups}
             busy={menuBusy}
-            onAdd={addMenuDrink}
             onAddIngredient={addMenuIngredient}
-            onRefresh={loadMenu}
-            onSave={saveMenuDrinks}
             onRemove={removeMenuDrink}
             onRemoveIngredient={removeMenuIngredient}
             onMove={moveMenuDrink}
@@ -1093,10 +1097,7 @@ function MenuEditor({
   milks,
   syrups,
   busy,
-  onAdd,
   onAddIngredient,
-  onRefresh,
-  onSave,
   onRemove,
   onRemoveIngredient,
   onMove,
@@ -1117,20 +1118,6 @@ function MenuEditor({
 
   return (
     <section className="menuPanel">
-      <div className="sectionHeader">
-        <div>
-          <h2>Menu</h2>
-          <p className="sub">Customer menu changes only save when you press Save menu.</p>
-        </div>
-        <div className="archiveActions">
-          <div className="menuSaveBar">
-            <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
-          </div>
-          <button className="ghostBtn" disabled={busy} onClick={onRefresh}>Refresh</button>
-          <button className="ghostBtn" disabled={busy} onClick={onAdd}>Add drink</button>
-        </div>
-      </div>
-
       <div className="menuSectionCard">
         <div className="menuSubhead">
           <div>

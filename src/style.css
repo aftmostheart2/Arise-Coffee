@@ -1191,15 +1191,10 @@ input:focus,textarea:focus{
   }
 }
 
-/* Menu page organization */
-.menuPanel > .sectionHeader{
-  background:rgba(18,7,0,.32);
-  border:1px solid rgba(205,140,72,.12);
-  border-radius:14px;
-  padding:14px;
-}
-.menuPanel .archiveActions{
-  align-items:center;
+.menuPageActions{
+  display:grid;
+  grid-template-columns:auto auto auto;
+  justify-items:end;
 }
 .menuSaveBar{
   display:flex;
@@ -1281,15 +1276,6 @@ input:focus,textarea:focus{
 }
 
 /* Denser menu editor so sections are reachable without lots of scrolling */
-.menuPanel > .sectionHeader{
-  position:static;
-  backdrop-filter:none;
-}
-.menuPanel .archiveActions{
-  display:grid;
-  grid-template-columns:auto auto;
-  justify-items:end;
-}
 .menuEditorList{
   grid-template-columns:repeat(2,minmax(0,1fr));
 }
