@@ -1195,16 +1195,16 @@ input:focus,textarea:focus{
   display:grid;
   grid-template-columns:auto auto auto;
   justify-items:end;
+  padding-top:58px;
 }
 .menuSaveBar{
   display:flex;
   justify-content:flex-end;
-  position:sticky;
+  position:fixed;
   top:72px;
+  right:max(18px, calc((100vw - 1100px) / 2 + 18px));
   z-index:10;
   pointer-events:none;
-  grid-column:1 / -1;
-  margin:0 0 4px;
 }
 .menuSaveBar .primaryBtn{
   width:auto;
@@ -1272,6 +1272,18 @@ input:focus,textarea:focus{
   }
   .menuPanel .archiveActions,.menuSubActions{
     justify-content:flex-start;
+  }
+  .menuPageActions{
+    padding-top:52px;
+    justify-items:stretch;
+  }
+  .menuSaveBar{
+    top:72px;
+    left:18px;
+    right:18px;
+  }
+  .menuSaveBar .primaryBtn{
+    width:100%;
   }
 }
 
