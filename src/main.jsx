@@ -1125,8 +1125,11 @@ function MenuEditor({
         <div className="archiveActions">
           <button className="ghostBtn" disabled={busy} onClick={onRefresh}>Refresh</button>
           <button className="ghostBtn" disabled={busy} onClick={onAdd}>Add drink</button>
-          <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
         </div>
+      </div>
+
+      <div className="menuSaveBar">
+        <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
       </div>
 
       <div className="menuSectionCard">

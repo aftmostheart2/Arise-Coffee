@@ -1201,6 +1201,21 @@ input:focus,textarea:focus{
 .menuPanel .archiveActions{
   align-items:center;
 }
+.menuSaveBar{
+  display:flex;
+  justify-content:flex-end;
+  position:sticky;
+  top:72px;
+  z-index:10;
+  pointer-events:none;
+  margin:-6px 0 10px;
+}
+.menuSaveBar .primaryBtn{
+  width:auto;
+  min-width:134px;
+  box-shadow:0 12px 34px rgba(0,0,0,.28);
+  pointer-events:auto;
+}
 .menuSectionCard{
   background:linear-gradient(180deg, rgba(51,26,6,.48), rgba(18,7,0,.30));
   border-color:rgba(205,140,72,.16);
@@ -1266,15 +1281,12 @@ input:focus,textarea:focus{
 
 /* Denser menu editor so sections are reachable without lots of scrolling */
 .menuPanel > .sectionHeader{
-  position:sticky;
-  top:72px;
-  z-index:10;
-  backdrop-filter:blur(12px);
-  background:rgba(18,7,0,.86);
+  position:static;
+  backdrop-filter:none;
 }
 .menuPanel .archiveActions{
   display:grid;
-  grid-template-columns:auto auto auto;
+  grid-template-columns:auto auto;
 }
 .menuEditorList{
   grid-template-columns:repeat(2,minmax(0,1fr));
