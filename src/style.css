@@ -112,6 +112,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
 .sectionHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .orders > .sectionHeader{align-items:center}
+.orders > .sectionHeader h2{margin-bottom:0}
 .sectionHeader h2{margin-bottom:0}
 .sectionHeader .sub{margin-bottom:0}
 .collapseBtn{padding:7px 10px;border-radius:20px;background:#2C1400;border:1px solid rgba(200,130,58,.18);color:#8A9B8E;font-size:12px;font-weight:700}
@@ -835,7 +836,7 @@ input:focus,textarea:focus{
 .adminTop{
   padding:18px;
 }
-.adminCard,.panel,.inventoryPanel,.archivePanel,.analyticsPanel,.menuPanel{
+.adminCard,.panel,.inventoryPanel,.archivePanel,.analyticsPanel,.menuPanel,.orders{
   padding:18px;
 }
 .toolbar{
