@@ -1208,7 +1208,8 @@ input:focus,textarea:focus{
   top:72px;
   z-index:10;
   pointer-events:none;
-  margin:-6px 0 10px;
+  grid-column:1 / -1;
+  margin:0 0 4px;
 }
 .menuSaveBar .primaryBtn{
   width:auto;
@@ -1287,6 +1288,7 @@ input:focus,textarea:focus{
 .menuPanel .archiveActions{
   display:grid;
   grid-template-columns:auto auto;
+  justify-items:end;
 }
 .menuEditorList{
   grid-template-columns:repeat(2,minmax(0,1fr));

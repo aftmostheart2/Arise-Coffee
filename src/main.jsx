@@ -1123,13 +1123,12 @@ function MenuEditor({
           <p className="sub">Customer menu changes only save when you press Save menu.</p>
         </div>
         <div className="archiveActions">
+          <div className="menuSaveBar">
+            <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
+          </div>
           <button className="ghostBtn" disabled={busy} onClick={onRefresh}>Refresh</button>
           <button className="ghostBtn" disabled={busy} onClick={onAdd}>Add drink</button>
         </div>
-      </div>
-
-      <div className="menuSaveBar">
-        <button className="primaryBtn compactPrimary" disabled={busy} onClick={onSave}>{busy ? "Saving..." : "Save menu"}</button>
       </div>
 
       <div className="menuSectionCard">
