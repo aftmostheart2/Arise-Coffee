@@ -111,6 +111,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .successBtn{background:#2A5A2A}.dangerBtn{background:#8B1A1A}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
 .sectionHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.orders > .sectionHeader{align-items:center}
 .sectionHeader h2{margin-bottom:0}
 .sectionHeader .sub{margin-bottom:0}
 .collapseBtn{padding:7px 10px;border-radius:20px;background:#2C1400;border:1px solid rgba(200,130,58,.18);color:#8A9B8E;font-size:12px;font-weight:700}
@@ -124,7 +125,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .orderTop em{display:block;color:#8A9B8E;font-size:12px;margin-top:6px}
 .statusBadge{margin-left:auto;font-size:11px;border-radius:20px;padding:4px 9px;background:#2C1400;color:#8A9B8E;white-space:nowrap}
 .statusBadge.making{color:#C8823A}.statusBadge.ready{color:#6BBF6B}
-.adminActions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.adminActions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .adminActions button{padding:9px;border-radius:4px;border:1px solid rgba(200,130,58,.2);background:#2C1400;color:#A08060}
 .completedOrder{padding:10px;border-bottom:1px solid rgba(200,130,58,.1);color:#8A9B8E;font-size:13px}
 .archivePanel,.analyticsPanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:16px;margin-bottom:24px}
