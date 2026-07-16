@@ -572,6 +572,7 @@ end;
 $$;
 
 drop function if exists arise_save_menu(text, jsonb);
+drop function if exists arise_save_menu(text, jsonb, jsonb, jsonb);
 
 create or replace function arise_save_menu(input_pin text, input_drinks jsonb, input_milks jsonb default '[]'::jsonb, input_syrups jsonb default '[]'::jsonb)
 returns jsonb
@@ -695,6 +696,9 @@ begin
     'syrups', arise_inventory_menu_json(true)->'syrups',
     'inventory', arise_inventory_json()
   );
+exception
+  when others then
+    return jsonb_build_object('ok', false, 'error', SQLERRM);
 end;
 $$;
 

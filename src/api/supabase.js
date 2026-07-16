@@ -5,6 +5,10 @@ function normalizeResponse(data, fallback = {}) {
   return typeof data === "object" ? data : fallback;
 }
 
+function errorMessage(error) {
+  return error?.message || error?.details || error?.hint || "Connection error";
+}
+
 async function callRpc(name, args = {}, fallback = { ok: false, error: "Connection error" }) {
   const { data, error } = await supabase.rpc(name, args);
   if (error) throw error;
@@ -196,7 +200,7 @@ export async function saveMenu(pin, menu) {
       input_milks: Array.isArray(menu?.milks) ? menu.milks : [],
       input_syrups: Array.isArray(menu?.syrups) ? menu.syrups : [],
     });
-  } catch {
-    return { ok: false, error: "Connection error" };
+  } catch (error) {
+    return { ok: false, error: errorMessage(error) };
   }
 }
