@@ -597,7 +597,7 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Invalid menu');
   end if;
 
-  delete from menu_drinks;
+  delete from menu_drinks where true;
 
   for drink_item in
     select value
@@ -653,7 +653,7 @@ begin
     drink_index := drink_index + 1;
   end loop;
 
-  delete from inventory;
+  delete from inventory where true;
 
   ingredient_index := 0;
   for ingredient_item in
@@ -790,7 +790,7 @@ begin
     to_jsonb(orders)
   from orders;
 
-  delete from orders;
+  delete from orders where true;
 
   return arise_orders();
 end;
