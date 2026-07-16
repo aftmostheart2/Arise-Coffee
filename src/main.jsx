@@ -67,10 +67,11 @@ function makeIngredientId(item) {
 }
 
 function normalizeIngredientItem(item, type, index = 0) {
+  const hasEditableName = typeof item === "object" && item !== null && Object.prototype.hasOwnProperty.call(item, "item");
   const name = typeof item === "string" ? item : item?.item;
   return {
     id: String(item?.id || makeIngredientId(name || `${type}-${index + 1}`)),
-    item: String(name || "").trim() || `${type === "milk" ? "Milk" : "Syrup"} ${index + 1}`,
+    item: hasEditableName ? String(name || "") : (String(name || "").trim() || `${type === "milk" ? "Milk" : "Syrup"} ${index + 1}`),
     type,
     available: item?.available !== false,
     active: item?.active !== false,
@@ -1267,7 +1268,7 @@ function IngredientMenuSection({ title, type, items, busy, onAdd, onUpdate, onMo
             <div className="menuCardHeader">
               <div>
                 <span className="menuOrder" title="Drag to reorder">#{String(index + 1).padStart(2, "0")}</span>
-                <strong>{item.item}</strong>
+                <strong>{item.item.trim() || `New ${type}`}</strong>
               </div>
               <span className={item.active ? "menuState active" : "menuState"}>{item.active ? "Visible" : "Hidden"}</span>
             </div>
