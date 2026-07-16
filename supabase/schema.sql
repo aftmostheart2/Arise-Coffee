@@ -666,12 +666,7 @@ begin
       coalesce((ingredient_item->>'available')::boolean, true),
       coalesce((ingredient_item->>'active')::boolean, true),
       ingredient_index
-    )
-    on conflict (item) do update set
-      type = excluded.type,
-      available = excluded.available,
-      active = excluded.active,
-      sort_order = excluded.sort_order;
+    );
 
     ingredient_index := ingredient_index + 1;
   end loop;
@@ -688,12 +683,7 @@ begin
       coalesce((ingredient_item->>'available')::boolean, true),
       coalesce((ingredient_item->>'active')::boolean, true),
       ingredient_index
-    )
-    on conflict (item) do update set
-      type = excluded.type,
-      available = excluded.available,
-      active = excluded.active,
-      sort_order = excluded.sort_order;
+    );
 
     ingredient_index := ingredient_index + 1;
   end loop;
