@@ -75,11 +75,7 @@ The browser asks for notification permission only then.
 
 When an admin presses `Ready for Pickup`, the app calls the Supabase Edge Function. The function verifies the admin PIN, sends the push notification, and deletes that order's subscriptions afterward. It also deletes expired subscriptions automatically when providers return `404` or `410`.
 
-For monthly cleanup, run this in Supabase SQL Editor:
-
-```sql
-select cleanup_old_push_subscriptions(30);
-```
+The SQL also schedules a monthly database cleanup job with `pg_cron`, deleting push subscriptions older than 30 days automatically.
 
 ## Browser Notes
 

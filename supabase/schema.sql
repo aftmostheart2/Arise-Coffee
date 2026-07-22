@@ -1030,3 +1030,23 @@ end;
 $$;
 
 grant execute on function cleanup_old_push_subscriptions(integer) to service_role;
+
+create extension if not exists pg_cron with schema extensions;
+
+do $cron_setup$
+begin
+  if exists (
+    select 1
+    from cron.job
+    where jobname = 'cleanup-old-push-subscriptions'
+  ) then
+    perform cron.unschedule('cleanup-old-push-subscriptions');
+  end if;
+
+  perform cron.schedule(
+    'cleanup-old-push-subscriptions',
+    '0 8 1 * *',
+    $cleanup$select public.cleanup_old_push_subscriptions(30);$cleanup$
+  );
+end;
+$cron_setup$;
