@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { apiGet, apiPost } from "./api/backend";
-import { getPushSupportStatus, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
+import { getPushDeviceHint, getPushSupportStatus, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
@@ -1754,6 +1754,7 @@ function CustomerPage() {
             </div>
           ) : (() => {
             const currentPosition = Math.max(1, Number(myOrder.position || myOrderPosition || 1));
+            const pushDeviceHint = getPushDeviceHint();
             return (
               <div className={"customerStatusCard " + myOrder.status}>
                 <div className="statusHero">
@@ -1802,6 +1803,7 @@ function CustomerPage() {
                     <button className="ghostBtn" disabled={pushState.busy || pushState.enabled} onClick={enableReadyNotification}>
                       {pushState.busy ? "Enabling..." : pushState.enabled ? "Notifications enabled" : "Notify me when my order is ready"}
                     </button>
+                    {pushDeviceHint && !pushState.enabled && <p className="deviceHint">{pushDeviceHint}</p>}
                     {pushState.message && <p>{pushState.message}</p>}
                   </div>
                 )}

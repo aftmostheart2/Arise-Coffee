@@ -9,6 +9,18 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
+export function getPushDeviceHint() {
+  const ua = navigator.userAgent || "";
+  const isAppleTouchDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
+
+  if (isAppleTouchDevice && !isStandalone) {
+    return "iPhone/iPad note: if notifications do not turn on, add Arise! Coffee to your Home Screen and open it from there.";
+  }
+
+  return "";
+}
+
 export function getPushSupportStatus() {
   if (!("serviceWorker" in navigator)) return { ok: false, reason: "Notifications are not supported in this browser." };
   if (!("PushManager" in window)) return { ok: false, reason: "Push notifications are not supported in this browser." };

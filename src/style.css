@@ -539,6 +539,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   line-height:1.4;
   margin-top:8px;
 }
+.notifyBox .deviceHint{
+  color:#B39B86;
+}
 .completeBox{
   background:rgba(200,130,58,.10);
   border:1px solid rgba(200,130,58,.25);
