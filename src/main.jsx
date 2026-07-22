@@ -158,10 +158,6 @@ function statusLabel(status) {
   return "Waiting";
 }
 
-function estimateWaitMinutes(position) {
-  return Math.max(0, Math.max(0, position - 1) * 3);
-}
-
 function waitText(position) {
   const ahead = Math.max(0, position - 1);
 
@@ -1408,6 +1404,7 @@ function CustomerPage() {
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
   const customerMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
   const customerSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
+  const pushDeviceHint = useMemo(() => getPushDeviceHint(), []);
 
   function updateTextSize(nextLargeText) {
     setLargeText(nextLargeText);
@@ -1513,7 +1510,7 @@ function CustomerPage() {
     const orderId = myOrderId ? setInterval(() => {
       if (isPageVisible()) refreshOrder();
     }, 6000) : null;
-    const inventoryId = setInterval(() => {
+    const inventoryId = myOrderId ? null : setInterval(() => {
       if (isPageVisible()) refreshInventoryOnly();
     }, 60000);
     const statusId = myOrderId ? null : setInterval(() => {
@@ -1530,7 +1527,7 @@ function CustomerPage() {
 
     return () => {
       if (orderId) clearInterval(orderId);
-      clearInterval(inventoryId);
+      if (inventoryId) clearInterval(inventoryId);
       if (statusId) clearInterval(statusId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
@@ -1782,7 +1779,6 @@ function CustomerPage() {
             </div>
           ) : (() => {
             const currentPosition = Math.max(1, Number(myOrder.position || myOrderPosition || 1));
-            const pushDeviceHint = getPushDeviceHint();
             return (
               <div className={"customerStatusCard " + myOrder.status}>
                 <div className="statusHero">
@@ -1846,7 +1842,7 @@ function CustomerPage() {
         <ReadyAlertModal
           busy={pushState.busy}
           message={pushState.message}
-          deviceHint={getPushDeviceHint()}
+          deviceHint={pushDeviceHint}
           onEnable={enableReadyNotification}
           onClose={() => setShowReadyAlertPrompt(false)}
         />
