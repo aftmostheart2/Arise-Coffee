@@ -15,7 +15,7 @@ export function getPushDeviceHint() {
   const isStandalone = window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
 
   if (isAppleTouchDevice && !isStandalone) {
-    return "iPhone/iPad note: if notifications do not turn on, add Arise! Coffee to your Home Screen and open it from there.";
+    return "iPhone/iPad: for ready notifications on future orders, tap Share, Add to Home Screen, then open Arise! Coffee from there.";
   }
 
   return "";
