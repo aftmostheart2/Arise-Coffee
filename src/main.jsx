@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { apiGet, apiPost } from "./api/backend";
+import { getPushSupportStatus, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
@@ -503,12 +504,16 @@ function AdminPage() {
 
   async function updateStatus(orderId, status) {
     setBusy(true);
+    const previousOrder = orders.find(order => order.id === orderId);
     try {
       const data = await apiPost({ action: "updateStatus", pin, id: orderId, status });
       if (data.ok) {
         if (status === "complete") {
           setOrders(current => current.filter(o => o.id !== orderId));
           setReadyArchiveCount(count => count + 1);
+          if (!["ready", "complete"].includes(previousOrder?.status)) {
+            sendReadyNotification(orderId, pin).catch(() => {});
+          }
         } else if (data.order) {
           setOrders(current => {
             const exists = current.some(o => o.id === data.order.id);
@@ -1356,13 +1361,14 @@ function CustomerPage() {
   const [message, setMessage] = useState("");
   const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS));
   const [inventory, setInventory] = useState(loadCachedInventory);
-  const [myOrderId, setMyOrderId] = useState(localStorage.getItem("coffee-my-order-id") || "");
+  const [myOrderId, setMyOrderId] = useState(() => new URLSearchParams(window.location.search).get("order") || localStorage.getItem("coffee-my-order-id") || "");
   const [myOrder, setMyOrder] = useState(null);
   const [myOrderPosition, setMyOrderPosition] = useState(1);
   const [busy, setBusy] = useState(false);
   const [showDonation, setShowDonation] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
+  const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
   const submittingRef = useRef(false);
   const orderLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
@@ -1607,6 +1613,30 @@ function CustomerPage() {
     setMyOrderId("");
     setMyOrder(null);
     setMyOrderPosition(1);
+    setPushState({ busy: false, enabled: false, message: "" });
+  }
+
+  async function enableReadyNotification() {
+    if (!myOrder?.id || pushState.busy) return;
+
+    const support = getPushSupportStatus();
+    if (!support.ok) {
+      setPushState({ busy: false, enabled: false, message: support.reason });
+      return;
+    }
+
+    setPushState({ busy: true, enabled: false, message: "" });
+    const result = await subscribeToReadyNotification({
+      orderId: myOrder.id,
+      customerName: myOrder.name,
+      orderName: myOrder.drink,
+    });
+
+    setPushState({
+      busy: false,
+      enabled: Boolean(result.ok),
+      message: result.ok ? "Notifications enabled for this order." : (result.error || "Could not enable notifications."),
+    });
   }
 
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
@@ -1767,6 +1797,14 @@ function CustomerPage() {
 
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
                 {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
+                {!["ready","complete"].includes(myOrder.status) && (
+                  <div className="notifyBox">
+                    <button className="ghostBtn" disabled={pushState.busy || pushState.enabled} onClick={enableReadyNotification}>
+                      {pushState.busy ? "Enabling..." : pushState.enabled ? "Notifications enabled" : "Notify me when my order is ready"}
+                    </button>
+                    {pushState.message && <p>{pushState.message}</p>}
+                  </div>
+                )}
                 {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
               </div>
             );

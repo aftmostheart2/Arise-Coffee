@@ -947,3 +947,57 @@ grant execute on function arise_clear_all(text) to anon;
 grant execute on function arise_archive(text, integer) to anon;
 grant execute on function arise_clear_archive(text) to anon;
 grant execute on function arise_analytics(text) to anon;
+
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  order_id text not null,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  customer_name text,
+  order_name text,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_sent_at timestamptz
+);
+
+alter table push_subscriptions enable row level security;
+
+drop policy if exists "Customers can create push subscriptions" on push_subscriptions;
+create policy "Customers can create push subscriptions"
+on push_subscriptions
+for insert
+to anon
+with check (
+  order_id <> ''
+  and endpoint <> ''
+  and p256dh <> ''
+  and auth <> ''
+);
+
+drop policy if exists "Customers can update their push endpoint" on push_subscriptions;
+create policy "Customers can update their push endpoint"
+on push_subscriptions
+for update
+to anon
+using (true)
+with check (
+  order_id <> ''
+  and endpoint <> ''
+  and p256dh <> ''
+  and auth <> ''
+);
+
+drop function if exists delete_expired_push_subscription(text);
+create or replace function delete_expired_push_subscription(input_endpoint text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from push_subscriptions
+  where endpoint = input_endpoint;
+$$;
+
+grant execute on function delete_expired_push_subscription(text) to service_role;

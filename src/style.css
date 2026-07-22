@@ -527,6 +527,18 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   color:#8A9B8E;
   font-size:12px;
 }
+.notifyBox{
+  margin-top:12px;
+}
+.notifyBox .ghostBtn{
+  width:100%;
+}
+.notifyBox p{
+  color:#8A9B8E;
+  font-size:12px;
+  line-height:1.4;
+  margin-top:8px;
+}
 .completeBox{
   background:rgba(200,130,58,.10);
   border:1px solid rgba(200,130,58,.25);
