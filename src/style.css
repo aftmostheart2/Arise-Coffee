@@ -90,6 +90,33 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .notice{margin-top:10px;color:#8A9B8E;font-size:13px;text-align:center}
 .customerSectionHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px}
 .customerSectionHead .sub{margin-bottom:0}
+.lastOrderBtn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  margin:-4px 0 20px;
+  border-radius:6px;
+  border:1px solid rgba(200,130,58,.22);
+  background:rgba(200,130,58,.08);
+  color:#FFF8F0;
+  text-align:left;
+}
+.lastOrderBtn span{
+  color:#C8823A;
+  font-weight:700;
+  white-space:nowrap;
+}
+.lastOrderBtn strong{
+  color:#8A9B8E;
+  font-size:12px;
+  font-weight:600;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 .customerTools{display:flex;justify-content:flex-end;margin-bottom:18px}
 .closedTools{position:absolute;top:18px;right:18px}
 .textSizeToggle{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:20px;border:1px solid rgba(200,130,58,.18);background:#2C1400;color:#8A9B8E;font-size:12px;font-weight:700;white-space:nowrap}

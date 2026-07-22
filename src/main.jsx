@@ -9,6 +9,8 @@ const DONATION_ZELLE = "htacoc@gmail.com";
 const INVENTORY_CACHE_KEY = "arise-inventory-cache";
 const INVENTORY_CACHE_MS = 5 * 60 * 1000;
 const TEXT_SIZE_KEY = "arise-text-size";
+const LAST_ORDER_KEY = "arise-last-order";
+const LAST_ORDER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -209,6 +211,27 @@ function normalizeOrderFromSingle(order) {
 
 function hasFirstAndLastName(name) {
   return name.trim().split(/\s+/).filter(Boolean).length >= 2;
+}
+
+function loadLastOrder() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAST_ORDER_KEY) || "null");
+    if (!saved) return null;
+    if (saved.expiresAt && Date.now() > saved.expiresAt) {
+      localStorage.removeItem(LAST_ORDER_KEY);
+      return null;
+    }
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function savedOrderSummary(order) {
+  if (!order?.drinkLabel) return "";
+  const parts = [order.temp, order.drinkLabel, order.milk].filter(Boolean);
+  if (Array.isArray(order.syrups) && order.syrups.length) parts.push(order.syrups.join(", "));
+  return parts.join(" · ");
 }
 
 function formatUpdatedAt(value) {
@@ -1389,9 +1412,11 @@ function CustomerPage() {
   const [showDonation, setShowDonation] = useState(false);
   const [showReadyAlertPrompt, setShowReadyAlertPrompt] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
+  const [lastOrder, setLastOrder] = useState(loadLastOrder);
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
   const submittingRef = useRef(false);
+  const pendingLastOrderRef = useRef(null);
   const orderLoadingRef = useRef(false);
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
@@ -1535,7 +1560,15 @@ function CustomerPage() {
 
   useEffect(() => {
     const d = getDrink(form.drinkId, customerDrinks);
-    setForm(f => ({ ...f, temp: d.temps[0], milk: "", syrups: [] }));
+    const pending = pendingLastOrderRef.current;
+    pendingLastOrderRef.current = null;
+    setForm(f => ({
+      ...f,
+      temp: pending?.temp || d.temps[0],
+      milk: pending?.milk || "",
+      syrups: pending?.syrups || [],
+      notes: pending?.notes ?? f.notes,
+    }));
     setErrors({});
   }, [form.drinkId, customerDrinks]);
 
@@ -1562,6 +1595,28 @@ function CustomerPage() {
     const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventoryLookup, s));
     if (outSyrup) e.syrups = outSyrup + " is out of stock";
     return e;
+  }
+
+  function useLastOrder() {
+    if (!lastOrder) return;
+
+    const savedDrink = customerDrinks.find(d => d.id === lastOrder.drinkId)
+      || customerDrinks.find(d => d.label.toLowerCase() === String(lastOrder.drinkLabel || "").toLowerCase());
+
+    if (!savedDrink) {
+      setErrors({ drink: "That saved drink is not on today's menu." });
+      return;
+    }
+
+    const nextTemp = savedDrink.temps.includes(lastOrder.temp) ? lastOrder.temp : savedDrink.temps[0];
+    const nextMilk = savedDrink.milk && isInventoryAvailable(inventoryLookup, lastOrder.milk) ? lastOrder.milk : "";
+    const nextSyrups = savedDrink.syrups && Array.isArray(lastOrder.syrups)
+      ? lastOrder.syrups.filter(s => isInventoryAvailable(inventoryLookup, s)).slice(0, MAX_SYRUPS)
+      : [];
+
+    pendingLastOrderRef.current = { temp: nextTemp, milk: nextMilk, syrups: nextSyrups, notes: lastOrder.notes || "" };
+    setForm(f => ({ ...f, drinkId: savedDrink.id }));
+    setErrors({});
   }
 
   async function submit() {
@@ -1607,6 +1662,17 @@ function CustomerPage() {
 
       localStorage.setItem("arise-customer-name", form.name.trim());
       localStorage.setItem("coffee-my-order-id", data.id);
+      const savedOrder = {
+        drinkId: form.drinkId,
+        drinkLabel: drink.label,
+        temp: form.temp,
+        milk: form.milk,
+        syrups: form.syrups,
+        notes: form.notes,
+        expiresAt: Date.now() + LAST_ORDER_TTL_MS,
+      };
+      localStorage.setItem(LAST_ORDER_KEY, JSON.stringify(savedOrder));
+      setLastOrder(savedOrder);
       setReadyAlertShown(false);
       previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
@@ -1696,6 +1762,13 @@ function CustomerPage() {
 
           {isOpen && (
             <>
+              {lastOrder && !myOrder && (
+                <button className="lastOrderBtn" onClick={useLastOrder}>
+                  <span>Use last order</span>
+                  <strong>{savedOrderSummary(lastOrder)}</strong>
+                </button>
+              )}
+
               <div className="field">
                 {lbl("Your name")}
                 <input ref={nameRef} value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setErrors(er => ({...er, name: ""})); }} placeholder="e.g. Alex Morgan" />
@@ -1707,6 +1780,7 @@ function CustomerPage() {
                 <div className="drinkList">
                   {customerDrinks.map(d => <button key={d.id} className={form.drinkId === d.id ? "drink active" : "drink"} onClick={() => setForm(f => ({...f, drinkId: d.id}))}><strong>{d.label}</strong><span>{d.desc}</span></button>)}
                 </div>
+                {errors.drink && <div className="errorText">{errors.drink}</div>}
               </div>
 
               {drink.showTemp !== false && (drink.temps.length > 1 ? (
