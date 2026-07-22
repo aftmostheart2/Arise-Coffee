@@ -1762,7 +1762,7 @@ function CustomerPage() {
 
           {isOpen && (
             <>
-              {lastOrder && !myOrder && (
+              {lastOrder && (
                 <button className="lastOrderBtn" onClick={useLastOrder}>
                   <span>Use last order</span>
                   <strong>{savedOrderSummary(lastOrder)}</strong>
