@@ -964,6 +964,15 @@ create table if not exists push_subscriptions (
 
 alter table push_subscriptions enable row level security;
 
+grant select, insert, update on push_subscriptions to anon;
+
+drop policy if exists "Customers can read push subscriptions for upsert" on push_subscriptions;
+create policy "Customers can read push subscriptions for upsert"
+on push_subscriptions
+for select
+to anon
+using (true);
+
 drop policy if exists "Customers can create push subscriptions" on push_subscriptions;
 create policy "Customers can create push subscriptions"
 on push_subscriptions
