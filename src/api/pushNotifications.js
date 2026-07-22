@@ -9,17 +9,7 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
-function isIosSafariWithoutWebApp() {
-  const ua = navigator.userAgent || "";
-  const isiOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const isStandalone = window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
-  return isiOS && !isStandalone;
-}
-
 export function getPushSupportStatus() {
-  if (isIosSafariWithoutWebApp()) {
-    return { ok: false, reason: "On iPhone or iPad, open this from your Home Screen to use ready notifications." };
-  }
   if (!("serviceWorker" in navigator)) return { ok: false, reason: "Notifications are not supported in this browser." };
   if (!("PushManager" in window)) return { ok: false, reason: "Push notifications are not supported in this browser." };
   if (!("Notification" in window)) return { ok: false, reason: "Notifications are not supported in this browser." };
