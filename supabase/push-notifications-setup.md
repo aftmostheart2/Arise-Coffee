@@ -42,6 +42,7 @@ This creates:
 ```text
 push_subscriptions
 delete_expired_push_subscription()
+cleanup_old_push_subscriptions()
 ```
 
 ## 4. Set Supabase Edge Function Secrets
@@ -72,7 +73,13 @@ Notify me when my order is ready
 
 The browser asks for notification permission only then.
 
-When an admin presses `Ready for Pickup`, the app calls the Supabase Edge Function. The function verifies the admin PIN, sends the push notification, and deletes expired subscriptions automatically.
+When an admin presses `Ready for Pickup`, the app calls the Supabase Edge Function. The function verifies the admin PIN, sends the push notification, and deletes that order's subscriptions afterward. It also deletes expired subscriptions automatically when providers return `404` or `410`.
+
+For monthly cleanup, run this in Supabase SQL Editor:
+
+```sql
+select cleanup_old_push_subscriptions(30);
+```
 
 ## Browser Notes
 

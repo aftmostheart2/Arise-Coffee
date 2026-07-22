@@ -78,8 +78,9 @@ Deno.serve(async req => {
 
         sent += 1;
         await supabase.from("push_subscriptions")
-          .update({ last_sent_at: new Date().toISOString() })
+          .delete()
           .eq("id", row.id);
+        removed += 1;
       } catch (pushError) {
         const statusCode = Number((pushError as { statusCode?: number }).statusCode || 0);
         if (statusCode === 404 || statusCode === 410) {

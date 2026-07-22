@@ -1010,3 +1010,23 @@ as $$
 $$;
 
 grant execute on function delete_expired_push_subscription(text) to service_role;
+
+drop function if exists cleanup_old_push_subscriptions(integer);
+create or replace function cleanup_old_push_subscriptions(input_days integer default 30)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  deleted_count integer;
+begin
+  delete from push_subscriptions
+  where created_at < now() - make_interval(days => greatest(input_days, 1));
+
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$;
+
+grant execute on function cleanup_old_push_subscriptions(integer) to service_role;
