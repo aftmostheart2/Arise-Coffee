@@ -92,6 +92,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .customerSectionHead .sub{margin-bottom:0}
 .lastOrderBtn{
   width:100%;
+  max-width:100%;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -103,13 +104,17 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   background:rgba(200,130,58,.08);
   color:#FFF8F0;
   text-align:left;
+  overflow:hidden;
 }
 .lastOrderBtn span{
   color:#C8823A;
   font-weight:700;
   white-space:nowrap;
+  flex:0 0 auto;
 }
 .lastOrderBtn strong{
+  min-width:0;
+  flex:1 1 auto;
   color:#8A9B8E;
   font-size:12px;
   font-weight:600;
@@ -218,6 +223,8 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   .layout{grid-template-columns:1fr;padding:0 18px 36px}
   .formCol{padding-right:0;border-right:none}
   .queueCol{padding-left:0;padding-top:0}
+  .lastOrderBtn{align-items:flex-start;flex-direction:column;gap:4px}
+  .lastOrderBtn strong{width:100%}
   .drink span{display:block;margin-left:0;margin-top:3px}
   .adminActions{grid-template-columns:repeat(2,1fr)}
   .adminTop{align-items:flex-start}
