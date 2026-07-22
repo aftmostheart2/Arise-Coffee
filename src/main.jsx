@@ -1351,6 +1351,31 @@ function DonationModal({ onClose }) {
   );
 }
 
+function ReadyAlertModal({ busy, message, deviceHint, onEnable, onClose }) {
+  return (
+    <div className="modalOverlay donationOverlay">
+      <div className="donationModal readyAlertModal">
+        <div className="donationIcon">🔔</div>
+        <h2>Want a ready alert?</h2>
+        <p>
+          We can notify you when your drink is ready, so you do not have to keep this page open.
+        </p>
+        {deviceHint && <p className="readyAlertHint">{deviceHint}</p>}
+        {message && <p className="readyAlertMessage">{message}</p>}
+
+        <div className="donationActions">
+          <button className="venmoBtn readyAlertBtn" disabled={busy} onClick={onEnable}>
+            {busy ? "Enabling..." : "Notify me"}
+          </button>
+          <button className="plainBtn donationSkip" onClick={onClose}>
+            No thanks
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CustomerPage() {
   const [form, setForm] = useState(() => {
     const savedName = localStorage.getItem("arise-customer-name") || "";
@@ -1366,6 +1391,7 @@ function CustomerPage() {
   const [myOrderPosition, setMyOrderPosition] = useState(1);
   const [busy, setBusy] = useState(false);
   const [showDonation, setShowDonation] = useState(false);
+  const [showReadyAlertPrompt, setShowReadyAlertPrompt] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
@@ -1601,6 +1627,7 @@ function CustomerPage() {
       });
       setForm(defaultForm());
       setShowDonation(true);
+      setShowReadyAlertPrompt(true);
     } catch {
       alert("Connection error. Try again.");
     }
@@ -1637,6 +1664,7 @@ function CustomerPage() {
       enabled: Boolean(result.ok),
       message: result.ok ? "Notifications enabled for this order." : (result.error || "Could not enable notifications."),
     });
+    if (result.ok) setShowReadyAlertPrompt(false);
   }
 
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
@@ -1814,6 +1842,15 @@ function CustomerPage() {
         </section>
       </main>
       {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
+      {!showDonation && showReadyAlertPrompt && myOrder && !["ready","complete"].includes(myOrder.status) && !pushState.enabled && (
+        <ReadyAlertModal
+          busy={pushState.busy}
+          message={pushState.message}
+          deviceHint={getPushDeviceHint()}
+          onEnable={enableReadyNotification}
+          onClose={() => setShowReadyAlertPrompt(false)}
+        />
+      )}
     </>
   );
 }

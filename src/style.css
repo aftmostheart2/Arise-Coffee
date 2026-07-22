@@ -380,6 +380,21 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   margin-top:12px;
   color:#8A6A4A!important;
 }
+.readyAlertModal .donationIcon{
+  background:#F7E7D0;
+}
+.readyAlertBtn:disabled{
+  opacity:.7;
+}
+.readyAlertHint{
+  color:#7A5B43!important;
+  font-size:12px!important;
+  margin-top:-6px!important;
+}
+.readyAlertMessage{
+  color:#5C2D0A!important;
+  font-weight:700;
+}
 
 
 /* Donation popup hard-center fix */
