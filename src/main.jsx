@@ -1104,8 +1104,8 @@ function AdminPage() {
                   <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
                 </div>
                 <div className="adminActions">
-                  <button onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
-                  <button onClick={() => updateStatus(o.id, "making")}>Start Making</button>
+                  <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
+                  <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
                   <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
                 </div>
               </div>
