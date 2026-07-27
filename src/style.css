@@ -150,7 +150,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .collapseBtn{padding:7px 10px;border-radius:20px;background:#2C1400;border:1px solid rgba(200,130,58,.18);color:#8A9B8E;font-size:12px;font-weight:700}
 .orders h2{font-size:20px;margin-bottom:12px}
 .adminOrder{position:relative;background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:14px;margin-bottom:12px;overflow:hidden}
-.adminOrder.making{background:linear-gradient(90deg,rgba(200,130,58,.18),#241000 42%);border-color:rgba(200,130,58,.62);box-shadow:0 0 0 1px rgba(200,130,58,.10) inset}
+.adminOrder.making{background:#2D1605;border-color:rgba(200,130,58,.62);box-shadow:0 0 0 1px rgba(200,130,58,.10) inset}
 .adminOrder.making:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#C8823A}
 .adminOrder.ready{border-color:rgba(107,191,107,.45)}
 .orderTop{display:flex;gap:12px;align-items:flex-start}
@@ -161,7 +161,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .statusBadge.making{color:#C8823A}.statusBadge.ready{color:#6BBF6B}
 .adminActions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .adminActions button{padding:9px;border-radius:4px;border:1px solid rgba(200,130,58,.2);background:#2C1400;color:#A08060}
-.adminActions .activeStatusAction{background:#C8823A;color:#FFF8F0;border-color:#C8823A}
+.adminActions .activeStatusAction{background:#C8823A;color:#1C0A00;border-color:#C8823A;font-weight:800}
 .completedOrder{padding:10px;border-bottom:1px solid rgba(200,130,58,.1);color:#8A9B8E;font-size:13px}
 .archivePanel,.analyticsPanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:16px;margin-bottom:24px}
 .archiveHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
@@ -293,6 +293,11 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .adminActions button:nth-child(3){
   color:#6BBF6B;
   border-color:rgba(107,191,107,.35);
+}
+.adminActions .activeStatusAction:nth-child(2),
+.adminActions .activeStatusAction:nth-child(3){
+  color:#1C0A00;
+  border-color:#C8823A;
 }
 .adminActions button:nth-child(4){
   color:#E05252;
