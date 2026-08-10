@@ -1058,7 +1058,7 @@ input:focus,textarea:focus{
 }
 .adminTools{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(4,1fr);
   gap:12px;
   margin-bottom:16px;
 }
@@ -1090,6 +1090,9 @@ input:focus,textarea:focus{
 }
 .toolTile.active strong{
   color:var(--gold-2);
+}
+.hiddenToolTile{
+  opacity:.74;
 }
 .closedMessagePanel{
   margin-bottom:16px;

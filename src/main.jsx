@@ -1037,6 +1037,10 @@ function AdminPage() {
             <strong>Analytics</strong>
             <span>Popular items</span>
           </button>
+          <button className="toolTile hiddenToolTile" onClick={() => window.open("/display", "_blank", "noopener,noreferrer")}>
+            <strong>TV Display</strong>
+            <span>Pickup board</span>
+          </button>
         </section>
 
         <section className="panel closedMessagePanel">
