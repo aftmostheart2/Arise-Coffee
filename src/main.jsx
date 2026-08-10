@@ -2022,37 +2022,34 @@ function DisplayPage() {
 
   const making = orders.filter(order => order.status === "making");
   const waiting = orders.filter(order => order.status !== "making");
+  const boardRows = [...making, ...waiting].slice(0, 14);
 
   return (
     <main className="displayPage">
       <header className="displayHeader">
-        <div>
-          <h1>Arise! Coffee</h1>
-          <p>{isOpen ? "Queue is open" : "Queue is closed"}</p>
-        </div>
-        <div className={isOpen ? "displayOpen" : "displayClosed"}>{isOpen ? "Open" : "Closed"}</div>
+        <h1>ARISE! COFFEE</h1>
+        <p>{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} • Live pickup board</p>
       </header>
 
-      <section className="displayGrid">
-        <div className="displayPanel displayMaking">
-          <h2>Now Making</h2>
-          {making.length === 0 ? (
-            <div className="displayEmpty">No drinks in progress</div>
-          ) : making.slice(0, 6).map(order => (
-            <div className="displayOrder making" key={order.id}>
-              <strong>{firstName(order.name)}</strong>
-              <span>{order.temp} {order.drink}</span>
-            </div>
-          ))}
+      <section className="displayBoard">
+        <div className="displayBoardTitle">
+          <span>Order Status</span>
+          <strong className={isOpen ? "displayOpen" : "displayClosed"}>{isOpen ? "Open" : "Closed"}</strong>
         </div>
-
-        <div className="displayPanel">
-          <h2>Waiting</h2>
-          {waiting.length === 0 ? (
-            <div className="displayEmpty">No one waiting</div>
-          ) : waiting.slice(0, 10).map(order => (
-            <div className="displayOrder" key={order.id}>
-              <strong>#{String(order.position || 1).padStart(2, "0")} {firstName(order.name)}</strong>
+        <div className="displayTable">
+          <div className="displayTableHead">
+            <span>Proceed To</span>
+            <span>Wait Time</span>
+            <span>Member Name</span>
+            <span>Order</span>
+          </div>
+          {boardRows.length === 0 ? (
+            <div className="displayEmpty">No active coffee orders</div>
+          ) : boardRows.map(order => (
+            <div className={order.status === "making" ? "displayTableRow making" : "displayTableRow"} key={order.id}>
+              <span>{order.status === "making" ? "Coffee Bar" : "Queue"}</span>
+              <span>{order.status === "making" ? "Now" : waitText(order.position || 1).replace("Estimated wait: ", "")}</span>
+              <strong>{firstName(order.name)}</strong>
               <span>{order.temp} {order.drink}</span>
             </div>
           ))}
