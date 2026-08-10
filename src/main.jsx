@@ -2021,11 +2021,21 @@ function DisplayPage() {
     function updateFullscreenState() {
       setIsFullscreen(Boolean(document.fullscreenElement));
     }
+    function handleDisplayKeydown(event) {
+      if (event.key?.toLowerCase() !== "f") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const tagName = event.target?.tagName?.toLowerCase();
+      if (["input", "textarea", "select", "button"].includes(tagName)) return;
+      event.preventDefault();
+      toggleFullscreen();
+    }
     document.addEventListener("fullscreenchange", updateFullscreenState);
+    document.addEventListener("keydown", handleDisplayKeydown);
     return () => {
       clearInterval(id);
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
       document.removeEventListener("fullscreenchange", updateFullscreenState);
+      document.removeEventListener("keydown", handleDisplayKeydown);
     };
   }, []);
 
@@ -2052,9 +2062,7 @@ function DisplayPage() {
           <h1>ARISE! COFFEE</h1>
           <p>{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} • Live pickup board</p>
         </div>
-        <button className="displayFullscreenBtn" onClick={toggleFullscreen}>
-          {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-        </button>
+        {!isFullscreen && <button className="displayFullscreenBtn" onClick={toggleFullscreen}>Fullscreen</button>}
       </header>
 
       <section className="displayBoard">
