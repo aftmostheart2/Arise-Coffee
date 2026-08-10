@@ -9,12 +9,17 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
-export function getPushDeviceHint() {
+export function isAppleTouchDevice() {
   const ua = navigator.userAgent || "";
-  const isAppleTouchDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const isStandalone = window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
 
-  if (isAppleTouchDevice && !isStandalone) {
+export function isStandaloneApp() {
+  return window.navigator.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches;
+}
+
+export function getPushDeviceHint() {
+  if (isAppleTouchDevice() && !isStandaloneApp()) {
     return "iPhone/iPad: for ready notifications on future orders, tap Share, Add to Home Screen, then open Arise! Coffee from there.";
   }
 

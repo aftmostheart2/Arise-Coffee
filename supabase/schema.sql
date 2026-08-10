@@ -393,6 +393,80 @@ as $$
   from active;
 $$;
 
+create or replace function arise_display()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with queue as (
+    select
+      id::text as id,
+      created_at,
+      coalesce(customer_name, name, '') as name,
+      drink,
+      coalesce(temperature, temp, '') as temp,
+      status,
+      row_number() over (
+        order by case when status = 'making' then 0 else 1 end, created_at
+      ) as position
+    from orders
+    where status in ('waiting', 'making')
+  ),
+  ready as (
+    select
+      id::text as id,
+      created_at,
+      coalesce(customer_name, name, '') as name,
+      drink,
+      coalesce(temperature, temp, '') as temp,
+      status
+    from orders
+    where status in ('ready', 'complete')
+    order by created_at desc
+    limit 8
+  )
+  select jsonb_build_object(
+    'ok', true,
+    'isOpen', arise_setting('isOpen', 'true') = 'true',
+    'message', arise_setting('message', ''),
+    'orders', coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            'id', id,
+            'name', name,
+            'drink', drink,
+            'temp', temp,
+            'status', status,
+            'position', position
+          )
+          order by position
+        )
+        from queue
+      ),
+      '[]'::jsonb
+    ),
+    'ready', coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            'id', id,
+            'name', name,
+            'drink', drink,
+            'temp', temp,
+            'status', status
+          )
+          order by created_at desc
+        )
+        from ready
+      ),
+      '[]'::jsonb
+    )
+  );
+$$;
+
 create or replace function arise_order(order_id text)
 returns jsonb
 language plpgsql
@@ -936,6 +1010,7 @@ grant execute on function arise_inventory() to anon;
 grant execute on function arise_menu(text) to anon;
 grant execute on function arise_login(text) to anon;
 grant execute on function arise_orders() to anon;
+grant execute on function arise_display() to anon;
 grant execute on function arise_order(text) to anon;
 grant execute on function arise_place_order(jsonb) to anon;
 grant execute on function arise_update_admin(text, boolean, text) to anon;

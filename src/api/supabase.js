@@ -21,6 +21,7 @@ export async function apiGet(action, params = {}) {
   if (action === "order") return getOrder(params.id);
   if (action === "inventory") return getInventory();
   if (action === "menu") return getMenu(params.pin);
+  if (action === "display") return getDisplay();
 
   return { ok: false, error: "Unknown action" };
 }
@@ -70,6 +71,14 @@ export async function getStatus() {
 export async function getOrders() {
   try {
     return await callRpc("arise_orders");
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function getDisplay() {
+  try {
+    return await callRpc("arise_display");
   } catch {
     return { ok: false, error: "Connection error" };
   }

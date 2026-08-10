@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { apiGet, apiPost } from "./api/backend";
-import { getPushDeviceHint, getPushSupportStatus, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
+import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
@@ -146,7 +146,7 @@ function buildInventoryLookup(inventory) {
 }
 
 function isInventoryAvailable(inventoryLookup, item) {
-  return inventoryLookup[item] !== false;
+  return inventoryLookup[item] === true;
 }
 
 function isPageVisible() {
@@ -1395,6 +1395,24 @@ function ReadyAlertModal({ busy, message, deviceHint, onEnable, onClose }) {
   );
 }
 
+function IosInstallGate({ onRefresh }) {
+  return (
+    <main className="iosInstallPage">
+      <section className="iosInstallCard">
+        <div className="brandMark">☕</div>
+        <h1>Install Arise! Coffee</h1>
+        <p>On iPhone or iPad, please add Arise! Coffee to your Home Screen before ordering so ready notifications can work.</p>
+        <ol>
+          <li>Tap the Share button in Safari.</li>
+          <li>Choose Add to Home Screen.</li>
+          <li>Open Arise! Coffee from the new Home Screen icon.</li>
+        </ol>
+        <button className="joinBtn" onClick={onRefresh}>I opened it from Home Screen</button>
+      </section>
+    </main>
+  );
+}
+
 function CustomerPage() {
   const [form, setForm] = useState(() => {
     const savedName = localStorage.getItem("arise-customer-name") || "";
@@ -1427,9 +1445,10 @@ function CustomerPage() {
   const customerDrinks = useMemo(() => normalizeMenuDrinks(menuDrinks), [menuDrinks]);
   const drink = useMemo(() => getDrink(form.drinkId, customerDrinks), [form.drinkId, customerDrinks]);
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
-  const customerMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
-  const customerSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
+  const customerMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS).filter(item => item.available !== false), [inventory]);
+  const customerSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS).filter(item => item.available !== false), [inventory]);
   const pushDeviceHint = useMemo(() => getPushDeviceHint(), []);
+  const requiresIosInstall = useMemo(() => isAppleTouchDevice() && !isStandaloneApp(), []);
 
   function updateTextSize(nextLargeText) {
     setLargeText(nextLargeText);
@@ -1588,6 +1607,7 @@ function CustomerPage() {
 
   function validate() {
     const e = {};
+    if (!customerDrinks.some(d => d.id === form.drinkId)) e.drink = "That drink is not available today";
     if (!form.name.trim()) e.name = "Please enter your name";
     else if (!hasFirstAndLastName(form.name)) e.name = "Please enter first and last name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
@@ -1731,6 +1751,13 @@ function CustomerPage() {
   }
 
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
+
+  if (requiresIosInstall && !myOrderId && !myOrder) {
+    return <>
+      <Header isOpen={isOpen} />
+      <IosInstallGate onRefresh={() => window.location.reload()} />
+    </>;
+  }
 
   if (!isOpen && !myOrder) {
     return <>
@@ -1925,8 +1952,117 @@ function CustomerPage() {
   );
 }
 
+function firstName(name) {
+  return String(name || "").trim().split(/\s+/)[0] || "Guest";
+}
+
+function DisplayPage() {
+  const [orders, setOrders] = useState([]);
+  const [ready, setReady] = useState([]);
+  const [isOpen, setIsOpen] = useState(true);
+  const [readyPopup, setReadyPopup] = useState(null);
+  const seenReadyRef = useRef(new Set());
+  const initializedRef = useRef(false);
+  const popupTimerRef = useRef(null);
+
+  async function refreshDisplay() {
+    try {
+      const data = await apiGet("display");
+      if (!data.ok) return;
+
+      const nextOrders = Array.isArray(data.orders) ? data.orders : [];
+      const nextReady = Array.isArray(data.ready) ? data.ready : [];
+      setOrders(nextOrders);
+      setReady(nextReady);
+      if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+
+      if (!initializedRef.current) {
+        nextReady.forEach(order => seenReadyRef.current.add(order.id));
+        initializedRef.current = true;
+        return;
+      }
+
+      const newReady = nextReady.filter(order => order.id && !seenReadyRef.current.has(order.id));
+      if (newReady.length) {
+        newReady.forEach(order => seenReadyRef.current.add(order.id));
+        if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+        setReadyPopup(newReady[0]);
+        popupTimerRef.current = setTimeout(() => setReadyPopup(null), 5000);
+      }
+    } catch {}
+  }
+
+  useEffect(() => {
+    refreshDisplay();
+    const id = setInterval(refreshDisplay, 3000);
+    return () => {
+      clearInterval(id);
+      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+    };
+  }, []);
+
+  const making = orders.filter(order => order.status === "making");
+  const waiting = orders.filter(order => order.status !== "making");
+
+  return (
+    <main className="displayPage">
+      <header className="displayHeader">
+        <div>
+          <h1>Arise! Coffee</h1>
+          <p>{isOpen ? "Queue is open" : "Queue is closed"}</p>
+        </div>
+        <div className={isOpen ? "displayOpen" : "displayClosed"}>{isOpen ? "Open" : "Closed"}</div>
+      </header>
+
+      <section className="displayGrid">
+        <div className="displayPanel displayMaking">
+          <h2>Now Making</h2>
+          {making.length === 0 ? (
+            <div className="displayEmpty">No drinks in progress</div>
+          ) : making.slice(0, 6).map(order => (
+            <div className="displayOrder making" key={order.id}>
+              <strong>{firstName(order.name)}</strong>
+              <span>{order.temp} {order.drink}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="displayPanel">
+          <h2>Waiting</h2>
+          {waiting.length === 0 ? (
+            <div className="displayEmpty">No one waiting</div>
+          ) : waiting.slice(0, 10).map(order => (
+            <div className="displayOrder" key={order.id}>
+              <strong>#{String(order.position || 1).padStart(2, "0")} {firstName(order.name)}</strong>
+              <span>{order.temp} {order.drink}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {ready.length > 0 && (
+        <section className="displayReadyStrip">
+          <span>Ready for pickup</span>
+          <strong>{ready.slice(0, 4).map(order => firstName(order.name)).join(" · ")}</strong>
+        </section>
+      )}
+
+      {readyPopup && (
+        <div className="readyDisplayOverlay">
+          <div className="readyDisplayCard">
+            <span>Ready for pickup</span>
+            <h2>{firstName(readyPopup.name)}</h2>
+            <p>{readyPopup.temp} {readyPopup.drink}</p>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
 function App() {
   const path = window.location.pathname.toLowerCase();
+  if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage />;
   return path.startsWith("/admin") ? <AdminPage /> : <CustomerPage />;
 }
 

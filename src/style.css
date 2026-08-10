@@ -1541,3 +1541,220 @@ input:focus,textarea:focus{
   border-color:rgba(205,140,72,.12);
   background:rgba(18,7,0,.22);
 }
+
+.iosInstallPage{
+  width:100%;
+  min-height:calc(100vh - 96px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.iosInstallCard{
+  width:min(520px,100%);
+  background:#241000;
+  border:1px solid rgba(200,130,58,.20);
+  border-radius:12px;
+  padding:28px;
+  text-align:left;
+}
+.iosInstallCard .brandMark{
+  width:58px;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  background:#2C1400;
+  border:1px solid rgba(200,130,58,.25);
+  font-size:30px;
+  margin-bottom:18px;
+}
+.iosInstallCard h1{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:31px;
+  margin-bottom:10px;
+}
+.iosInstallCard p,.iosInstallCard li{
+  color:#A78C78;
+  font-size:15px;
+  line-height:1.5;
+}
+.iosInstallCard ol{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:18px 0 24px;
+  padding-left:22px;
+}
+
+.displayPage{
+  min-height:100vh;
+  width:100%;
+  padding:34px;
+  background:radial-gradient(circle at top left,rgba(200,130,58,.12),transparent 32%),#120600;
+  color:#FFF8F0;
+}
+.displayHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  margin-bottom:30px;
+  padding-bottom:20px;
+  border-bottom:1px solid rgba(200,130,58,.20);
+}
+.displayHeader h1{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:56px;
+  line-height:1;
+}
+.displayHeader p{
+  color:#A78C78;
+  font-size:20px;
+  margin-top:8px;
+}
+.displayOpen,.displayClosed{
+  border-radius:999px;
+  padding:12px 22px;
+  font-size:22px;
+  font-weight:800;
+}
+.displayOpen{
+  color:#6BBF6B;
+  border:1px solid rgba(107,191,107,.38);
+  background:rgba(107,191,107,.13);
+}
+.displayClosed{
+  color:#E05252;
+  border:1px solid rgba(224,82,82,.38);
+  background:rgba(224,82,82,.13);
+}
+.displayGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:24px;
+}
+.displayPanel{
+  min-height:60vh;
+  background:rgba(36,16,0,.72);
+  border:1px solid rgba(200,130,58,.18);
+  border-radius:16px;
+  padding:24px;
+}
+.displayPanel h2{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:38px;
+  margin-bottom:20px;
+}
+.displayMaking{
+  border-color:rgba(138,155,78,.34);
+}
+.displayOrder{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  border-bottom:1px solid rgba(200,130,58,.12);
+  padding:18px 0;
+}
+.displayOrder strong{
+  font-size:34px;
+}
+.displayOrder span{
+  color:#A78C78;
+  font-size:23px;
+  text-align:right;
+}
+.displayOrder.making strong{
+  color:#B6C26F;
+}
+.displayEmpty{
+  color:#6A5040;
+  font-size:25px;
+  padding:32px 0;
+}
+.displayReadyStrip{
+  margin-top:24px;
+  padding:18px 24px;
+  background:rgba(107,191,107,.12);
+  border:1px solid rgba(107,191,107,.32);
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.displayReadyStrip span{
+  color:#6BBF6B;
+  font-size:20px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+}
+.displayReadyStrip strong{
+  font-size:28px;
+}
+.readyDisplayOverlay{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(18,6,0,.78);
+  animation:readyOverlayFade 5s ease forwards;
+}
+.readyDisplayCard{
+  width:min(820px,82vw);
+  min-height:360px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border-radius:24px;
+  background:#FFF8F0;
+  color:#1C0A00;
+  box-shadow:0 28px 90px rgba(0,0,0,.45);
+  animation:readyCardPop 5s ease forwards;
+}
+.readyDisplayCard span{
+  color:#2A5A2A;
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+}
+.readyDisplayCard h2{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:104px;
+  line-height:1;
+  margin:18px 0;
+}
+.readyDisplayCard p{
+  color:#5C2D0A;
+  font-size:34px;
+  font-weight:800;
+}
+@keyframes readyOverlayFade{
+  0%,82%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes readyCardPop{
+  0%{opacity:0;transform:scale(.94)}
+  8%,82%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(.98)}
+}
+@media(max-width:760px){
+  .displayPage{padding:20px}
+  .displayHeader h1{font-size:36px}
+  .displayHeader p,.displayOpen,.displayClosed{font-size:15px}
+  .displayGrid{grid-template-columns:1fr}
+  .displayPanel{min-height:auto}
+  .displayOrder{align-items:flex-start;flex-direction:column}
+  .displayOrder strong{font-size:26px}
+  .displayOrder span{text-align:left;font-size:18px}
+  .readyDisplayCard h2{font-size:62px}
+  .readyDisplayCard p{font-size:24px}
+}

@@ -10,6 +10,7 @@ export const login = backend.login;
 export const getStatus = backend.getStatus;
 export const getOrders = backend.getOrders;
 export const getOrder = backend.getOrder;
+export const getDisplay = backend.getDisplay;
 export const getInventory = backend.getInventory;
 export const getMenu = backend.getMenu;
 export const updateAdmin = backend.updateAdmin;
