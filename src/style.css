@@ -2076,3 +2076,181 @@ input:focus,textarea:focus{
   .readyDisplayCard h2{font-size:62px}
   .readyDisplayCard p{font-size:24px}
 }
+
+/* TV queue display: warm Arise board */
+.displayPage{
+  min-height:100vh;
+  width:100%;
+  padding:28px;
+  background:
+    radial-gradient(circle at 14% 0%,rgba(200,130,58,.20),transparent 34%),
+    linear-gradient(135deg,#170700 0%,#2A0E00 52%,#120600 100%);
+  color:#FFF8F0;
+  font-family:Inter,Arial,sans-serif;
+}
+.displayHeader{
+  height:auto;
+  margin:0 0 22px;
+  padding:20px 24px;
+  border:1px solid rgba(200,130,58,.22);
+  border-radius:18px;
+  background:rgba(18,7,0,.72);
+  box-shadow:0 18px 70px rgba(0,0,0,.28);
+}
+.displayHeader h1{
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:52px;
+  letter-spacing:0;
+  color:#FFF8F0;
+}
+.displayHeader p{
+  color:#A78C78;
+  font-size:18px;
+  font-weight:700;
+}
+.displayBoard{
+  margin:0;
+  overflow:hidden;
+  border:1px solid rgba(200,130,58,.24);
+  border-radius:20px;
+  background:rgba(36,16,0,.80);
+  box-shadow:0 22px 90px rgba(0,0,0,.30);
+}
+.displayBoardTitle{
+  min-height:74px;
+  padding:0 26px;
+  background:linear-gradient(90deg,rgba(200,130,58,.16),rgba(200,130,58,.04));
+  border-bottom:1px solid rgba(200,130,58,.20);
+}
+.displayBoardTitle span{
+  color:#FFF8F0;
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:36px;
+}
+.displayOpen,.displayClosed{
+  border-radius:999px;
+  padding:10px 18px;
+  font-size:20px;
+  font-weight:900;
+}
+.displayOpen{
+  color:#6BBF6B;
+  border:1px solid rgba(107,191,107,.36);
+  background:rgba(107,191,107,.13);
+}
+.displayClosed{
+  color:#E05252;
+  border:1px solid rgba(224,82,82,.36);
+  background:rgba(224,82,82,.13);
+}
+.displayTableHead,.displayTableRow{
+  grid-template-columns:1fr .72fr 1.05fr 1.45fr;
+}
+.displayTableHead span{
+  padding:16px 20px;
+  background:#3A1904;
+  color:#E2AF67;
+  border-right:1px solid rgba(200,130,58,.18);
+  border-bottom:1px solid rgba(200,130,58,.22);
+  font-size:17px;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+.displayTableRow{
+  min-height:74px;
+  background:rgba(28,10,0,.78);
+  border-bottom:1px solid rgba(200,130,58,.13);
+}
+.displayTableRow:nth-child(odd){
+  background:rgba(44,20,0,.78);
+}
+.displayTableRow > span,.displayTableRow > strong{
+  padding:16px 20px;
+  border-right:1px solid rgba(200,130,58,.12);
+  color:#D9C9B8;
+  font-size:24px;
+  font-weight:800;
+}
+.displayTableRow > span:nth-child(2){
+  color:#C8823A;
+}
+.displayTableRow strong{
+  color:#FFF8F0;
+  text-transform:none;
+  font-size:30px;
+}
+.displayTableRow.making{
+  background:linear-gradient(90deg,rgba(138,155,78,.20),rgba(44,20,0,.80));
+  box-shadow:inset 8px 0 0 #8A9B4E;
+}
+.displayTableRow.making > span:first-child{
+  color:#B6C26F;
+}
+.displayTableRow.making strong{
+  color:#FFF8F0;
+}
+.displayEmpty{
+  color:#A78C78;
+  font-size:30px;
+  padding:70px 24px;
+}
+.displayReadyStrip{
+  min-height:78px;
+  margin:18px 0 0;
+  padding:0 26px;
+  border:1px solid rgba(107,191,107,.30);
+  border-radius:18px;
+  background:rgba(26,58,26,.32);
+  box-shadow:0 18px 70px rgba(0,0,0,.20);
+}
+.displayReadyStrip span{
+  color:#6BBF6B;
+  font-size:20px;
+}
+.displayReadyStrip strong{
+  color:#FFF8F0;
+  font-size:34px;
+}
+.readyDisplayOverlay{
+  background:rgba(18,6,0,.82);
+}
+.readyDisplayCard{
+  width:min(980px,86vw);
+  min-height:430px;
+  border-radius:26px;
+  background:linear-gradient(180deg,#FFF8F0,#F2D8B2);
+  color:#1C0A00;
+  border:8px solid #C8823A;
+}
+.readyDisplayCard span{
+  color:#2A5A2A;
+}
+.readyDisplayCard h2{
+  font-family:"Playfair Display",Georgia,serif;
+  color:#1C0A00;
+}
+.readyDisplayCard p{
+  color:#5C2D0A;
+}
+@media(max-width:760px){
+  .displayPage{padding:14px}
+  .displayHeader{padding:16px 18px}
+  .displayHeader h1{font-size:34px}
+  .displayHeader p{font-size:14px}
+  .displayBoardTitle{min-height:60px;padding:0 16px}
+  .displayBoardTitle span{font-size:26px}
+  .displayTableHead{display:none}
+  .displayTableRow{grid-template-columns:1fr;min-height:0}
+  .displayTableRow > span,.displayTableRow > strong{
+    border-right:none;
+    border-bottom:1px solid rgba(200,130,58,.12);
+    font-size:19px;
+    white-space:normal;
+  }
+  .displayTableRow strong{font-size:26px}
+  .displayReadyStrip{align-items:flex-start;flex-direction:column;padding:16px}
+  .displayReadyStrip strong{font-size:24px}
+  .readyDisplayCard{min-height:320px}
+  .readyDisplayCard h2{font-size:62px}
+  .readyDisplayCard p{font-size:24px}
+}
