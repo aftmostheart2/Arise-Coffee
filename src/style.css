@@ -2111,6 +2111,21 @@ input:focus,textarea:focus{
   font-size:18px;
   font-weight:700;
 }
+.displayFullscreenBtn{
+  flex:0 0 auto;
+  padding:12px 18px;
+  border-radius:999px;
+  border:1px solid rgba(200,130,58,.36);
+  background:rgba(44,20,0,.78);
+  color:#E2AF67;
+  font-size:16px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.displayFullscreenBtn:hover{
+  border-color:rgba(226,175,103,.70);
+  background:rgba(72,34,5,.88);
+}
 .displayBoard{
   margin:0;
   overflow:hidden;
@@ -2240,6 +2255,7 @@ input:focus,textarea:focus{
   .displayHeader{padding:16px 18px}
   .displayHeader h1{font-size:34px}
   .displayHeader p{font-size:14px}
+  .displayFullscreenBtn{width:100%;padding:11px 14px}
   .displayBoardTitle{min-height:60px;padding:0 16px}
   .displayBoardTitle span{font-size:26px}
   .displayTableHead{display:none}

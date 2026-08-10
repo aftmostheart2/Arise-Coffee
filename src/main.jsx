@@ -1986,6 +1986,7 @@ function DisplayPage() {
   const [ready, setReady] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
   const [readyPopup, setReadyPopup] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const seenReadyRef = useRef(new Set());
   const initializedRef = useRef(false);
   const popupTimerRef = useRef(null);
@@ -2020,11 +2021,28 @@ function DisplayPage() {
   useEffect(() => {
     refreshDisplay();
     const id = setInterval(refreshDisplay, 3000);
+    function updateFullscreenState() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+    document.addEventListener("fullscreenchange", updateFullscreenState);
     return () => {
       clearInterval(id);
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+      document.removeEventListener("fullscreenchange", updateFullscreenState);
     };
   }, []);
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {
+      alert("Fullscreen is not available in this browser. Try Add to Home Screen or use the TV/browser fullscreen control.");
+    }
+  }
 
   const making = orders.filter(order => order.status === "making");
   const waiting = orders.filter(order => order.status !== "making");
@@ -2033,8 +2051,13 @@ function DisplayPage() {
   return (
     <main className="displayPage">
       <header className="displayHeader">
-        <h1>ARISE! COFFEE</h1>
-        <p>{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} • Live pickup board</p>
+        <div>
+          <h1>ARISE! COFFEE</h1>
+          <p>{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} • Live pickup board</p>
+        </div>
+        <button className="displayFullscreenBtn" onClick={toggleFullscreen}>
+          {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        </button>
       </header>
 
       <section className="displayBoard">
