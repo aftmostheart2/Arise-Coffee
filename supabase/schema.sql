@@ -940,8 +940,8 @@ set search_path = public
 as $$
   with week_bounds as (
     select
-      (date_trunc('week', now()) + (coalesce(input_week_offset, 0) || ' weeks')::interval) as week_start,
-      (date_trunc('week', now()) + ((coalesce(input_week_offset, 0) + 1) || ' weeks')::interval) as week_end
+      ((date_trunc('week', now() at time zone 'America/Los_Angeles') + (coalesce(input_week_offset, 0) || ' weeks')::interval) at time zone 'America/Los_Angeles') as week_start,
+      ((date_trunc('week', now() at time zone 'America/Los_Angeles') + ((coalesce(input_week_offset, 0) + 1) || ' weeks')::interval) at time zone 'America/Los_Angeles') as week_end
   ),
   base as (
     select
