@@ -42,7 +42,7 @@ export async function apiPost(payload) {
   if (payload.action === "clearAll") return clearAll(payload.pin);
   if (payload.action === "archive") return getArchive(payload.pin);
   if (payload.action === "clearArchive") return clearArchive(payload.pin);
-  if (payload.action === "analytics") return getAnalytics(payload.pin);
+  if (payload.action === "analytics") return getAnalytics(payload.pin, payload.weekOffset);
   if (payload.action === "saveMenu") return saveMenu(payload.pin, {
     drinks: payload.drinks,
     milks: payload.milks,
@@ -193,9 +193,12 @@ export async function clearArchive(pin) {
   }
 }
 
-export async function getAnalytics(pin) {
+export async function getAnalytics(pin, weekOffset = 0) {
   try {
-    return await callRpc("arise_analytics", { input_pin: String(pin || "") });
+    return await callRpc("arise_analytics", {
+      input_pin: String(pin || ""),
+      input_week_offset: Number.isFinite(Number(weekOffset)) ? Number(weekOffset) : 0,
+    });
   } catch {
     return { ok: false, error: "Connection error" };
   }

@@ -930,20 +930,29 @@ begin
 end;
 $$;
 
-create or replace function arise_analytics(input_pin text)
+drop function if exists arise_analytics(text);
+create or replace function arise_analytics(input_pin text, input_week_offset integer default 0)
 returns jsonb
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  with base as (
+  with week_bounds as (
+    select
+      (date_trunc('week', now()) + (coalesce(input_week_offset, 0) || ' weeks')::interval) as week_start,
+      (date_trunc('week', now()) + ((coalesce(input_week_offset, 0) + 1) || ' weeks')::interval) as week_end
+  ),
+  base as (
     select
       nullif(trim(coalesce(drink, '')), '') as drink,
       nullif(trim(coalesce(temperature, '')), '') as temperature,
       nullif(trim(coalesce(milk, '')), '') as milk,
       nullif(trim(coalesce(syrups, '')), '') as syrups
     from archived_orders
+    cross join week_bounds
+    where archived_at >= week_bounds.week_start
+      and archived_at < week_bounds.week_end
   ),
   syrup_items as (
     select nullif(trim(syrup_value), '') as syrup
@@ -955,7 +964,10 @@ as $$
     else jsonb_build_object(
       'ok', true,
       'analytics', jsonb_build_object(
-        'totalOrders', (select count(*) from archived_orders),
+        'weekOffset', coalesce(input_week_offset, 0),
+        'weekStart', (select week_start from week_bounds),
+        'weekEnd', (select week_end from week_bounds),
+        'totalOrders', (select count(*) from base),
         'hotOrders', (select count(*) from base where lower(temperature) = 'hot'),
         'coldOrders', (select count(*) from base where lower(temperature) = 'cold'),
         'topDrinks', coalesce(
@@ -1021,7 +1033,7 @@ grant execute on function arise_clear_completed(text) to anon;
 grant execute on function arise_clear_all(text) to anon;
 grant execute on function arise_archive(text, integer) to anon;
 grant execute on function arise_clear_archive(text) to anon;
-grant execute on function arise_analytics(text) to anon;
+grant execute on function arise_analytics(text, integer) to anon;
 
 create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),

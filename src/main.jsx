@@ -391,6 +391,7 @@ function AdminPage() {
   const [analytics, setAnalytics] = useState(null);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
+  const [analyticsWeekOffset, setAnalyticsWeekOffset] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [adminView, setAdminView] = useState("dashboard");
   const [menuLoaded, setMenuLoaded] = useState(false);
@@ -628,12 +629,13 @@ function AdminPage() {
     }
   }
 
-  async function loadAnalytics() {
+  async function loadAnalytics(weekOffset = analyticsWeekOffset) {
     setAnalyticsBusy(true);
     try {
-      const data = await apiPost({ action: "analytics", pin });
+      const data = await apiPost({ action: "analytics", pin, weekOffset });
       if (data.ok) {
         setAnalytics(data.analytics || null);
+        setAnalyticsWeekOffset(weekOffset);
         setAnalyticsLoaded(true);
       } else {
         alert(data.error || "Could not load analytics");
@@ -649,6 +651,14 @@ function AdminPage() {
     setAnalyticsOpen(true);
     setAdminView("analytics");
     if (!analyticsLoaded) await loadAnalytics();
+  }
+
+  function formatWeekRange(start, end) {
+    if (!start || !end) return "Selected week";
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    endDate.setDate(endDate.getDate() - 1);
+    return `${startDate.toLocaleDateString([], { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString([], { month: "short", day: "numeric" })}`;
   }
 
   async function loadMenu() {
@@ -928,12 +938,21 @@ function AdminPage() {
               <p className="sub">Popular items based on archived orders.</p>
             </div>
             <div className="adminTopActions">
-              <button className="ghostBtn" disabled={analyticsBusy} onClick={loadAnalytics}>Refresh</button>
+              <button className="ghostBtn" disabled={analyticsBusy} onClick={() => loadAnalytics()}>Refresh</button>
               <button className="ghostBtn" onClick={() => { setAnalyticsOpen(false); setAdminView("dashboard"); }}>Back to dashboard</button>
             </div>
           </section>
 
           <section className="analyticsPanel">
+            <div className="analyticsWeekBar">
+              <button className="ghostBtn" disabled={analyticsBusy} onClick={() => loadAnalytics(analyticsWeekOffset - 1)}>Previous week</button>
+              <div>
+                <strong>{analytics?.weekOffset === 0 ? "This week" : analytics?.weekOffset === -1 ? "Last week" : `${Math.abs(analytics?.weekOffset || analyticsWeekOffset)} week${Math.abs(analytics?.weekOffset || analyticsWeekOffset) === 1 ? "" : "s"} ${Number(analytics?.weekOffset ?? analyticsWeekOffset) < 0 ? "ago" : "ahead"}`}</strong>
+                <span>{formatWeekRange(analytics?.weekStart, analytics?.weekEnd)}</span>
+              </div>
+              <button className="ghostBtn" disabled={analyticsBusy || analyticsWeekOffset >= 0} onClick={() => loadAnalytics(analyticsWeekOffset + 1)}>Next week</button>
+            </div>
+
             {analyticsBusy ? (
               <div className="empty smallEmpty">Loading analytics...</div>
             ) : !analytics || Number(analytics.totalOrders || 0) === 0 ? (
