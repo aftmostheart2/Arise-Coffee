@@ -1478,6 +1478,8 @@ function CustomerPage() {
     const found = normalizeOrderFromSingle(order);
     if (!found) {
       setMyOrder(null);
+      setMyOrderId("");
+      localStorage.removeItem("coffee-my-order-id");
       return;
     }
 
