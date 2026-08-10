@@ -8,7 +8,7 @@ self.addEventListener("push", event => {
 
   const title = payload.title || "Arise! Coffee";
   const options = {
-    body: payload.body || "Your order is ready for pickup.",
+    body: payload.body || "Your order is ready. Please go to the kitchen.",
     icon: "/icons/arise-icon-192.png",
     badge: "/icons/arise-icon-192.png",
     data: {

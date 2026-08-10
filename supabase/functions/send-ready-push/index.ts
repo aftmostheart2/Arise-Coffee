@@ -59,7 +59,7 @@ Deno.serve(async req => {
       const name = row.customer_name?.trim();
       const orderName = row.order_name?.trim();
       const body = [
-        name ? `${name}, your order is ready.` : "Your order is ready.",
+        name ? `${name}, your order is ready. Please go to the kitchen.` : "Your order is ready. Please go to the kitchen.",
         orderName ? `Order: ${orderName}` : "",
       ].filter(Boolean).join(" ");
 

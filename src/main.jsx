@@ -1943,7 +1943,7 @@ function CustomerPage() {
                 )}
 
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
-                {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">🔔 Your drink is ready for pickup.</div>}
+                {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">Your drink is ready. Please go to the kitchen.</div>}
                 {!["ready","complete"].includes(myOrder.status) && (
                   <div className="notifyBox">
                     <button className="ghostBtn" disabled={pushState.busy || pushState.enabled} onClick={enableReadyNotification}>
@@ -2040,7 +2040,7 @@ function DisplayPage() {
         </div>
         <div className="displayTable">
           <div className="displayTableHead">
-            <span>Proceed To</span>
+            <span>Status</span>
             <span>Wait Time</span>
             <span>Member Name</span>
             <span>Order</span>
@@ -2049,7 +2049,7 @@ function DisplayPage() {
             <div className="displayEmpty">No active coffee orders</div>
           ) : boardRows.map(order => (
             <div className={order.status === "making" ? "displayTableRow making" : "displayTableRow"} key={order.id}>
-              <span>{order.status === "making" ? "Coffee Bar" : "Queue"}</span>
+              <span>{order.status === "making" ? "Being made" : "Waiting"}</span>
               <span>{order.status === "making" ? "Now" : waitText(order.position || 1).replace("Estimated wait: ", "")}</span>
               <strong>{firstName(order.name)}</strong>
               <span>{order.temp} {order.drink}</span>
@@ -2060,7 +2060,7 @@ function DisplayPage() {
 
       {ready.length > 0 && (
         <section className="displayReadyStrip">
-          <span>Ready for pickup</span>
+          <span>Ready for pickup · Go to kitchen</span>
           <strong>{ready.slice(0, 4).map(order => firstName(order.name)).join(" · ")}</strong>
         </section>
       )}
@@ -2068,7 +2068,7 @@ function DisplayPage() {
       {readyPopup && (
         <div className="readyDisplayOverlay">
           <div className="readyDisplayCard">
-            <span>Ready for pickup</span>
+            <span>Ready for pickup · Go to kitchen</span>
             <h2>{firstName(readyPopup.name)}</h2>
             <p>{readyPopup.temp} {readyPopup.drink}</p>
           </div>
