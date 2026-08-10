@@ -135,6 +135,18 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .adminMeta span{font-size:11px;color:#8A9B8E;background:#2C1400;border:1px solid rgba(200,130,58,.14);border-radius:20px;padding:5px 8px}
 .adminMeta .online{color:#6BBF6B;border-color:rgba(107,191,107,.28)}
 .adminMeta .offline{color:#E05252;border-color:rgba(224,82,82,.28)}
+.adminMetaLink{
+  font-size:11px;
+  color:#5A3A20;
+  background:transparent;
+  border:1px solid rgba(200,130,58,.12);
+  border-radius:20px;
+  padding:5px 8px;
+}
+.adminMetaLink:hover{
+  color:#C8823A;
+  border-color:rgba(200,130,58,.30);
+}
 .adminCard,.panel{background:#2C1400;border-radius:8px;padding:16px;margin-bottom:16px}
 .adminCard{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .statusOpen,.statusClosed{font-family:"Playfair Display",Georgia,serif;font-size:17px}
@@ -1058,7 +1070,7 @@ input:focus,textarea:focus{
 }
 .adminTools{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(3,1fr);
   gap:12px;
   margin-bottom:16px;
 }
@@ -1090,9 +1102,6 @@ input:focus,textarea:focus{
 }
 .toolTile.active strong{
   color:var(--gold-2);
-}
-.hiddenToolTile{
-  opacity:.74;
 }
 .closedMessagePanel{
   margin-bottom:16px;

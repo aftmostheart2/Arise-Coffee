@@ -999,6 +999,7 @@ function AdminPage() {
               <span>Active orders: {visibleOrders.length}</span>
               <span className={connectionOk ? "online" : "offline"}>{connectionOk ? "Online" : "Connection issue"}</span>
               <span>Updated {formatUpdatedAt(lastUpdated)}</span>
+              <button className="adminMetaLink" onClick={() => window.location.assign("/display")}>TV</button>
             </div>
           </div>
           <div className="adminTopActions">
@@ -1036,10 +1037,6 @@ function AdminPage() {
           <button className={analyticsOpen ? "toolTile active" : "toolTile"} onClick={toggleAnalytics}>
             <strong>Analytics</strong>
             <span>Popular items</span>
-          </button>
-          <button className="toolTile hiddenToolTile" onClick={() => window.open("/display", "_blank", "noopener,noreferrer")}>
-            <strong>TV Display</strong>
-            <span>Pickup board</span>
           </button>
         </section>
 
