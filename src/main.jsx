@@ -1879,7 +1879,7 @@ function CustomerPage() {
                 {errors.syrups && <div className="errorText">{errors.syrups}</div>}
               </div>}
 
-              {!drink.syrups && !drink.milk && <div className="servedOnly">☕ Pure espresso — no milk, water or syrup added</div>}
+              {!drink.syrups && !drink.milk && <div className="servedOnly">Served as listed: <strong>{drink.label}</strong></div>}
 
               <div className="field">
                 {lbl("Notes", "(optional)")}
