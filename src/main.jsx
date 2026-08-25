@@ -1629,6 +1629,16 @@ function ReadyAlertModal({ busy, message, deviceHint, onEnable, onClose }) {
 }
 
 function IosInstallGate({ onRefresh }) {
+  const [notice, setNotice] = useState("");
+
+  function checkInstall() {
+    if (isStandaloneApp()) {
+      onRefresh();
+      return;
+    }
+    setNotice("Still opening in Safari. After Add to Home Screen, open Arise! Coffee from the new Home Screen icon.");
+  }
+
   return (
     <main className="iosInstallPage">
       <section className="iosInstallCard">
@@ -1640,7 +1650,8 @@ function IosInstallGate({ onRefresh }) {
           <li>Choose Add to Home Screen.</li>
           <li>Open Arise! Coffee from the new Home Screen icon.</li>
         </ol>
-        <button className="joinBtn" onClick={onRefresh}>I opened it from Home Screen</button>
+        <button className="joinBtn" onClick={checkInstall}>I opened it from Home Screen</button>
+        {notice && <p className="iosInstallNotice">{notice}</p>}
       </section>
     </main>
   );
@@ -2005,10 +2016,7 @@ function CustomerPage() {
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
 
   if (requiresIosInstall && !myOrderId && !myOrder) {
-    return <>
-      <Header isOpen={isOpen} />
-      <IosInstallGate onRefresh={() => window.location.reload()} />
-    </>;
+    return <IosInstallGate onRefresh={() => window.location.reload()} />;
   }
 
   if (!isOpen && !myOrder) {

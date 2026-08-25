@@ -1649,11 +1649,13 @@ input:focus,textarea:focus{
 
 .iosInstallPage{
   width:100%;
-  min-height:calc(100vh - 96px);
+  min-height:100vh;
+  min-height:100dvh;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:24px;
+  background:#1C0A00;
 }
 .iosInstallCard{
   width:min(520px,100%);
@@ -1691,6 +1693,15 @@ input:focus,textarea:focus{
   gap:10px;
   margin:18px 0 24px;
   padding-left:22px;
+}
+.iosInstallNotice{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:6px;
+  border:1px solid rgba(200,130,58,.28);
+  background:rgba(200,130,58,.10);
+  color:#C8823A!important;
+  font-weight:700;
 }
 
 
@@ -1962,11 +1973,13 @@ input:focus,textarea:focus{
 
 .iosInstallPage{
   width:100%;
-  min-height:calc(100vh - 96px);
+  min-height:100vh;
+  min-height:100dvh;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:24px;
+  background:#1C0A00;
 }
 .iosInstallCard{
   width:min(520px,100%);
