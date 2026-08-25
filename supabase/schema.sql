@@ -151,7 +151,9 @@ on conflict (id) do nothing;
 insert into settings (key, value) values
 ('pin','"8246"'),
 ('isOpen','"true"'),
-('message','""')
+('message','""'),
+('queueTimerMinutes','"30"'),
+('queueClosesAt','""')
 on conflict (key) do nothing;
 
 alter table orders enable row level security;
@@ -196,6 +198,20 @@ security definer
 set search_path = public
 as $$
   select coalesce(input_pin, '') = arise_setting('pin', '');
+$$;
+
+create or replace function arise_queue_is_open()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select arise_setting('isOpen', 'true') = 'true'
+    and (
+      nullif(arise_setting('queueClosesAt', ''), '') is null
+      or nullif(arise_setting('queueClosesAt', ''), '')::timestamptz > now()
+    );
 $$;
 
 create or replace function arise_inventory_json()
@@ -337,8 +353,10 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'ok', true,
-    'isOpen', arise_setting('isOpen', 'true') = 'true',
-    'message', arise_setting('message', '')
+    'isOpen', arise_queue_is_open(),
+    'message', arise_setting('message', ''),
+    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 $$;
 
@@ -385,8 +403,10 @@ as $$
   )
   select jsonb_build_object(
     'ok', true,
-    'isOpen', arise_setting('isOpen', 'true') = 'true',
+    'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
+    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(jsonb_agg(arise_order_json(active.order_row, active.position::integer) order by active.created_at), '[]'::jsonb),
     'inventory', arise_inventory_json()
   )
@@ -429,8 +449,10 @@ as $$
   )
   select jsonb_build_object(
     'ok', true,
-    'isOpen', arise_setting('isOpen', 'true') = 'true',
+    'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
+    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(
       (
         select jsonb_agg(
@@ -477,6 +499,7 @@ declare
   found_order orders;
   found_position integer;
   found_id text;
+  canceled_order archived_orders;
 begin
   select id::text, position::integer
   into found_id, found_position
@@ -509,10 +532,47 @@ begin
     limit 1;
   end if;
 
+  if found_id is null then
+    select *
+    into canceled_order
+    from archived_orders
+    where original_order_id_text = order_id
+      and status = 'canceled'
+    order by archived_at desc
+    limit 1;
+
+    if canceled_order is not null then
+      return jsonb_build_object(
+        'ok', true,
+        'isOpen', arise_queue_is_open(),
+        'message', arise_setting('message', ''),
+        'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+        'queueClosesAt', arise_setting('queueClosesAt', ''),
+        'order', jsonb_build_object(
+          'id', coalesce(canceled_order.original_order_id_text, canceled_order.original_order_id::text),
+          'time', canceled_order.original_created_at,
+          'name', coalesce(canceled_order.customer_name, ''),
+          'drink', coalesce(canceled_order.drink, ''),
+          'temp', coalesce(canceled_order.temperature, ''),
+          'milk', coalesce(canceled_order.milk, ''),
+          'syrups', coalesce(canceled_order.syrups, ''),
+          'notes', coalesce(canceled_order.notes, ''),
+          'status', 'canceled',
+          'position', null,
+          'ordersAhead', null
+        ),
+        'position', null,
+        'ordersAhead', null
+      );
+    end if;
+  end if;
+
   return jsonb_build_object(
     'ok', true,
-    'isOpen', arise_setting('isOpen', 'true') = 'true',
+    'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
+    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueClosesAt', arise_setting('queueClosesAt', ''),
     'order', arise_order_json(found_order, found_position),
     'position', found_position,
     'ordersAhead', case when found_position is null then null else greatest(0, found_position - 1) end
@@ -530,7 +590,7 @@ declare
   new_id text;
   order_state jsonb;
 begin
-  if arise_setting('isOpen', 'true') <> 'true' then
+  if not arise_queue_is_open() then
     return jsonb_build_object('ok', false, 'error', 'Queue closed');
   end if;
 
@@ -559,26 +619,48 @@ begin
 end;
 $$;
 
-create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null)
+drop function if exists arise_update_admin(text, boolean, text);
+create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null)
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  next_timer_minutes integer;
 begin
   if not arise_pin_matches(input_pin) then
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
+  next_timer_minutes := greatest(1, least(coalesce(input_timer_minutes, nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30), 240));
+
+  if input_timer_minutes is not null then
+    insert into settings (key, value)
+    values ('queueTimerMinutes', to_jsonb(next_timer_minutes::text)::text)
+    on conflict (key) do update set value = excluded.value;
+  end if;
+
   if input_is_open is not null then
     insert into settings (key, value)
-    values ('isOpen', to_jsonb(case when input_is_open then 'true' else 'false' end))
+    values ('isOpen', to_jsonb(case when input_is_open then 'true' else 'false' end)::text)
+    on conflict (key) do update set value = excluded.value;
+
+    insert into settings (key, value)
+    values (
+      'queueClosesAt',
+      to_jsonb(case when input_is_open then (now() + make_interval(mins => next_timer_minutes))::text else '' end)::text
+    )
+    on conflict (key) do update set value = excluded.value;
+  elsif input_timer_minutes is not null and arise_queue_is_open() then
+    insert into settings (key, value)
+    values ('queueClosesAt', to_jsonb((now() + make_interval(mins => next_timer_minutes))::text)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
   if input_message is not null then
     insert into settings (key, value)
-    values ('message', to_jsonb(input_message))
+    values ('message', to_jsonb(input_message)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
@@ -614,6 +696,133 @@ begin
   return jsonb_build_object(
     'ok', true,
     'order', coalesce(order_state->'order', arise_order_json(updated_order, null))
+  );
+end;
+$$;
+
+create or replace function arise_cancel_order(input_pin text, order_id text, input_reason text default '')
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  canceled_order orders;
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+
+  select *
+  into canceled_order
+  from orders
+  where id::text = order_id
+    and status <> 'complete'
+  limit 1;
+
+  if canceled_order is null then
+    return jsonb_build_object('ok', false, 'error', 'Order not found');
+  end if;
+
+  insert into archived_orders (
+    original_order_id,
+    original_order_id_text,
+    original_created_at,
+    customer_name,
+    drink,
+    temperature,
+    milk,
+    syrups,
+    notes,
+    status,
+    order_data
+  )
+  values (
+    canceled_order.id,
+    canceled_order.id::text,
+    canceled_order.created_at,
+    coalesce(canceled_order.customer_name, canceled_order.name, ''),
+    canceled_order.drink,
+    coalesce(canceled_order.temperature, canceled_order.temp, ''),
+    canceled_order.milk,
+    array_to_string(coalesce(canceled_order.syrups, '{}'::text[]), ', '),
+    nullif(trim(input_reason), ''),
+    'canceled',
+    to_jsonb(canceled_order) || jsonb_build_object('cancelReason', coalesce(input_reason, ''))
+  );
+
+  delete from orders
+  where id = canceled_order.id;
+
+  return jsonb_build_object(
+    'ok', true,
+    'canceledIds', jsonb_build_array(canceled_order.id::text),
+    'orders', arise_orders()->'orders',
+    'isOpen', arise_queue_is_open(),
+    'message', arise_setting('message', ''),
+    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueClosesAt', arise_setting('queueClosesAt', '')
+  );
+end;
+$$;
+
+create or replace function arise_cancel_active_orders(input_pin text, input_reason text default '')
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  canceled_ids jsonb;
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+
+  select coalesce(jsonb_agg(id::text order by created_at), '[]'::jsonb)
+  into canceled_ids
+  from orders
+  where status <> 'complete';
+
+  insert into archived_orders (
+    original_order_id,
+    original_order_id_text,
+    original_created_at,
+    customer_name,
+    drink,
+    temperature,
+    milk,
+    syrups,
+    notes,
+    status,
+    order_data
+  )
+  select
+    id,
+    id::text,
+    created_at,
+    coalesce(customer_name, name, ''),
+    drink,
+    coalesce(temperature, temp, ''),
+    milk,
+    array_to_string(coalesce(syrups, '{}'::text[]), ', '),
+    nullif(trim(input_reason), ''),
+    'canceled',
+    to_jsonb(orders) || jsonb_build_object('cancelReason', coalesce(input_reason, ''))
+  from orders
+  where status <> 'complete';
+
+  delete from orders
+  where status <> 'complete';
+
+  return jsonb_build_object(
+    'ok', true,
+    'canceledIds', canceled_ids,
+    'orders', arise_orders()->'orders',
+    'isOpen', arise_queue_is_open(),
+    'message', arise_setting('message', ''),
+    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
 $$;
@@ -833,7 +1042,7 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
-  if arise_setting('isOpen', 'true') = 'true' then
+  if arise_queue_is_open() then
     return jsonb_build_object('ok', false, 'error', 'Close the queue before clearing all orders');
   end if;
 
@@ -1025,8 +1234,10 @@ grant execute on function arise_orders() to anon;
 grant execute on function arise_display() to anon;
 grant execute on function arise_order(text) to anon;
 grant execute on function arise_place_order(jsonb) to anon;
-grant execute on function arise_update_admin(text, boolean, text) to anon;
+grant execute on function arise_update_admin(text, boolean, text, integer) to anon;
 grant execute on function arise_update_status(text, text, text) to anon;
+grant execute on function arise_cancel_order(text, text, text) to anon;
+grant execute on function arise_cancel_active_orders(text, text) to anon;
 grant execute on function arise_update_inventory(text, text, boolean) to anon;
 grant execute on function arise_save_menu(text, jsonb, jsonb, jsonb) to anon;
 grant execute on function arise_clear_completed(text) to anon;

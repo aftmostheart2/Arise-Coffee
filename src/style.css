@@ -88,6 +88,36 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .muted{color:#5A3A20;font-size:12px}
 .small{font-size:11px}
 .notice{margin-top:10px;color:#8A9B8E;font-size:13px;text-align:center}
+.queueTimerBadge{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:900;
+  min-width:150px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(200,130,58,.34);
+  background:rgba(36,16,0,.92);
+  color:#FFF8F0;
+  box-shadow:0 18px 60px rgba(0,0,0,.35);
+  text-align:center;
+}
+.queueTimerBadge span,.queueTimerBadge small{
+  display:block;
+  color:#8A9B8E;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+.queueTimerBadge strong{
+  display:block;
+  color:#C8823A;
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:28px;
+  line-height:1.1;
+  margin:2px 0;
+}
 .customerSectionHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px}
 .customerSectionHead .sub{margin-bottom:0}
 .lastOrderBtn{
@@ -171,9 +201,13 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .orderTop em{display:block;color:#8A9B8E;font-size:12px;margin-top:6px}
 .statusBadge{margin-left:auto;font-size:11px;border-radius:20px;padding:4px 9px;background:#2C1400;color:#8A9B8E;white-space:nowrap}
 .statusBadge.making{color:#B6C26F}.statusBadge.ready{color:#6BBF6B}
-.adminActions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.adminActions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
 .adminActions button{padding:9px;border-radius:4px;border:1px solid rgba(200,130,58,.2);background:#2C1400;color:#A08060}
 .adminActions .activeStatusAction{background:#C8823A;color:#1C0A00;border-color:#C8823A;font-weight:800}
+.adminActions .cancelOrderBtn{
+  color:#E05252;
+  border-color:rgba(224,82,82,.34);
+}
 .completedOrder{padding:10px;border-bottom:1px solid rgba(200,130,58,.1);color:#8A9B8E;font-size:13px}
 .archivePanel,.analyticsPanel{background:#241000;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:16px;margin-bottom:24px}
 .archiveHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
@@ -279,7 +313,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   background:rgba(200,130,58,.22);
   border-color:rgba(200,130,58,.45);
 }
-.waitEstimate,.makingNotice,.readyNotice{
+.waitEstimate,.makingNotice,.readyNotice,.cancelNotice{
   margin-top:12px;
   padding:10px 12px;
   border-radius:6px;
@@ -302,6 +336,11 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   border:1px solid rgba(107,191,107,.48);
   padding:12px 14px;
   font-size:14px;
+}
+.cancelNotice{
+  color:#E05252;
+  background:rgba(224,82,82,.12);
+  border:1px solid rgba(224,82,82,.36);
 }
 .adminActions button:nth-child(2){
   color:#C8823A;
@@ -1056,6 +1095,39 @@ input:focus,textarea:focus{
   justify-content:space-between;
   gap:14px;
 }
+.queueTimerControl{
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.queueTimerControl label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:108px;
+}
+.queueTimerControl label span{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+.queueTimerControl input{
+  max-width:108px;
+  padding:9px 10px;
+}
+.cancelPanel{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+  gap:12px;
+}
+.cancelPanel textarea{
+  min-height:62px;
+}
 .queueCommand .successBtn,.queueCommand .dangerBtn{
   min-width:140px;
   min-height:44px;
@@ -1121,6 +1193,12 @@ input:focus,textarea:focus{
   .queueCommand{
     align-items:stretch;
     flex-direction:column;
+  }
+  .queueTimerControl{
+    justify-content:flex-start;
+  }
+  .cancelPanel{
+    grid-template-columns:1fr;
   }
   .queueCommand .successBtn,.queueCommand .dangerBtn{
     width:100%;
@@ -1206,7 +1284,7 @@ input:focus,textarea:focus{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
   .adminActions{
-    grid-template-columns:repeat(3,1fr);
+    grid-template-columns:repeat(4,1fr);
   }
   .adminActions button{
     min-height:46px;

@@ -37,6 +37,8 @@ export async function apiPost(payload) {
     return placeOrder(order);
   }
   if (payload.action === "updateStatus") return updateStatus(payload.pin, payload.id, payload.status);
+  if (payload.action === "cancelOrder") return cancelOrder(payload.pin, payload.id, payload.reason);
+  if (payload.action === "cancelActiveOrders") return cancelActiveOrders(payload.pin, payload.reason);
   if (payload.action === "setInventory") return updateInventory(payload.pin, payload.item, payload.available);
   if (payload.action === "clearCompleted") return clearCompleted(payload.pin);
   if (payload.action === "clearAll") return clearAll(payload.pin);
@@ -114,6 +116,7 @@ export async function updateAdmin(pin, payload) {
       input_pin: String(pin || ""),
       input_is_open: typeof payload.isOpen === "boolean" ? payload.isOpen : null,
       input_message: typeof payload.message === "string" ? payload.message : null,
+      input_timer_minutes: Number.isFinite(Number(payload.queueTimerMinutes)) ? Number(payload.queueTimerMinutes) : null,
     });
   } catch {
     return { ok: false, error: "Connection error" };
@@ -143,6 +146,29 @@ export async function updateStatus(pin, id, status) {
       input_pin: String(pin || ""),
       order_id: String(id || ""),
       input_status: status,
+    });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function cancelOrder(pin, id, reason = "") {
+  try {
+    return await callRpc("arise_cancel_order", {
+      input_pin: String(pin || ""),
+      order_id: String(id || ""),
+      input_reason: String(reason || ""),
+    });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function cancelActiveOrders(pin, reason = "") {
+  try {
+    return await callRpc("arise_cancel_active_orders", {
+      input_pin: String(pin || ""),
+      input_reason: String(reason || ""),
     });
   } catch {
     return { ok: false, error: "Connection error" };

@@ -77,7 +77,16 @@ export async function subscribeToReadyNotification({ orderId, customerName, orde
 
 export async function sendReadyNotification(orderId, pin) {
   const { data, error } = await supabase.functions.invoke("send-ready-push", {
-    body: { orderId: String(orderId || ""), pin: String(pin || "") },
+    body: { orderId: String(orderId || ""), pin: String(pin || ""), type: "ready" },
+  });
+
+  if (error) return { ok: false, error: error.message || "Could not send notification." };
+  return data || { ok: true };
+}
+
+export async function sendCancelNotification(orderId, pin, reason = "") {
+  const { data, error } = await supabase.functions.invoke("send-ready-push", {
+    body: { orderId: String(orderId || ""), pin: String(pin || ""), type: "canceled", reason: String(reason || "") },
   });
 
   if (error) return { ok: false, error: error.message || "Could not send notification." };

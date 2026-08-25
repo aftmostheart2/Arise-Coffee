@@ -32,7 +32,7 @@ Deno.serve(async req => {
       return json({ ok: false, error: "Push notification secrets are not configured." }, 500);
     }
 
-    const { orderId, pin } = await req.json().catch(() => ({ orderId: "", pin: "" }));
+    const { orderId, pin, type, reason } = await req.json().catch(() => ({ orderId: "", pin: "", type: "ready", reason: "" }));
     if (!orderId) return json({ ok: false, error: "Missing orderId." }, 400);
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -58,13 +58,20 @@ Deno.serve(async req => {
     for (const row of subscriptions) {
       const name = row.customer_name?.trim();
       const orderName = row.order_name?.trim();
-      const body = [
-        name ? `${name}, your order is ready. Please go to the kitchen.` : "Your order is ready. Please go to the kitchen.",
-        orderName ? `Order: ${orderName}` : "",
-      ].filter(Boolean).join(" ");
+      const isCanceled = type === "canceled";
+      const reasonText = String(reason || "").trim();
+      const body = isCanceled
+        ? [
+          name ? `${name}, your order was canceled.` : "Your order was canceled.",
+          reasonText ? `Reason: ${reasonText}` : "",
+        ].filter(Boolean).join(" ")
+        : [
+          name ? `${name}, your order is ready. Please go to the kitchen.` : "Your order is ready. Please go to the kitchen.",
+          orderName ? `Order: ${orderName}` : "",
+        ].filter(Boolean).join(" ");
 
       const payload = JSON.stringify({
-        title: "Arise! Coffee",
+        title: isCanceled ? "Arise! Coffee order canceled" : "Arise! Coffee",
         body,
         orderId: row.order_id,
         url: `/?order=${encodeURIComponent(row.order_id)}`,

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { apiGet, apiPost } from "./api/backend";
-import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
+import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendCancelNotification, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
 const DONATION_ZELLE = "htacoc@gmail.com";
@@ -154,6 +154,7 @@ function isPageVisible() {
 }
 
 function statusLabel(status) {
+  if (status === "canceled") return "Canceled";
   if (status === "making") return "Being made";
   if (status === "ready") return "Ready for pickup";
   if (status === "complete") return "Ready for pickup";
@@ -191,6 +192,7 @@ function orderAgeText(time) {
 }
 
 function statusEmoji(status) {
+  if (status === "canceled") return "✕";
   if (status === "making") return "🟠";
   if (status === "ready") return "🟢";
   if (status === "complete") return "🟢";
@@ -237,6 +239,40 @@ function savedOrderSummary(order) {
 function formatUpdatedAt(value) {
   if (!value) return "Not updated yet";
   return value.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function normalizeTimerMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes)) return 30;
+  return Math.max(1, Math.min(Math.round(minutes), 240));
+}
+
+function formatQueueTimeLeft(queueClosesAt, nowMs = Date.now()) {
+  if (!queueClosesAt) return "";
+  const endMs = new Date(queueClosesAt).getTime();
+  if (!Number.isFinite(endMs)) return "";
+  const remainingSeconds = Math.max(0, Math.ceil((endMs - nowMs) / 1000));
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function hasQueueTimeLeft(queueClosesAt, nowMs = Date.now()) {
+  if (!queueClosesAt) return false;
+  const endMs = new Date(queueClosesAt).getTime();
+  return Number.isFinite(endMs) && endMs > nowMs;
+}
+
+function QueueTimerBadge({ isOpen, queueClosesAt, queueTimerMinutes, nowMs, label = "Queue closes in" }) {
+  const timeLeft = formatQueueTimeLeft(queueClosesAt, nowMs);
+  if (!isOpen || !timeLeft) return null;
+  return (
+    <div className="queueTimerBadge" aria-live="polite">
+      <span>{label}</span>
+      <strong>{timeLeft}</strong>
+      <small>{normalizeTimerMinutes(queueTimerMinutes)} min timer</small>
+    </div>
+  );
 }
 
 function TextSizeControl({ largeText, onChange }) {
@@ -400,6 +436,10 @@ function AdminPage() {
   const [menuSyrups, setMenuSyrups] = useState(() => normalizeIngredientList(null, "syrup", SYRUPS, true));
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
+  const [queueClosesAt, setQueueClosesAt] = useState("");
+  const [nowMs, setNowMs] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
@@ -421,6 +461,15 @@ function AdminPage() {
     }
   }
 
+  function syncQueueTimer(data) {
+    if (Number.isFinite(Number(data?.queueTimerMinutes))) {
+      setQueueTimerMinutes(normalizeTimerMinutes(data.queueTimerMinutes));
+    }
+    if (typeof data?.queueClosesAt === "string") {
+      setQueueClosesAt(data.queueClosesAt || "");
+    }
+  }
+
   async function refreshOrders() {
     if (ordersLoadingRef.current) return;
     ordersLoadingRef.current = true;
@@ -430,6 +479,7 @@ function AdminPage() {
         setOrders(data.orders || []);
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         syncAdminMessage(data.message);
+        syncQueueTimer(data);
         setLastUpdated(new Date());
         setConnectionOk(true);
       } else {
@@ -450,6 +500,7 @@ function AdminPage() {
       if (data.ok) {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         syncAdminMessage(data.message);
+        syncQueueTimer(data);
         setLastUpdated(new Date());
         setConnectionOk(true);
       } else {
@@ -490,6 +541,9 @@ function AdminPage() {
     const inventoryId = setInterval(() => {
       if (isPageVisible()) refreshInventory();
     }, 60000);
+    const timerId = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
 
     function refreshWhenVisible() {
       if (isPageVisible()) refreshAdminData();
@@ -500,6 +554,7 @@ function AdminPage() {
       clearInterval(ordersId);
       clearInterval(statusId);
       clearInterval(inventoryId);
+      clearInterval(timerId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [pin]);
@@ -514,6 +569,7 @@ function AdminPage() {
         messageEditingRef.current = false;
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
+        syncQueueTimer(data);
         if (Array.isArray(data.orders)) setOrders(data.orders);
         setLastUpdated(new Date());
         setConnectionOk(true);
@@ -547,6 +603,57 @@ function AdminPage() {
       }
       else alert(data.error || "Could not update order");
     } catch { alert("Connection error"); setConnectionOk(false); }
+    setBusy(false);
+  }
+
+  async function cancelOrder(orderId) {
+    const reason = cancelReason.trim();
+    if (!reason) {
+      alert("Write a cancellation message first.");
+      return;
+    }
+    if (!confirm("Cancel this order and notify the customer?")) return;
+    setBusy(true);
+    try {
+      await sendCancelNotification(orderId, pin, reason).catch(() => {});
+      const data = await apiPost({ action: "cancelOrder", pin, id: orderId, reason });
+      if (data.ok) {
+        setOrders(data.orders || []);
+        setLastUpdated(new Date());
+        setConnectionOk(true);
+      } else {
+        alert(data.error || "Could not cancel order");
+      }
+    } catch {
+      alert("Connection error");
+      setConnectionOk(false);
+    }
+    setBusy(false);
+  }
+
+  async function cancelActiveOrders() {
+    const reason = cancelReason.trim();
+    if (!reason) {
+      alert("Write a cancellation message first.");
+      return;
+    }
+    if (visibleOrders.length === 0) return;
+    if (!confirm("Cancel ALL active orders and notify customers?")) return;
+    setBusy(true);
+    try {
+      await Promise.all(visibleOrders.map(order => sendCancelNotification(order.id, pin, reason).catch(() => {})));
+      const data = await apiPost({ action: "cancelActiveOrders", pin, reason });
+      if (data.ok) {
+        setOrders(data.orders || []);
+        setLastUpdated(new Date());
+        setConnectionOk(true);
+      } else {
+        alert(data.error || "Could not cancel active orders");
+      }
+    } catch {
+      alert("Connection error");
+      setConnectionOk(false);
+    }
     setBusy(false);
   }
 
@@ -990,6 +1097,7 @@ function AdminPage() {
   return (
     <>
       <Header isOpen={isOpen} />
+      <QueueTimerBadge isOpen={isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
       <main className="adminPage">
         <section className="adminTop">
           <div>
@@ -1014,9 +1122,22 @@ function AdminPage() {
               <div className="label">Queue Status</div>
               <div className={isOpen ? "statusOpen" : "statusClosed"}>{isOpen ? "● Open" : "● Closed"}</div>
             </div>
-            <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message })}>
-              {isOpen ? "Close Queue" : "Open Queue"}
-            </button>
+            <div className="queueTimerControl">
+              <label>
+                <span>Timer minutes</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="240"
+                  value={queueTimerMinutes}
+                  onChange={event => setQueueTimerMinutes(normalizeTimerMinutes(event.target.value))}
+                />
+              </label>
+              <button disabled={busy} className="ghostBtn" onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes })}>Save timer</button>
+              <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message, queueTimerMinutes })}>
+                {isOpen ? "Close Queue" : "Open Queue"}
+              </button>
+            </div>
           </div>
 
           <div className="adminQuickActions">
@@ -1054,6 +1175,19 @@ function AdminPage() {
           />
           <button className="primaryBtn" disabled={busy} onClick={() => saveAdmin({ isOpen, message })}>Save message</button>
           {notice && <div className="notice">{notice}</div>}
+        </section>
+
+        <section className="panel cancelPanel">
+          <div>
+            <div className="label">Cancellation message</div>
+            <textarea
+              value={cancelReason}
+              onChange={event => setCancelReason(event.target.value)}
+              rows={2}
+              placeholder="Why was the order canceled?"
+            />
+          </div>
+          <button className="dangerOutlineBtn" disabled={busy || visibleOrders.length === 0} onClick={cancelActiveOrders}>Cancel all active</button>
         </section>
 
         <section className="inventoryPanel">
@@ -1127,6 +1261,7 @@ function AdminPage() {
                   <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
                   <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
                   <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
+                  <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
                 </div>
               </div>
             ))
@@ -1452,6 +1587,9 @@ function CustomerPage() {
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const [lastOrder, setLastOrder] = useState(loadLastOrder);
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
+  const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
+  const [queueClosesAt, setQueueClosesAt] = useState("");
+  const [nowMs, setNowMs] = useState(Date.now());
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
   const submittingRef = useRef(false);
   const pendingLastOrderRef = useRef(null);
@@ -1473,6 +1611,15 @@ function CustomerPage() {
   function updateTextSize(nextLargeText) {
     setLargeText(nextLargeText);
     localStorage.setItem(TEXT_SIZE_KEY, nextLargeText ? "large" : "normal");
+  }
+
+  function syncCustomerQueueTimer(data) {
+    if (Number.isFinite(Number(data?.queueTimerMinutes))) {
+      setQueueTimerMinutes(normalizeTimerMinutes(data.queueTimerMinutes));
+    }
+    if (typeof data?.queueClosesAt === "string") {
+      setQueueClosesAt(data.queueClosesAt || "");
+    }
   }
 
   function updateMyOrder(order, positionFromResponse) {
@@ -1508,6 +1655,7 @@ function CustomerPage() {
       if (data.ok === false) return;
       if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
       if (typeof data.message === "string") setMessage(data.message || "");
+      syncCustomerQueueTimer(data);
       if (data.inventory) setInventory(cacheInventory(data.inventory));
       updateMyOrder(data.order, data.position);
     } catch {
@@ -1522,6 +1670,7 @@ function CustomerPage() {
       if (data.ok) {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
+        syncCustomerQueueTimer(data);
       }
     } catch {}
     await refreshInventoryOnly();
@@ -1559,6 +1708,7 @@ function CustomerPage() {
       if (data.ok) {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
+        syncCustomerQueueTimer(data);
         return Boolean(data.isOpen);
       }
     } catch {
@@ -1582,6 +1732,7 @@ function CustomerPage() {
     const statusId = myOrderId ? null : setInterval(() => {
       if (isPageVisible()) refreshStatusOnly();
     }, 6000);
+    const timerId = setInterval(() => setNowMs(Date.now()), 1000);
 
     function refreshWhenVisible() {
       if (!isPageVisible()) return;
@@ -1595,6 +1746,7 @@ function CustomerPage() {
       if (orderId) clearInterval(orderId);
       if (inventoryId) clearInterval(inventoryId);
       if (statusId) clearInterval(statusId);
+      clearInterval(timerId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [myOrderId]);
@@ -1799,6 +1951,7 @@ function CustomerPage() {
   return (
     <>
       <Header isOpen={isOpen} />
+      <QueueTimerBadge isOpen={isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
       <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
           <div className="customerSectionHead">
@@ -1944,8 +2097,9 @@ function CustomerPage() {
                 )}
 
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
+                {myOrder.status === "canceled" && <div className="cancelNotice">Your order was canceled.{myOrder.notes ? ` ${myOrder.notes}` : ""}</div>}
                 {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">Your drink is ready. Please go to the kitchen.</div>}
-                {!["ready","complete"].includes(myOrder.status) && (
+                {!["ready","complete","canceled"].includes(myOrder.status) && (
                   <div className="notifyBox">
                     <button className="ghostBtn" disabled={pushState.busy || pushState.enabled} onClick={enableReadyNotification}>
                       {pushState.busy ? "Enabling..." : pushState.enabled ? "Notifications enabled" : "Notify me when my order is ready"}
@@ -1954,7 +2108,7 @@ function CustomerPage() {
                     {pushState.message && <p>{pushState.message}</p>}
                   </div>
                 )}
-                {myOrder.status === "complete" && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
+                {["complete","canceled"].includes(myOrder.status) && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
               </div>
             );
           })()}
