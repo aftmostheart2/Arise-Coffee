@@ -374,13 +374,27 @@ function ringReadyAlert() {
 
 function Header({ isOpen, statusText }) {
   const isAdminPage = window.location.pathname.toLowerCase().startsWith("/admin");
+  const secretTapRef = useRef({ count: 0, startedAt: 0 });
+
+  function handleBrandClick(event) {
+    if (isAdminPage) return;
+    event.preventDefault();
+    const now = Date.now();
+    const startedAt = secretTapRef.current.startedAt;
+    const count = startedAt && now - startedAt < 3500 ? secretTapRef.current.count + 1 : 1;
+    secretTapRef.current = { count, startedAt: count === 1 ? now : startedAt };
+    if (count >= 5) {
+      secretTapRef.current = { count: 0, startedAt: 0 };
+      window.location.assign("/admin");
+    }
+  }
+
   return (
     <header>
-      <a className="brand" href="/">
+      <a className="brand" href="/" onClick={handleBrandClick} title={isAdminPage ? undefined : "Arise! Coffee"}>
         <span>☕</span>
         <div><h1>Arise! Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
       </a>
-      {!isAdminPage && <a className="adminLink" href="/admin">Admin Access</a>}
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
     </header>
   );
