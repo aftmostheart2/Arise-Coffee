@@ -494,6 +494,7 @@ function AdminPage() {
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [notice, setNotice] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [orderCancelReasons, setOrderCancelReasons] = useState({});
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [nowMs, setNowMs] = useState(Date.now());
@@ -664,9 +665,9 @@ function AdminPage() {
   }
 
   async function cancelOrder(orderId) {
-    const reason = cancelReason.trim();
+    const reason = String(orderCancelReasons[orderId] || "").trim();
     if (!reason) {
-      alert("Write a cancellation message first.");
+      alert("Write a cancellation message for this order first.");
       return;
     }
     if (!confirm("Cancel this order and notify the customer?")) return;
@@ -676,6 +677,11 @@ function AdminPage() {
       const data = await apiPost({ action: "cancelOrder", pin, id: orderId, reason });
       if (data.ok) {
         setOrders(data.orders || []);
+        setOrderCancelReasons(current => {
+          const next = { ...current };
+          delete next[orderId];
+          return next;
+        });
         setLastUpdated(new Date());
         setConnectionOk(true);
       } else {
@@ -1341,6 +1347,12 @@ function AdminPage() {
                   <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
                   <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
                 </div>
+                <input
+                  className="orderCancelInput"
+                  value={orderCancelReasons[o.id] || ""}
+                  onChange={event => setOrderCancelReasons(current => ({ ...current, [o.id]: event.target.value }))}
+                  placeholder="Individual cancel message"
+                />
               </div>
             ))
           )}
