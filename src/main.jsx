@@ -263,14 +263,14 @@ function hasQueueTimeLeft(queueClosesAt, nowMs = Date.now()) {
   return Number.isFinite(endMs) && endMs > nowMs;
 }
 
-function QueueTimerBadge({ isOpen, queueClosesAt, queueTimerMinutes, nowMs, label = "Queue closes in" }) {
+function QueueTimerBadge({ isOpen, queueClosesAt, queueTimerMinutes, nowMs, label = "Ordering closes in" }) {
   const timeLeft = formatQueueTimeLeft(queueClosesAt, nowMs);
   if (!isOpen || !timeLeft) return null;
   return (
     <div className="queueTimerBadge" aria-live="polite">
       <span>{label}</span>
       <strong>{timeLeft}</strong>
-      <small>{normalizeTimerMinutes(queueTimerMinutes)} min timer</small>
+      <small>{normalizeTimerMinutes(queueTimerMinutes)} min window</small>
     </div>
   );
 }
@@ -1124,7 +1124,7 @@ function AdminPage() {
             </div>
             <div className="queueTimerControl">
               <label>
-                <span>Timer minutes</span>
+                <span>Open window</span>
                 <input
                   type="number"
                   min="1"
@@ -1133,7 +1133,7 @@ function AdminPage() {
                   onChange={event => setQueueTimerMinutes(normalizeTimerMinutes(event.target.value))}
                 />
               </label>
-              <button disabled={busy} className="ghostBtn" onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes })}>Save timer</button>
+              <button disabled={busy} className="ghostBtn" onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes })}>Save window</button>
               <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message, queueTimerMinutes })}>
                 {isOpen ? "Close Queue" : "Open Queue"}
               </button>
