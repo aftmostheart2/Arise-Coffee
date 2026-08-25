@@ -102,6 +102,14 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   box-shadow:0 18px 60px rgba(0,0,0,.35);
   text-align:center;
 }
+.queueTimerBadge.draggable{
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+}
+.queueTimerBadge.draggable:active{
+  cursor:grabbing;
+}
 .queueTimerBadge span,.queueTimerBadge small{
   display:block;
   color:#8A9B8E;

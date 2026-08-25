@@ -11,6 +11,7 @@ const INVENTORY_CACHE_MS = 5 * 60 * 1000;
 const TEXT_SIZE_KEY = "arise-text-size";
 const LAST_ORDER_KEY = "arise-last-order";
 const LAST_ORDER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const ADMIN_TIMER_POSITION_KEY = "arise-admin-timer-position";
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -263,11 +264,67 @@ function hasQueueTimeLeft(queueClosesAt, nowMs = Date.now()) {
   return Number.isFinite(endMs) && endMs > nowMs;
 }
 
-function QueueTimerBadge({ isOpen, queueClosesAt, queueTimerMinutes, nowMs, label = "Ordering closes in" }) {
+function loadAdminTimerPosition() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ADMIN_TIMER_POSITION_KEY) || "null");
+    if (!saved) return null;
+    const left = Number(saved.left);
+    const top = Number(saved.top);
+    if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+    return { left, top };
+  } catch {
+    return null;
+  }
+}
+
+function QueueTimerBadge({ isOpen, queueClosesAt, queueTimerMinutes, nowMs, label = "Ordering closes in", draggable = false }) {
+  const [position, setPosition] = useState(() => draggable ? loadAdminTimerPosition() : null);
+  const dragStateRef = useRef(null);
+  const positionRef = useRef(position);
   const timeLeft = formatQueueTimeLeft(queueClosesAt, nowMs);
   if (!isOpen || !timeLeft) return null;
+
+  function handlePointerDown(event) {
+    if (!draggable) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const rect = event.currentTarget.getBoundingClientRect();
+    dragStateRef.current = {
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+  }
+
+  function handlePointerMove(event) {
+    if (!draggable || !dragStateRef.current) return;
+    const drag = dragStateRef.current;
+    const left = Math.max(8, Math.min(window.innerWidth - drag.width - 8, event.clientX - drag.offsetX));
+    const top = Math.max(8, Math.min(window.innerHeight - drag.height - 8, event.clientY - drag.offsetY));
+    const nextPosition = { left, top };
+    positionRef.current = nextPosition;
+    setPosition(nextPosition);
+  }
+
+  function handlePointerUp(event) {
+    if (!draggable || !dragStateRef.current) return;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    dragStateRef.current = null;
+    if (positionRef.current) localStorage.setItem(ADMIN_TIMER_POSITION_KEY, JSON.stringify(positionRef.current));
+  }
+
+  const style = position ? { left: `${position.left}px`, top: `${position.top}px`, right: "auto", bottom: "auto" } : undefined;
+
   return (
-    <div className="queueTimerBadge" aria-live="polite">
+    <div
+      className={draggable ? "queueTimerBadge draggable" : "queueTimerBadge"}
+      style={style}
+      aria-live="polite"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
       <span>{label}</span>
       <strong>{timeLeft}</strong>
       <small>{normalizeTimerMinutes(queueTimerMinutes)} min window</small>
@@ -1118,7 +1175,7 @@ function AdminPage() {
   return (
     <>
       <Header isOpen={isOpen} />
-      <QueueTimerBadge isOpen={isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
+      <QueueTimerBadge isOpen={isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} draggable />
       <main className="adminPage">
         <section className="adminTop">
           <div>
