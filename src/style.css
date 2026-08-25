@@ -16,6 +16,21 @@ header h1,h2,.modal h2{font-family:"Playfair Display",Georgia,serif;font-weight:
 header h1{font-size:19px}
 header p{font-size:10px;color:#5A3A20;letter-spacing:1.5px;text-transform:uppercase}
 .adminLink{color:#FFF8F0;font-size:12px;font-weight:700;border:1px solid rgba(200,130,58,.35);background:#2C1400;border-radius:4px;padding:8px 10px;white-space:nowrap;margin-left:10px}
+.adminDot{
+  width:26px;
+  height:26px;
+  flex:0 0 auto;
+  border-radius:50%;
+  border:1px solid rgba(200,130,58,.12);
+  background:rgba(200,130,58,.05);
+  opacity:.42;
+}
+.adminDot:hover,.adminDot:focus-visible{
+  opacity:.9;
+  border-color:rgba(200,130,58,.34);
+  background:rgba(200,130,58,.12);
+  outline:none;
+}
 .pill{margin-left:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .pill.open{background:rgba(107,191,107,.12);color:#6BBF6B;border:1px solid rgba(107,191,107,.3)}
 .pill.closed{background:rgba(224,82,82,.12);color:#E05252;border:1px solid rgba(224,82,82,.3)}
