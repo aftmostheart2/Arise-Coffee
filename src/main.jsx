@@ -657,6 +657,25 @@ function AdminPage() {
     setBusy(false);
   }
 
+  async function deleteTestOrder(orderId) {
+    if (!confirm("Delete this test order permanently? It will not notify the customer or appear in Archive.")) return;
+    setBusy(true);
+    try {
+      const data = await apiPost({ action: "deleteTestOrder", pin, id: orderId });
+      if (data.ok) {
+        setOrders(data.orders || []);
+        setLastUpdated(new Date());
+        setConnectionOk(true);
+      } else {
+        alert(data.error || "Could not delete test order");
+      }
+    } catch {
+      alert("Connection error");
+      setConnectionOk(false);
+    }
+    setBusy(false);
+  }
+
   async function toggleInventory(item, available) {
     setBusy(true);
     try {
@@ -1262,6 +1281,7 @@ function AdminPage() {
                   <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
                   <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
                   <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
+                  <button className="deleteTestOrderBtn" onClick={() => deleteTestOrder(o.id)}>Delete test</button>
                 </div>
               </div>
             ))

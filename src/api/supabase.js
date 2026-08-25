@@ -39,6 +39,7 @@ export async function apiPost(payload) {
   if (payload.action === "updateStatus") return updateStatus(payload.pin, payload.id, payload.status);
   if (payload.action === "cancelOrder") return cancelOrder(payload.pin, payload.id, payload.reason);
   if (payload.action === "cancelActiveOrders") return cancelActiveOrders(payload.pin, payload.reason);
+  if (payload.action === "deleteTestOrder") return deleteTestOrder(payload.pin, payload.id);
   if (payload.action === "setInventory") return updateInventory(payload.pin, payload.item, payload.available);
   if (payload.action === "clearCompleted") return clearCompleted(payload.pin);
   if (payload.action === "clearAll") return clearAll(payload.pin);
@@ -169,6 +170,17 @@ export async function cancelActiveOrders(pin, reason = "") {
     return await callRpc("arise_cancel_active_orders", {
       input_pin: String(pin || ""),
       input_reason: String(reason || ""),
+    });
+  } catch {
+    return { ok: false, error: "Connection error" };
+  }
+}
+
+export async function deleteTestOrder(pin, id) {
+  try {
+    return await callRpc("arise_delete_test_order", {
+      input_pin: String(pin || ""),
+      order_id: String(id || ""),
     });
   } catch {
     return { ok: false, error: "Connection error" };
