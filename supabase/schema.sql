@@ -827,7 +827,7 @@ begin
 end;
 $$;
 
-create or replace function arise_delete_test_order(input_pin text, order_id text)
+create or replace function arise_delete_archived_order(input_pin text, archive_id text)
 returns jsonb
 language plpgsql
 security definer
@@ -840,26 +840,18 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
-  delete from push_subscriptions
-  where order_id = arise_delete_test_order.order_id;
-
-  delete from orders
-  where id::text = arise_delete_test_order.order_id
-    and status <> 'complete'
+  delete from archived_orders
+  where id::text = arise_delete_archived_order.archive_id
   returning id::text into deleted_id;
 
   if deleted_id is null then
-    return jsonb_build_object('ok', false, 'error', 'Order not found');
+    return jsonb_build_object('ok', false, 'error', 'Archived order not found');
   end if;
 
   return jsonb_build_object(
     'ok', true,
     'deletedId', deleted_id,
-    'orders', arise_orders()->'orders',
-    'isOpen', arise_queue_is_open(),
-    'message', arise_setting('message', ''),
-    'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
-    'queueClosesAt', arise_setting('queueClosesAt', '')
+    'archive', arise_archive(input_pin)->'archive'
   );
 end;
 $$;
@@ -1275,7 +1267,7 @@ grant execute on function arise_update_admin(text, boolean, text, integer) to an
 grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_cancel_order(text, text, text) to anon;
 grant execute on function arise_cancel_active_orders(text, text) to anon;
-grant execute on function arise_delete_test_order(text, text) to anon;
+grant execute on function arise_delete_archived_order(text, text) to anon;
 grant execute on function arise_update_inventory(text, text, boolean) to anon;
 grant execute on function arise_save_menu(text, jsonb, jsonb, jsonb) to anon;
 grant execute on function arise_clear_completed(text) to anon;

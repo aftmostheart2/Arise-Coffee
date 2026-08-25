@@ -657,23 +657,22 @@ function AdminPage() {
     setBusy(false);
   }
 
-  async function deleteTestOrder(orderId) {
-    if (!confirm("Delete this test order permanently? It will not notify the customer or appear in Archive.")) return;
-    setBusy(true);
+  async function deleteArchivedOrder(archiveId) {
+    if (!confirm("Delete this archived order permanently? This removes it from analytics.")) return;
+    setArchiveBusy(true);
     try {
-      const data = await apiPost({ action: "deleteTestOrder", pin, id: orderId });
+      const data = await apiPost({ action: "deleteArchivedOrder", pin, id: archiveId });
       if (data.ok) {
-        setOrders(data.orders || []);
-        setLastUpdated(new Date());
-        setConnectionOk(true);
+        setArchive(data.archive || []);
+        setArchiveLoaded(true);
       } else {
-        alert(data.error || "Could not delete test order");
+        alert(data.error || "Could not delete archived order");
       }
     } catch {
       alert("Connection error");
-      setConnectionOk(false);
+    } finally {
+      setArchiveBusy(false);
     }
-    setBusy(false);
   }
 
   async function toggleInventory(item, available) {
@@ -1037,12 +1036,15 @@ function AdminPage() {
               <div className="archiveList">
                 {archive.map(item => (
                   <div className="archiveOrder" key={item.id}>
-                    <div>
-                      <strong>{item.name || "Unnamed order"}</strong>
-                      <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
-                      {item.notes && <em>"{item.notes}"</em>}
-                    </div>
+                  <div>
+                    <strong>{item.name || "Unnamed order"}</strong>
+                    <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
+                    {item.notes && <em>"{item.notes}"</em>}
+                  </div>
+                  <div className="archiveOrderMeta">
                     <span>{item.archivedAt ? new Date(item.archivedAt).toLocaleString() : ""}</span>
+                    <button className="dangerOutlineBtn" disabled={archiveBusy} onClick={() => deleteArchivedOrder(item.id)}>Delete</button>
+                  </div>
                   </div>
                 ))}
               </div>
@@ -1281,7 +1283,6 @@ function AdminPage() {
                   <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
                   <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
                   <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
-                  <button className="deleteTestOrderBtn" onClick={() => deleteTestOrder(o.id)}>Delete test</button>
                 </div>
               </div>
             ))

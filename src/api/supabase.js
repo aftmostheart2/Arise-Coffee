@@ -39,7 +39,7 @@ export async function apiPost(payload) {
   if (payload.action === "updateStatus") return updateStatus(payload.pin, payload.id, payload.status);
   if (payload.action === "cancelOrder") return cancelOrder(payload.pin, payload.id, payload.reason);
   if (payload.action === "cancelActiveOrders") return cancelActiveOrders(payload.pin, payload.reason);
-  if (payload.action === "deleteTestOrder") return deleteTestOrder(payload.pin, payload.id);
+  if (payload.action === "deleteArchivedOrder") return deleteArchivedOrder(payload.pin, payload.id);
   if (payload.action === "setInventory") return updateInventory(payload.pin, payload.item, payload.available);
   if (payload.action === "clearCompleted") return clearCompleted(payload.pin);
   if (payload.action === "clearAll") return clearAll(payload.pin);
@@ -176,11 +176,11 @@ export async function cancelActiveOrders(pin, reason = "") {
   }
 }
 
-export async function deleteTestOrder(pin, id) {
+export async function deleteArchivedOrder(pin, id) {
   try {
-    return await callRpc("arise_delete_test_order", {
+    return await callRpc("arise_delete_archived_order", {
       input_pin: String(pin || ""),
-      order_id: String(id || ""),
+      archive_id: String(id || ""),
     });
   } catch {
     return { ok: false, error: "Connection error" };
