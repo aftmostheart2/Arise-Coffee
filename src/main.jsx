@@ -40,6 +40,9 @@ function normalizeDrinkItem(drink, index = 0) {
   const temps = Array.isArray(drink?.temps) && drink.temps.length
     ? drink.temps.filter(t => t === "Hot" || t === "Cold")
     : ["Hot"];
+  const allowedSyrups = Array.isArray(drink?.allowedSyrups)
+    ? drink.allowedSyrups.map(item => String(item || "").trim()).filter(Boolean)
+    : [];
 
   return {
     id: String(drink?.id || makeDrinkId(drink?.label || `Drink ${index + 1}`)),
@@ -48,6 +51,7 @@ function normalizeDrinkItem(drink, index = 0) {
     temps: temps.length ? [...new Set(temps)] : ["Hot"],
     milk: Boolean(drink?.milk),
     syrups: Boolean(drink?.syrups),
+    allowedSyrups: [...new Set(allowedSyrups)],
     showTemp: drink?.showTemp === false ? false : true,
     active: drink?.active !== false,
     sortOrder: Number.isFinite(Number(drink?.sortOrder)) ? Number(drink.sortOrder) : index,
@@ -973,9 +977,14 @@ function AdminPage() {
   }
 
   async function saveMenuDrinks() {
-    const cleaned = normalizeMenuDrinks(menuDrinks, true).map((drink, index) => ({ ...drink, sortOrder: index }));
     const cleanedMilks = normalizeIngredientList(menuMilks, "milk", MILKS, true).map((item, index) => ({ ...item, sortOrder: index }));
     const cleanedSyrups = normalizeIngredientList(menuSyrups, "syrup", SYRUPS, true).map((item, index) => ({ ...item, sortOrder: index }));
+    const activeSyrupNames = new Set(cleanedSyrups.filter(item => item.active).map(item => item.item));
+    const cleaned = normalizeMenuDrinks(menuDrinks, true).map((drink, index) => ({
+      ...drink,
+      allowedSyrups: Array.isArray(drink.allowedSyrups) ? drink.allowedSyrups.filter(item => activeSyrupNames.has(item)) : [],
+      sortOrder: index,
+    }));
     if (cleaned.some(drink => !drink.label.trim())) {
       alert("Every drink needs a name.");
       return;
@@ -1378,6 +1387,8 @@ function MenuEditor({
   onUpdate,
   onUpdateIngredient,
 }) {
+  const activeSyrups = useMemo(() => syrups.filter(item => item.active !== false && item.item.trim()), [syrups]);
+
   function toggleTemp(drink, temp) {
     const hasTemp = drink.temps.includes(temp);
     const nextTemps = hasTemp ? drink.temps.filter(t => t !== temp) : [...drink.temps, temp];
@@ -1385,6 +1396,21 @@ function MenuEditor({
       temps: nextTemps.length ? nextTemps : [temp],
       showTemp: nextTemps.length > 1 ? drink.showTemp : false,
     });
+  }
+
+  function toggleAllowedSyrup(drink, syrupName) {
+    const current = Array.isArray(drink.allowedSyrups) ? drink.allowedSyrups : [];
+    const activeNames = activeSyrups.map(item => item.item);
+    const next = current.length === 0
+      ? activeNames.filter(item => item !== syrupName)
+      : current.includes(syrupName)
+      ? current.filter(item => item !== syrupName)
+      : [...current, syrupName];
+    onUpdate(drink.id, { allowedSyrups: next });
+  }
+
+  function clearAllowedSyrups(drink) {
+    onUpdate(drink.id, { allowedSyrups: [] });
   }
 
   return (
@@ -1461,6 +1487,29 @@ function MenuEditor({
                       Show temp choice
                     </label>
                   </div>
+                  {drink.syrups && activeSyrups.length > 0 && (
+                    <details className="menuSyrupPicker">
+                      <summary>
+                        <span>Allowed syrups</span>
+                        <strong>{drink.allowedSyrups?.length ? `${drink.allowedSyrups.length} selected` : "All"}</strong>
+                      </summary>
+                      <div className="menuSyrupPickerBody">
+                        <button className="ghostBtn smallBtn" disabled={busy || !drink.allowedSyrups?.length} onClick={() => clearAllowedSyrups(drink)}>Use all syrups</button>
+                        <div className="menuAllowedSyrups">
+                          {activeSyrups.map(item => (
+                            <label className="adminCheck" key={item.id || item.item}>
+                              <input
+                                type="checkbox"
+                                checked={!drink.allowedSyrups?.length || drink.allowedSyrups.includes(item.item)}
+                                onChange={() => toggleAllowedSyrup(drink, item.item)}
+                              />
+                              {item.item}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </details>
+                  )}
                 </div>
               </div>
 
@@ -1706,7 +1755,12 @@ function CustomerPage() {
   const drink = useMemo(() => getDrink(form.drinkId, customerDrinks), [form.drinkId, customerDrinks]);
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
   const customerMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS).filter(item => item.available !== false), [inventory]);
-  const customerSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS).filter(item => item.available !== false), [inventory]);
+  const customerSyrups = useMemo(() => {
+    const availableSyrups = inventoryItemsByType(inventory, "syrup", SYRUPS).filter(item => item.available !== false);
+    if (!Array.isArray(drink.allowedSyrups) || drink.allowedSyrups.length === 0) return availableSyrups;
+    const allowed = new Set(drink.allowedSyrups);
+    return availableSyrups.filter(item => allowed.has(item.item));
+  }, [inventory, drink]);
   const pushDeviceHint = useMemo(() => getPushDeviceHint(), []);
   const requiresIosInstall = useMemo(() => isAppleTouchDevice() && !isStandaloneApp(), []);
 
@@ -1868,6 +1922,15 @@ function CustomerPage() {
   }, [form.drinkId, customerDrinks]);
 
   useEffect(() => {
+    setForm(f => {
+      if (!f.syrups.length) return f;
+      const allowed = new Set(customerSyrups.map(item => item.item));
+      const nextSyrups = f.syrups.filter(item => allowed.has(item));
+      return nextSyrups.length === f.syrups.length ? f : { ...f, syrups: nextSyrups };
+    });
+  }, [customerSyrups]);
+
+  useEffect(() => {
     if (!customerDrinks.some(d => d.id === form.drinkId)) {
       setForm(f => ({ ...f, drinkId: customerDrinks[0]?.id || "latte" }));
     }
@@ -1890,6 +1953,9 @@ function CustomerPage() {
     if (form.milk && !isInventoryAvailable(inventoryLookup, form.milk)) e.milk = form.milk + " is out of stock";
     const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventoryLookup, s));
     if (outSyrup) e.syrups = outSyrup + " is out of stock";
+    const allowedSyrupNames = new Set(customerSyrups.map(s => s.item));
+    const unavailableForDrink = form.syrups.find(s => !allowedSyrupNames.has(s));
+    if (unavailableForDrink) e.syrups = unavailableForDrink + " is not available for this drink";
     return e;
   }
 
@@ -1906,8 +1972,11 @@ function CustomerPage() {
 
     const nextTemp = savedDrink.temps.includes(lastOrder.temp) ? lastOrder.temp : savedDrink.temps[0];
     const nextMilk = savedDrink.milk && isInventoryAvailable(inventoryLookup, lastOrder.milk) ? lastOrder.milk : "";
+    const savedAllowedSyrups = Array.isArray(savedDrink.allowedSyrups) && savedDrink.allowedSyrups.length
+      ? new Set(savedDrink.allowedSyrups)
+      : null;
     const nextSyrups = savedDrink.syrups && Array.isArray(lastOrder.syrups)
-      ? lastOrder.syrups.filter(s => isInventoryAvailable(inventoryLookup, s)).slice(0, MAX_SYRUPS)
+      ? lastOrder.syrups.filter(s => isInventoryAvailable(inventoryLookup, s) && (!savedAllowedSyrups || savedAllowedSyrups.has(s))).slice(0, MAX_SYRUPS)
       : [];
 
     pendingLastOrderRef.current = { temp: nextTemp, milk: nextMilk, syrups: nextSyrups, notes: lastOrder.notes || "" };

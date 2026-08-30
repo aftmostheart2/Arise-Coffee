@@ -288,6 +288,13 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .menuOptionGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
 .adminCheck{display:flex;align-items:center;gap:8px;background:#241000;border:1px solid rgba(200,130,58,.12);border-radius:6px;padding:10px;color:#8A9B8E;font-size:12px}
 .adminCheck input{width:auto}
+.menuSyrupPicker{margin-top:10px;background:rgba(18,7,0,.34);border:1px solid rgba(200,130,58,.12);border-radius:8px;overflow:hidden}
+.menuSyrupPicker summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;cursor:pointer;padding:10px 12px;color:#FFF8F0;font-size:12px;font-weight:700}
+.menuSyrupPicker summary::-webkit-details-marker{display:none}
+.menuSyrupPicker summary strong{color:#C8823A;font-size:11px;font-family:Inter,system-ui,sans-serif}
+.menuSyrupPickerBody{border-top:1px solid rgba(200,130,58,.10);padding:10px}
+.menuAllowedSyrups{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px}
+.smallBtn{font-size:11px;padding:8px 10px}
 .menuTempRow{display:flex;gap:8px;margin-bottom:12px}
 .menuItemActions{display:flex;gap:8px;flex-wrap:wrap}
 .menuSectionCard{background:rgba(18,7,0,.28);border:1px solid rgba(200,130,58,.12);border-radius:14px;padding:16px;margin-top:16px}

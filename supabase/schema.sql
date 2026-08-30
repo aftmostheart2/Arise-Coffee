@@ -46,6 +46,7 @@ create table if not exists menu_drinks (
   temps text[] not null default array['Hot','Cold'],
   has_milk boolean not null default true,
   has_syrups boolean not null default true,
+  allowed_syrups text[] not null default '{}',
   show_temp boolean not null default true,
   active boolean not null default true,
   sort_order integer not null default 0,
@@ -57,6 +58,7 @@ alter table menu_drinks add column if not exists description text not null defau
 alter table menu_drinks add column if not exists temps text[] not null default array['Hot','Cold'];
 alter table menu_drinks add column if not exists has_milk boolean not null default true;
 alter table menu_drinks add column if not exists has_syrups boolean not null default true;
+alter table menu_drinks add column if not exists allowed_syrups text[] not null default '{}';
 alter table menu_drinks add column if not exists show_temp boolean not null default true;
 alter table menu_drinks add column if not exists active boolean not null default true;
 alter table menu_drinks add column if not exists sort_order integer not null default 0;
@@ -292,6 +294,7 @@ as $$
         'temps', to_jsonb(temps),
         'milk', has_milk,
         'syrups', has_syrups,
+        'allowedSyrups', to_jsonb(allowed_syrups),
         'showTemp', show_temp,
         'active', active,
         'sortOrder', sort_order
@@ -937,6 +940,7 @@ begin
       temps,
       has_milk,
       has_syrups,
+      allowed_syrups,
       show_temp,
       active,
       sort_order
@@ -947,6 +951,7 @@ begin
       cleaned_temps,
       coalesce((drink_item->>'milk')::boolean, true),
       coalesce((drink_item->>'syrups')::boolean, true),
+      coalesce(array(select jsonb_array_elements_text(coalesce(drink_item->'allowedSyrups', '[]'::jsonb))), '{}'::text[]),
       coalesce((drink_item->>'showTemp')::boolean, true),
       coalesce((drink_item->>'active')::boolean, true),
       drink_index
@@ -957,6 +962,7 @@ begin
       temps = excluded.temps,
       has_milk = excluded.has_milk,
       has_syrups = excluded.has_syrups,
+      allowed_syrups = excluded.allowed_syrups,
       show_temp = excluded.show_temp,
       active = excluded.active,
       sort_order = excluded.sort_order,
