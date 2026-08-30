@@ -155,6 +155,7 @@ insert into settings (key, value) values
 ('isOpen','"true"'),
 ('message','""'),
 ('queueTimerMinutes','"30"'),
+('queueTimerEnabled','"true"'),
 ('queueClosesAt','""')
 on conflict (key) do nothing;
 
@@ -211,6 +212,8 @@ set search_path = public
 as $$
   select arise_setting('isOpen', 'true') = 'true'
     and (
+      arise_setting('queueTimerEnabled', 'true') <> 'true'
+      or
       nullif(arise_setting('queueClosesAt', ''), '') is null
       or nullif(arise_setting('queueClosesAt', ''), '')::timestamptz > now()
     );
@@ -359,6 +362,7 @@ as $$
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 $$;
@@ -409,6 +413,7 @@ as $$
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(jsonb_agg(arise_order_json(active.order_row, active.position::integer) order by active.created_at), '[]'::jsonb),
     'inventory', arise_inventory_json()
@@ -455,6 +460,7 @@ as $$
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(
       (
@@ -550,6 +556,7 @@ begin
         'isOpen', arise_queue_is_open(),
         'message', arise_setting('message', ''),
         'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+        'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
         'queueClosesAt', arise_setting('queueClosesAt', ''),
         'order', jsonb_build_object(
           'id', coalesce(canceled_order.original_order_id_text, canceled_order.original_order_id::text),
@@ -575,6 +582,7 @@ begin
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'order', arise_order_json(found_order, found_position),
     'position', found_position,
@@ -623,7 +631,9 @@ end;
 $$;
 
 drop function if exists arise_update_admin(text, boolean, text);
-create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null)
+drop function if exists arise_update_admin(text, boolean, text, integer);
+drop function if exists arise_update_admin(text, boolean, text, integer, boolean);
+create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null, input_timer_enabled boolean default null)
 returns jsonb
 language plpgsql
 security definer
@@ -631,16 +641,24 @@ set search_path = public
 as $$
 declare
   next_timer_minutes integer;
+  next_timer_enabled boolean;
 begin
   if not arise_pin_matches(input_pin) then
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
   next_timer_minutes := greatest(1, least(coalesce(input_timer_minutes, nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30), 240));
+  next_timer_enabled := coalesce(input_timer_enabled, arise_setting('queueTimerEnabled', 'true') = 'true');
 
   if input_timer_minutes is not null then
     insert into settings (key, value)
     values ('queueTimerMinutes', to_jsonb(next_timer_minutes::text)::text)
+    on conflict (key) do update set value = excluded.value;
+  end if;
+
+  if input_timer_enabled is not null then
+    insert into settings (key, value)
+    values ('queueTimerEnabled', to_jsonb(case when next_timer_enabled then 'true' else 'false' end)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
@@ -652,12 +670,12 @@ begin
     insert into settings (key, value)
     values (
       'queueClosesAt',
-      to_jsonb(case when input_is_open then (now() + make_interval(mins => next_timer_minutes))::text else '' end)::text
+      to_jsonb(case when input_is_open and next_timer_enabled then (now() + make_interval(mins => next_timer_minutes))::text else '' end)::text
     )
     on conflict (key) do update set value = excluded.value;
-  elsif input_timer_minutes is not null and arise_queue_is_open() then
+  elsif (input_timer_minutes is not null or input_timer_enabled is not null) and arise_setting('isOpen', 'true') = 'true' then
     insert into settings (key, value)
-    values ('queueClosesAt', to_jsonb((now() + make_interval(mins => next_timer_minutes))::text)::text)
+    values ('queueClosesAt', to_jsonb(case when next_timer_enabled then (now() + make_interval(mins => next_timer_minutes))::text else '' end)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
@@ -764,6 +782,7 @@ begin
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -825,6 +844,7 @@ begin
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
+    'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -1269,7 +1289,7 @@ grant execute on function arise_orders() to anon;
 grant execute on function arise_display() to anon;
 grant execute on function arise_order(text) to anon;
 grant execute on function arise_place_order(jsonb) to anon;
-grant execute on function arise_update_admin(text, boolean, text, integer) to anon;
+grant execute on function arise_update_admin(text, boolean, text, integer, boolean) to anon;
 grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_cancel_order(text, text, text) to anon;
 grant execute on function arise_cancel_active_orders(text, text) to anon;

@@ -118,6 +118,7 @@ export async function updateAdmin(pin, payload) {
       input_is_open: typeof payload.isOpen === "boolean" ? payload.isOpen : null,
       input_message: typeof payload.message === "string" ? payload.message : null,
       input_timer_minutes: Number.isFinite(Number(payload.queueTimerMinutes)) ? Number(payload.queueTimerMinutes) : null,
+      input_timer_enabled: typeof payload.queueTimerEnabled === "boolean" ? payload.queueTimerEnabled : null,
     });
   } catch {
     return { ok: false, error: "Connection error" };

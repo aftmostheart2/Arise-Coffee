@@ -502,6 +502,7 @@ function AdminPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [orderCancelReasons, setOrderCancelReasons] = useState({});
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
+  const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [nowMs, setNowMs] = useState(Date.now());
   const [busy, setBusy] = useState(false);
@@ -528,6 +529,9 @@ function AdminPage() {
   function syncQueueTimer(data) {
     if (Number.isFinite(Number(data?.queueTimerMinutes))) {
       setQueueTimerMinutes(normalizeTimerMinutes(data.queueTimerMinutes));
+    }
+    if (typeof data?.queueTimerEnabled === "boolean") {
+      setQueueTimerEnabled(Boolean(data.queueTimerEnabled));
     }
     if (typeof data?.queueClosesAt === "string") {
       setQueueClosesAt(data.queueClosesAt || "");
@@ -1194,7 +1198,7 @@ function AdminPage() {
   return (
     <>
       <Header isOpen={isOpen} />
-      <QueueTimerBadge isOpen={isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} draggable />
+      <QueueTimerBadge isOpen={queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} draggable />
       <main className="adminPage">
         <section className="adminTop">
           <div>
@@ -1220,6 +1224,14 @@ function AdminPage() {
               <div className={isOpen ? "statusOpen" : "statusClosed"}>{isOpen ? "● Open" : "● Closed"}</div>
             </div>
             <div className="queueTimerControl">
+              <label className="adminCheck queueTimerToggle">
+                <input
+                  type="checkbox"
+                  checked={queueTimerEnabled}
+                  onChange={event => setQueueTimerEnabled(event.target.checked)}
+                />
+                Auto-close timer
+              </label>
               <label>
                 <span>Open window</span>
                 <input
@@ -1227,11 +1239,12 @@ function AdminPage() {
                   min="1"
                   max="240"
                   value={queueTimerMinutes}
+                  disabled={!queueTimerEnabled}
                   onChange={event => setQueueTimerMinutes(normalizeTimerMinutes(event.target.value))}
                 />
               </label>
-              <button disabled={busy} className="ghostBtn" onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes })}>Save window</button>
-              <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message, queueTimerMinutes })}>
+              <button disabled={busy} className="ghostBtn" onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled })}>Save window</button>
+              <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message, queueTimerMinutes, queueTimerEnabled })}>
                 {isOpen ? "Close Queue" : "Open Queue"}
               </button>
             </div>
@@ -1742,6 +1755,7 @@ function CustomerPage() {
   const [lastOrder, setLastOrder] = useState(loadLastOrder);
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
+  const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [nowMs, setNowMs] = useState(Date.now());
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
@@ -1775,6 +1789,9 @@ function CustomerPage() {
   function syncCustomerQueueTimer(data) {
     if (Number.isFinite(Number(data?.queueTimerMinutes))) {
       setQueueTimerMinutes(normalizeTimerMinutes(data.queueTimerMinutes));
+    }
+    if (typeof data?.queueTimerEnabled === "boolean") {
+      setQueueTimerEnabled(Boolean(data.queueTimerEnabled));
     }
     if (typeof data?.queueClosesAt === "string") {
       setQueueClosesAt(data.queueClosesAt || "");
@@ -2122,7 +2139,7 @@ function CustomerPage() {
   return (
     <>
       <Header isOpen={isOpen} />
-      <QueueTimerBadge isOpen={isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
+      <QueueTimerBadge isOpen={queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
       <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
           <div className="customerSectionHead">
