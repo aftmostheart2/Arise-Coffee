@@ -43,10 +43,11 @@ function normalizeDrinkItem(drink, index = 0) {
   const allowedSyrups = Array.isArray(drink?.allowedSyrups)
     ? drink.allowedSyrups.map(item => String(item || "").trim()).filter(Boolean)
     : [];
+  const hasLabel = drink && Object.prototype.hasOwnProperty.call(drink, "label");
 
   return {
     id: String(drink?.id || makeDrinkId(drink?.label || `Drink ${index + 1}`)),
-    label: String(drink?.label || "Drink").trim() || "Drink",
+    label: hasLabel ? String(drink.label || "") : "Drink",
     desc: String(drink?.desc || "").trim(),
     temps: temps.length ? [...new Set(temps)] : ["Hot"],
     milk: Boolean(drink?.milk),
@@ -982,6 +983,8 @@ function AdminPage() {
     const activeSyrupNames = new Set(cleanedSyrups.filter(item => item.active).map(item => item.item));
     const cleaned = normalizeMenuDrinks(menuDrinks, true).map((drink, index) => ({
       ...drink,
+      label: drink.label.trim(),
+      desc: drink.desc.trim(),
       allowedSyrups: Array.isArray(drink.allowedSyrups) ? drink.allowedSyrups.filter(item => activeSyrupNames.has(item)) : [],
       sortOrder: index,
     }));
