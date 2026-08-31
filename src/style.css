@@ -9,7 +9,7 @@ button{cursor:pointer}
 button:disabled{opacity:.55;cursor:not-allowed}
 a{color:inherit;text-decoration:none}
 
-header{background:#140800;padding:14px 24px;border-bottom:1px solid rgba(200,130,58,.15);display:flex;align-items:center;gap:12px}
+header{position:relative;background:#140800;padding:14px 24px;border-bottom:1px solid rgba(200,130,58,.15);display:flex;align-items:center;gap:12px}
 .brand{display:flex;align-items:center;gap:12px;margin-right:auto;min-width:0}
 .brand span{font-size:22px}
 header h1,h2,.modal h2{font-family:"Playfair Display",Georgia,serif;font-weight:700}
@@ -17,18 +17,29 @@ header h1{font-size:19px}
 header p{font-size:10px;color:#5A3A20;letter-spacing:1.5px;text-transform:uppercase}
 .adminLink{color:#FFF8F0;font-size:12px;font-weight:700;border:1px solid rgba(200,130,58,.35);background:#2C1400;border-radius:4px;padding:8px 10px;white-space:nowrap;margin-left:10px}
 .adminDot{
-  width:26px;
-  height:26px;
+  width:44px;
+  height:44px;
   flex:0 0 auto;
   border-radius:50%;
-  border:1px solid rgba(200,130,58,.12);
-  background:rgba(200,130,58,.05);
-  opacity:.42;
+  border:0;
+  background:transparent;
+  opacity:.24;
+  position:relative;
+}
+.adminDot::after{
+  content:"";
+  position:absolute;
+  left:18px;
+  top:18px;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:rgba(200,130,58,.42);
+  box-shadow:0 0 0 1px rgba(200,130,58,.16);
 }
 .adminDot:hover,.adminDot:focus-visible{
   opacity:.9;
-  border-color:rgba(200,130,58,.34);
-  background:rgba(200,130,58,.12);
+  background:rgba(200,130,58,.08);
   outline:none;
 }
 .pill{margin-left:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
@@ -2418,4 +2429,15 @@ input:focus,textarea:focus{
   .readyDisplayCard{min-height:320px}
   .readyDisplayCard h2{font-size:62px}
   .readyDisplayCard p{font-size:24px}
+}
+
+@media(pointer:coarse){
+  header .adminDot{
+    position:absolute;
+    right:calc(82px + env(safe-area-inset-right));
+    top:50%;
+    transform:translateY(-50%);
+    z-index:4;
+    touch-action:manipulation;
+  }
 }
