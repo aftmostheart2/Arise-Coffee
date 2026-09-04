@@ -230,8 +230,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .adminOrder.making:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#8A9B4E}
 .adminOrder.ready{border-color:rgba(107,191,107,.45)}
 .orderTop{display:flex;gap:12px;align-items:flex-start}
+.orderNameLine{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .orderTop p{font-size:12px;color:#8A9B8E;margin-top:2px}
-.orderSourceBadge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 7px;border-radius:999px;border:1px solid rgba(200,130,58,.38);background:rgba(200,130,58,.12);color:#D4934D;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;vertical-align:middle}
+.orderSourceBadge{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;border:1px solid rgba(200,130,58,.38);background:rgba(200,130,58,.12);color:#D4934D;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;vertical-align:middle}
 .orderAge{display:block;color:#5A3A20;font-size:11px;margin-top:4px}
 .orderTop em{display:block;color:#8A9B8E;font-size:12px;margin-top:6px}
 .statusBadge{margin-left:auto;font-size:11px;border-radius:20px;padding:4px 9px;background:#2C1400;color:#8A9B8E;white-space:nowrap}
@@ -1126,6 +1127,36 @@ input:focus,textarea:focus{
   flex-wrap:wrap;
   justify-content:flex-end;
 }
+.adminStatusStrip{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.adminStatusStrip div{
+  background:linear-gradient(180deg,rgba(40,19,2,.62),rgba(18,7,0,.42));
+  border:1px solid rgba(200,130,58,.14);
+  border-radius:14px;
+  padding:13px 14px;
+  min-height:72px;
+  box-shadow:0 16px 50px rgba(0,0,0,.12);
+}
+.adminStatusStrip span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.adminStatusStrip strong{
+  display:block;
+  color:var(--cream);
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:28px;
+  line-height:1;
+}
 .adminCommandCenter{
   display:grid;
   grid-template-columns:minmax(260px,1fr) minmax(240px,.9fr);
@@ -1133,7 +1164,7 @@ input:focus,textarea:focus{
   margin-bottom:16px;
 }
 .queueCommand,.adminQuickActions{
-  background:rgba(40,19,2,.56);
+  background:linear-gradient(180deg,rgba(44,20,0,.70),rgba(24,10,0,.58));
   border:1px solid var(--line);
   border-radius:14px;
   padding:16px;
@@ -1193,6 +1224,7 @@ input:focus,textarea:focus{
 .adminQuickActions{
   display:grid;
   grid-template-columns:1fr;
+  align-content:center;
   gap:10px;
 }
 .adminQuickActions button{
@@ -1200,7 +1232,7 @@ input:focus,textarea:focus{
 }
 .adminTools{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(4,1fr);
   gap:12px;
   margin-bottom:16px;
 }
@@ -1236,6 +1268,64 @@ input:focus,textarea:focus{
 .closedMessagePanel{
   margin-bottom:16px;
 }
+.settingsGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.settingsCard{
+  background:linear-gradient(180deg,rgba(40,19,2,.62),rgba(18,7,0,.42));
+  border:1px solid rgba(200,130,58,.14);
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 16px 50px rgba(0,0,0,.12);
+}
+.settingsCard h3{
+  color:var(--cream);
+  font-size:17px;
+  margin-bottom:4px;
+}
+.settingsWide{
+  grid-column:1 / -1;
+}
+.settingsToggle{
+  margin-top:14px;
+  color:var(--cream);
+}
+.settingsField{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  margin-top:14px;
+}
+.settingsField span{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+.settingsField input{
+  max-width:140px;
+}
+.settingsActions{
+  position:sticky;
+  bottom:16px;
+  z-index:6;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:16px;
+  padding:12px;
+  background:rgba(18,7,0,.88);
+  border:1px solid rgba(200,130,58,.14);
+  border-radius:14px;
+  backdrop-filter:blur(12px);
+}
+.settingsActions .primaryBtn{
+  width:auto;
+  margin:0;
+}
 
 @media(max-width:760px){
   .adminTop{
@@ -1245,8 +1335,18 @@ input:focus,textarea:focus{
   .adminTopActions{
     justify-content:flex-start;
   }
-  .adminCommandCenter,.adminTools{
+  .adminCommandCenter,.adminTools,.settingsGrid{
     grid-template-columns:1fr;
+  }
+  .adminStatusStrip{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .adminStatusStrip div{
+    min-height:64px;
+    padding:12px;
+  }
+  .adminStatusStrip strong{
+    font-size:24px;
   }
   .queueCommand{
     align-items:stretch;
@@ -1326,7 +1426,7 @@ input:focus,textarea:focus{
     gap:14px;
   }
   .adminTools{
-    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-columns:repeat(2,minmax(0,1fr));
     gap:14px;
   }
   .toolTile{
@@ -1406,6 +1506,9 @@ input:focus,textarea:focus{
 @media (min-width:761px) and (max-width:900px) and (pointer:coarse){
   .layout,.adminCommandCenter,.adminTools{
     grid-template-columns:1fr;
+  }
+  .adminStatusStrip{
+    grid-template-columns:repeat(2,minmax(0,1fr));
   }
   .queueCol{
     order:-1;

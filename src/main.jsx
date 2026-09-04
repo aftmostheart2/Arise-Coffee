@@ -520,6 +520,11 @@ function AdminPage() {
   const messageEditingRef = useRef(false);
   const adminSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
   const adminMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
+  const orderCounts = useMemo(() => ({
+    waiting: orders.filter(order => order.status === "waiting").length,
+    making: orders.filter(order => order.status === "making").length,
+    ready: orders.filter(order => ["ready", "complete"].includes(order.status)).length,
+  }), [orders]);
 
   function syncAdminMessage(nextMessage) {
     if (!messageEditingRef.current && typeof nextMessage === "string") {
@@ -853,6 +858,14 @@ function AdminPage() {
     setAnalyticsOpen(true);
     setAdminView("analytics");
     if (!analyticsLoaded) await loadAnalytics();
+  }
+
+  function openSettingsScreen() {
+    setAdminView("settings");
+  }
+
+  function saveSettings() {
+    saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled });
   }
 
   function formatWeekRange(start, end) {
@@ -1199,6 +1212,103 @@ function AdminPage() {
     );
   }
 
+  if (adminView === "settings") {
+    return (
+      <>
+        <Header isOpen={isOpen} />
+        <main className="adminPage">
+          <section className="adminTop">
+            <div>
+              <h2>Settings</h2>
+              <p className="sub">Queue timing, clergy ordering, and saved messages.</p>
+            </div>
+            <div className="adminTopActions">
+              <button className="ghostBtn" onClick={() => setAdminView("dashboard")}>Back to dashboard</button>
+            </div>
+          </section>
+
+          <section className="settingsGrid">
+            <div className="settingsCard">
+              <div>
+                <h3>Queue Window</h3>
+                <p className="sub">Control whether ordering closes automatically.</p>
+              </div>
+              <label className="adminCheck settingsToggle">
+                <input
+                  type="checkbox"
+                  checked={queueTimerEnabled}
+                  onChange={event => setQueueTimerEnabled(event.target.checked)}
+                />
+                Auto-close timer
+              </label>
+              <label className="settingsField">
+                <span>Open window minutes</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="240"
+                  value={queueTimerMinutes}
+                  disabled={!queueTimerEnabled}
+                  onChange={event => setQueueTimerMinutes(normalizeTimerMinutes(event.target.value))}
+                />
+              </label>
+            </div>
+
+            <div className="settingsCard">
+              <div>
+                <h3>Clergy Ordering</h3>
+                <p className="sub">Hidden link: /clergy</p>
+              </div>
+              <label className="adminCheck settingsToggle">
+                <input
+                  type="checkbox"
+                  checked={clergyOrderingEnabled}
+                  onChange={event => setClergyOrderingEnabled(event.target.checked)}
+                />
+                Clergy priority ordering
+              </label>
+            </div>
+
+            <div className="settingsCard settingsWide">
+              <div>
+                <h3>Closed Message</h3>
+                <p className="sub">Shown when regular ordering is closed.</p>
+              </div>
+              <textarea
+                value={message}
+                onFocus={() => { messageEditingRef.current = true; }}
+                onBlur={() => { messageEditingRef.current = false; }}
+                onChange={e => {
+                  messageEditingRef.current = true;
+                  setMessage(e.target.value);
+                }}
+                rows={3}
+              />
+            </div>
+
+            <div className="settingsCard settingsWide">
+              <div>
+                <h3>Bulk Cancellation Message</h3>
+                <p className="sub">Used when canceling all active orders.</p>
+              </div>
+              <textarea
+                value={cancelReason}
+                onChange={event => setCancelReason(event.target.value)}
+                rows={3}
+                placeholder="Why was the order canceled?"
+              />
+            </div>
+          </section>
+
+          <div className="settingsActions">
+            <button className="primaryBtn" disabled={busy} onClick={saveSettings}>{busy ? "Saving..." : "Save settings"}</button>
+            {notice && <div className="notice">{notice}</div>}
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Header isOpen={isOpen} />
@@ -1207,7 +1317,7 @@ function AdminPage() {
         <section className="adminTop">
           <div>
             <h2>Admin Control</h2>
-            <p className="sub">Orders update automatically.</p>
+            <p className="sub">Live queue, inventory, and order tools.</p>
             <div className="adminMeta">
               <span>Active orders: {visibleOrders.length}</span>
               <span className={connectionOk ? "online" : "offline"}>{connectionOk ? "Online" : "Connection issue"}</span>
@@ -1221,6 +1331,25 @@ function AdminPage() {
           </div>
         </section>
 
+        <section className="adminStatusStrip" aria-label="Order summary">
+          <div>
+            <span>Waiting</span>
+            <strong>{orderCounts.waiting}</strong>
+          </div>
+          <div>
+            <span>Being made</span>
+            <strong>{orderCounts.making}</strong>
+          </div>
+          <div>
+            <span>Ready</span>
+            <strong>{orderCounts.ready}</strong>
+          </div>
+          <div>
+            <span>Clergy</span>
+            <strong>{clergyOrderingEnabled ? "On" : "Off"}</strong>
+          </div>
+        </section>
+
         <section className="adminCommandCenter">
           <div className="queueCommand">
             <div>
@@ -1228,26 +1357,6 @@ function AdminPage() {
               <div className={isOpen ? "statusOpen" : "statusClosed"}>{isOpen ? "● Open" : "● Closed"}</div>
             </div>
             <div className="queueTimerControl">
-              <label className="adminCheck queueTimerToggle">
-                <input
-                  type="checkbox"
-                  checked={queueTimerEnabled}
-                  onChange={event => setQueueTimerEnabled(event.target.checked)}
-                />
-                Auto-close timer
-              </label>
-              <label>
-                <span>Open window</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="240"
-                  value={queueTimerMinutes}
-                  disabled={!queueTimerEnabled}
-                  onChange={event => setQueueTimerMinutes(normalizeTimerMinutes(event.target.value))}
-                />
-              </label>
-              <button disabled={busy} className="ghostBtn" onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled })}>Save window</button>
               <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message, queueTimerMinutes, queueTimerEnabled })}>
                 {isOpen ? "Close Queue" : "Open Queue"}
               </button>
@@ -1255,15 +1364,9 @@ function AdminPage() {
           </div>
 
           <div className="adminQuickActions">
-            <button
-              className={clergyOrderingEnabled ? "successBtn" : "ghostBtn"}
-              disabled={busy}
-              onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled: !clergyOrderingEnabled })}
-            >
-              {clergyOrderingEnabled ? "Clergy On" : "Clergy Off"}
-            </button>
             <button className="ghostBtn" onClick={clearCompleted}>Archive ready ({readyArchiveCount})</button>
             <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
+            <button className="dangerOutlineBtn" disabled={busy || visibleOrders.length === 0 || !cancelReason.trim()} onClick={cancelActiveOrders}>Cancel all active</button>
           </div>
         </section>
 
@@ -1280,35 +1383,10 @@ function AdminPage() {
             <strong>Analytics</strong>
             <span>Popular items</span>
           </button>
-        </section>
-
-        <section className="panel closedMessagePanel">
-          <div className="label">Closed message</div>
-          <textarea
-            value={message}
-            onFocus={() => { messageEditingRef.current = true; }}
-            onBlur={() => { messageEditingRef.current = false; }}
-            onChange={e => {
-              messageEditingRef.current = true;
-              setMessage(e.target.value);
-            }}
-            rows={2}
-          />
-          <button className="primaryBtn" disabled={busy} onClick={() => saveAdmin({ isOpen, message })}>Save message</button>
-          {notice && <div className="notice">{notice}</div>}
-        </section>
-
-        <section className="panel cancelPanel">
-          <div>
-            <div className="label">Cancellation message</div>
-            <textarea
-              value={cancelReason}
-              onChange={event => setCancelReason(event.target.value)}
-              rows={2}
-              placeholder="Why was the order canceled?"
-            />
-          </div>
-          <button className="dangerOutlineBtn" disabled={busy || visibleOrders.length === 0} onClick={cancelActiveOrders}>Cancel all active</button>
+          <button className={adminView === "settings" ? "toolTile active" : "toolTile"} onClick={openSettingsScreen}>
+            <strong>Settings</strong>
+            <span>Timer, clergy, messages</span>
+          </button>
         </section>
 
         <section className="inventoryPanel">
@@ -1371,8 +1449,10 @@ function AdminPage() {
                 <div className="orderTop">
                   <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
                   <div>
-                    <strong>{o.name}</strong>
-                    {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
+                    <div className="orderNameLine">
+                      <strong>{o.name}</strong>
+                      {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
+                    </div>
                     <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
                     {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
                     {o.notes && <em>"{o.notes}"</em>}
