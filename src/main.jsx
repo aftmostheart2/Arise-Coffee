@@ -14,6 +14,19 @@ const LAST_ORDER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_TIMER_POSITION_KEY = "arise-admin-timer-position";
 const APP_ENTRY_MODE_KEY = "arise-app-entry-mode";
 
+const BIBLE_QUOTES = [
+  { text: "Taste and see that the Lord is good.", reference: "Psalm 34:8" },
+  { text: "Be still, and know that I am God.", reference: "Psalm 46:10" },
+  { text: "Let all that you do be done with love.", reference: "1 Corinthians 16:14" },
+  { text: "Rejoice always, pray without ceasing, in everything give thanks.", reference: "1 Thessalonians 5:16-18" },
+  { text: "Come to Me, all you who labor and are heavy laden, and I will give you rest.", reference: "Matthew 11:28" },
+  { text: "Serve the Lord with gladness; come before His presence with singing.", reference: "Psalm 100:2" },
+  { text: "The Lord is my shepherd; I shall not want.", reference: "Psalm 23:1" },
+  { text: "Blessed are the pure in heart, for they shall see God.", reference: "Matthew 5:8" },
+  { text: "The Lord will give strength to His people; the Lord will bless His people with peace.", reference: "Psalm 29:11" },
+  { text: "Commit your way to the Lord, trust also in Him, and He shall bring it to pass.", reference: "Psalm 37:5" },
+];
+
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
   { id: "latte", label: "Latte", desc: "Standard milk and coffee drink", temps: ["Hot", "Cold"], milk: true, syrups: true },
@@ -114,6 +127,10 @@ function getDrink(id, drinks = DRINKS) {
 
 function defaultForm() {
   return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
+}
+
+function randomBibleQuote() {
+  return BIBLE_QUOTES[Math.floor(Math.random() * BIBLE_QUOTES.length)] || BIBLE_QUOTES[0];
 }
 
 function defaultInventory() {
@@ -1841,6 +1858,7 @@ function CustomerPage({ isClergy = false }) {
   const [showReadyAlertPrompt, setShowReadyAlertPrompt] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const [lastOrder, setLastOrder] = useState(loadLastOrder);
+  const [orderQuote, setOrderQuote] = useState(null);
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
@@ -2151,6 +2169,7 @@ function CustomerPage({ isClergy = false }) {
       };
       localStorage.setItem(LAST_ORDER_KEY, JSON.stringify(savedOrder));
       setLastOrder(savedOrder);
+      setOrderQuote(randomBibleQuote());
       setReadyAlertShown(false);
       previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
@@ -2182,6 +2201,7 @@ function CustomerPage({ isClergy = false }) {
     setMyOrderId("");
     setMyOrder(null);
     setMyOrderPosition(1);
+    setOrderQuote(null);
     setPushState({ busy: false, enabled: false, message: "" });
   }
 
@@ -2383,6 +2403,13 @@ function CustomerPage({ isClergy = false }) {
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
                 {myOrder.status === "canceled" && <div className="cancelNotice">Your order was canceled.{myOrder.notes ? ` ${myOrder.notes}` : ""}</div>}
                 {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">Your drink is ready. Please go to the kitchen.</div>}
+                {orderQuote && (
+                  <div className="scriptureCard">
+                    <div className="label gold">A verse for your wait</div>
+                    <p>"{orderQuote.text}"</p>
+                    <span>{orderQuote.reference}</span>
+                  </div>
+                )}
                 {!["ready","complete","canceled"].includes(myOrder.status) && (
                   <div className="notifyBox">
                     <button className="ghostBtn" disabled={pushState.busy || pushState.enabled} onClick={enableReadyNotification}>

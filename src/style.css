@@ -694,6 +694,25 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
   color:#8A9B8E;
   font-size:12px;
 }
+.scriptureCard{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid rgba(200,130,58,.28);
+  border-radius:10px;
+  background:linear-gradient(135deg,rgba(200,130,58,.14),rgba(24,8,0,.72));
+}
+.scriptureCard p{
+  color:#FFF8F0;
+  font-family:Georgia,serif;
+  font-size:17px;
+  line-height:1.35;
+  margin:7px 0 5px;
+}
+.scriptureCard span{
+  color:#C8823A;
+  font-weight:700;
+  font-size:12px;
+}
 .notifyBox{
   margin-top:12px;
 }
