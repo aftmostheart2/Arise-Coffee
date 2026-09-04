@@ -2550,17 +2550,20 @@ function DisplayPage() {
 
 function App() {
   const path = window.location.pathname.toLowerCase();
+  const host = window.location.hostname.toLowerCase();
   const params = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#\/?\??/, ""));
   const requestedMode = params.get("mode") || hashParams.get("mode");
+  const isClergyHost = host.startsWith("clergy-") || host.startsWith("clergy.");
+  const shouldUseClergyMode = isClergyHost || path.startsWith("/clergy") || requestedMode === "clergy";
   const manifest = document.querySelector('link[rel="manifest"]');
   if (manifest) {
-    const manifestHref = path.startsWith("/clergy") || requestedMode === "clergy" ? "/clergy-manifest.webmanifest" : "/manifest.webmanifest";
+    const manifestHref = shouldUseClergyMode ? "/clergy-manifest.webmanifest" : "/manifest.webmanifest";
     if (manifest.getAttribute("href") !== manifestHref) manifest.setAttribute("href", manifestHref);
   }
 
   if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage />;
-  if (path.startsWith("/clergy") || requestedMode === "clergy") {
+  if (shouldUseClergyMode) {
     try {
       localStorage.setItem(APP_ENTRY_MODE_KEY, "clergy");
     } catch {}
