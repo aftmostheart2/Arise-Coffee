@@ -2858,3 +2858,124 @@ input:focus,textarea:focus{
     grid-column:auto;
   }
 }
+
+/* Admin subpage layout repair */
+.adminSubpage{
+  display:block;
+}
+.adminSubpage .adminTop{
+  display:flex;
+  width:100%;
+  margin:0 0 18px;
+}
+.adminSubpage .menuPanel,
+.adminSubpage .archivePanel,
+.adminSubpage .analyticsPanel,
+.adminSubpage .settingsGrid{
+  width:100%;
+  max-width:none;
+  margin:0;
+}
+.adminSubpage .archivePanel,
+.adminSubpage .analyticsPanel{
+  padding:18px;
+}
+.adminSubpage .analyticsWeekBar{
+  max-width:none;
+}
+.settingsAdminPage .settingsGrid{
+  margin:0;
+}
+
+@media(max-width:760px){
+  .adminSubpage .adminTop{
+    display:flex;
+    flex-direction:column;
+  }
+}
+
+/* Menu editor repair */
+.menuAdminPage{
+  max-width:1120px;
+}
+.menuAdminPage .menuPageActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  padding-top:0;
+}
+.menuAdminPage .menuSaveBar{
+  position:static;
+  display:flex;
+  justify-content:flex-end;
+  pointer-events:auto;
+}
+.menuAdminPage .menuEditorList,
+.menuAdminPage .ingredientEditorGrid{
+  grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
+  gap:16px;
+}
+.menuAdminPage .ingredientEditorItem,
+.menuAdminPage .menuEditorItem{
+  min-width:0;
+}
+.menuAdminPage .menuCardHeader{
+  align-items:flex-start;
+}
+.menuAdminPage .menuCardHeader > div{
+  min-width:0;
+}
+.menuAdminPage .menuCardHeader strong{
+  white-space:normal;
+  overflow:visible;
+}
+.menuAdminPage .menuItemActions,
+.menuAdminPage .ingredientEditorItem .menuItemActions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.menuAdminPage .menuItemActions button{
+  width:100%;
+  min-width:0;
+  min-height:42px;
+  white-space:normal;
+  line-height:1.15;
+}
+.menuAdminPage .menuCardBody{
+  grid-template-columns:1fr;
+}
+.menuAdminPage .menuCardControls{
+  grid-template-columns:1fr;
+}
+.menuAdminPage .menuNameField input,
+.menuAdminPage .menuCardBody input{
+  width:100%;
+}
+
+@media(max-width:1180px){
+  .menuAdminPage .menuEditorList,
+  .menuAdminPage .ingredientEditorGrid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:760px){
+  .menuAdminPage{
+    padding-left:14px;
+    padding-right:14px;
+  }
+  .menuAdminPage .menuPageActions{
+    display:grid;
+    grid-template-columns:1fr;
+    width:100%;
+  }
+  .menuAdminPage .menuSaveBar .primaryBtn{
+    width:100%;
+  }
+  .menuAdminPage .menuItemActions,
+  .menuAdminPage .ingredientEditorItem .menuItemActions{
+    grid-template-columns:1fr;
+  }
+}
