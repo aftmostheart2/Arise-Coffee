@@ -10,6 +10,7 @@ const INVENTORY_CACHE_KEY = "arise-inventory-cache";
 const INVENTORY_CACHE_MS = 5 * 60 * 1000;
 const TEXT_SIZE_KEY = "arise-text-size";
 const LAST_ORDER_KEY = "arise-last-order";
+const ORDER_QUOTE_KEY = "arise-order-quote";
 const LAST_ORDER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_TIMER_POSITION_KEY = "arise-admin-timer-position";
 const APP_ENTRY_MODE_KEY = "arise-app-entry-mode";
@@ -131,6 +132,20 @@ function defaultForm() {
 
 function randomBibleQuote() {
   return BIBLE_QUOTES[Math.floor(Math.random() * BIBLE_QUOTES.length)] || BIBLE_QUOTES[0];
+}
+
+function loadOrderQuote() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ORDER_QUOTE_KEY) || "null");
+    if (saved?.orderId && saved?.quote?.text && saved?.quote?.reference) return saved;
+  } catch {}
+  return null;
+}
+
+function saveOrderQuote(orderId, quote) {
+  try {
+    localStorage.setItem(ORDER_QUOTE_KEY, JSON.stringify({ orderId, quote }));
+  } catch {}
 }
 
 function defaultInventory() {
@@ -1858,7 +1873,10 @@ function CustomerPage({ isClergy = false }) {
   const [showReadyAlertPrompt, setShowReadyAlertPrompt] = useState(false);
   const [readyAlertShown, setReadyAlertShown] = useState(false);
   const [lastOrder, setLastOrder] = useState(loadLastOrder);
-  const [orderQuote, setOrderQuote] = useState(null);
+  const [orderQuote, setOrderQuote] = useState(() => {
+    const saved = loadOrderQuote();
+    return saved?.orderId === myOrderId ? saved.quote : null;
+  });
   const [largeText, setLargeText] = useState(() => localStorage.getItem(TEXT_SIZE_KEY) === "large");
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
@@ -1920,6 +1938,14 @@ function CustomerPage({ isClergy = false }) {
     const nextPosition = found.position || Number(positionFromResponse || 0) || 1;
     setMyOrderPosition(nextPosition);
     setMyOrder({ ...found, position: nextPosition });
+    setOrderQuote(currentQuote => {
+      if (currentQuote) return currentQuote;
+      const saved = loadOrderQuote();
+      if (saved?.orderId === found.id) return saved.quote;
+      const nextQuote = randomBibleQuote();
+      saveOrderQuote(found.id, nextQuote);
+      return nextQuote;
+    });
 
     const isReadyForPickup = ["ready", "complete"].includes(found.status);
     const wasReadyForPickup = ["ready", "complete"].includes(previousStatusRef.current);
@@ -2169,7 +2195,9 @@ function CustomerPage({ isClergy = false }) {
       };
       localStorage.setItem(LAST_ORDER_KEY, JSON.stringify(savedOrder));
       setLastOrder(savedOrder);
-      setOrderQuote(randomBibleQuote());
+      const nextQuote = randomBibleQuote();
+      saveOrderQuote(data.id, nextQuote);
+      setOrderQuote(nextQuote);
       setReadyAlertShown(false);
       previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
@@ -2198,6 +2226,7 @@ function CustomerPage({ isClergy = false }) {
 
   function clearMyTicket() {
     localStorage.removeItem("coffee-my-order-id");
+    localStorage.removeItem(ORDER_QUOTE_KEY);
     setMyOrderId("");
     setMyOrder(null);
     setMyOrderPosition(1);
