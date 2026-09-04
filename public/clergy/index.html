@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1C0A00" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Arise! Clergy" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/clergy-manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <title>Arise! Clergy</title>
+</head>
+<body>
+  <script>
+    try {
+      localStorage.setItem("arise-app-entry-mode", "clergy");
+    } catch (error) {}
+    window.location.replace("/?mode=clergy");
+  </script>
+</body>
+</html>
