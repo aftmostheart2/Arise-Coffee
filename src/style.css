@@ -1146,7 +1146,7 @@ input:focus,textarea:focus{
 .adminStatusStrip{
   grid-area:stats;
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:10px;
 }
 .adminStatusStrip div{
@@ -2824,5 +2824,37 @@ input:focus,textarea:focus{
   }
   .adminSubpage .settingsActions .primaryBtn{
     width:100%;
+  }
+}
+
+.settingsAdminPage .adminTopActions .primaryBtn{
+  margin:0;
+  width:auto;
+}
+.settingsAdminPage .settingsGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(280px,1fr));
+  gap:16px;
+  align-items:start;
+}
+.settingsAdminPage .settingsCard{
+  min-height:0;
+}
+.settingsAdminPage .settingsWide{
+  grid-column:1 / -1;
+}
+.settingsAdminPage textarea{
+  width:100%;
+}
+.settingsNotice{
+  justify-self:start;
+}
+
+@media(max-width:900px){
+  .settingsAdminPage .settingsGrid{
+    grid-template-columns:1fr;
+  }
+  .settingsAdminPage .settingsWide{
+    grid-column:auto;
   }
 }

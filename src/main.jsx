@@ -1216,13 +1216,14 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
-        <main className="adminPage adminSubpage">
+        <main className="adminPage adminSubpage settingsAdminPage">
           <section className="adminTop">
             <div>
               <h2>Settings</h2>
               <p className="sub">Queue timing, clergy ordering, and saved messages.</p>
             </div>
             <div className="adminTopActions">
+              <button className="primaryBtn compactPrimary" disabled={busy} onClick={saveSettings}>{busy ? "Saving..." : "Save settings"}</button>
               <button className="ghostBtn" onClick={() => setAdminView("dashboard")}>Back to dashboard</button>
             </div>
           </section>
@@ -1300,10 +1301,7 @@ function AdminPage() {
             </div>
           </section>
 
-          <div className="settingsActions">
-            <button className="primaryBtn" disabled={busy} onClick={saveSettings}>{busy ? "Saving..." : "Save settings"}</button>
-            {notice && <div className="notice">{notice}</div>}
-          </div>
+          {notice && <div className="notice settingsNotice">{notice}</div>}
         </main>
       </>
     );
@@ -1343,10 +1341,6 @@ function AdminPage() {
           <div>
             <span>Ready</span>
             <strong>{orderCounts.ready}</strong>
-          </div>
-          <div>
-            <span>Clergy</span>
-            <strong>{clergyOrderingEnabled ? "On" : "Off"}</strong>
           </div>
         </section>
 
