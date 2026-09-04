@@ -231,6 +231,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .adminOrder.ready{border-color:rgba(107,191,107,.45)}
 .orderTop{display:flex;gap:12px;align-items:flex-start}
 .orderTop p{font-size:12px;color:#8A9B8E;margin-top:2px}
+.orderSourceBadge{display:inline-flex;align-items:center;margin-left:8px;padding:3px 7px;border-radius:999px;border:1px solid rgba(200,130,58,.38);background:rgba(200,130,58,.12);color:#D4934D;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;vertical-align:middle}
 .orderAge{display:block;color:#5A3A20;font-size:11px;margin-top:4px}
 .orderTop em{display:block;color:#8A9B8E;font-size:12px;margin-top:6px}
 .statusBadge{margin-left:auto;font-size:11px;border-radius:20px;padding:4px 9px;background:#2C1400;color:#8A9B8E;white-space:nowrap}

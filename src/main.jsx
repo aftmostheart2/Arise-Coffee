@@ -504,6 +504,7 @@ function AdminPage() {
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
+  const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
@@ -535,6 +536,9 @@ function AdminPage() {
     }
     if (typeof data?.queueClosesAt === "string") {
       setQueueClosesAt(data.queueClosesAt || "");
+    }
+    if (typeof data?.clergyOrderingEnabled === "boolean") {
+      setClergyOrderingEnabled(Boolean(data.clergyOrderingEnabled));
     }
   }
 
@@ -1251,6 +1255,13 @@ function AdminPage() {
           </div>
 
           <div className="adminQuickActions">
+            <button
+              className={clergyOrderingEnabled ? "successBtn" : "ghostBtn"}
+              disabled={busy}
+              onClick={() => saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled: !clergyOrderingEnabled })}
+            >
+              {clergyOrderingEnabled ? "Clergy On" : "Clergy Off"}
+            </button>
             <button className="ghostBtn" onClick={clearCompleted}>Archive ready ({readyArchiveCount})</button>
             <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
           </div>
@@ -1361,6 +1372,7 @@ function AdminPage() {
                   <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
                   <div>
                     <strong>{o.name}</strong>
+                    {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
                     <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
                     {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
                     {o.notes && <em>"{o.notes}"</em>}
@@ -1735,7 +1747,7 @@ function IosInstallGate({ onRefresh }) {
   );
 }
 
-function CustomerPage() {
+function CustomerPage({ isClergy = false }) {
   const [form, setForm] = useState(() => {
     const savedName = localStorage.getItem("arise-customer-name") || "";
     return { ...defaultForm(), name: savedName };
@@ -1757,6 +1769,7 @@ function CustomerPage() {
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
+  const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
   const submittingRef = useRef(false);
@@ -1795,6 +1808,9 @@ function CustomerPage() {
     }
     if (typeof data?.queueClosesAt === "string") {
       setQueueClosesAt(data.queueClosesAt || "");
+    }
+    if (typeof data?.clergyOrderingEnabled === "boolean") {
+      setClergyOrderingEnabled(Boolean(data.clergyOrderingEnabled));
     }
   }
 
@@ -1885,7 +1901,7 @@ function CustomerPage() {
         setIsOpen(Boolean(data.isOpen));
         setMessage(data.message || "");
         syncCustomerQueueTimer(data);
-        return Boolean(data.isOpen);
+        return isClergy ? Boolean(data.clergyOrderingEnabled) : Boolean(data.isOpen);
       }
     } catch {
     } finally {
@@ -2009,8 +2025,8 @@ function CustomerPage() {
     submittingRef.current = true;
     setBusy(true);
 
-    const queueIsOpen = await refreshStatusOnly();
-    if (!queueIsOpen) {
+    const canOrder = await refreshStatusOnly();
+    if (!canOrder) {
       setBusy(false);
       submittingRef.current = false;
       return;
@@ -2035,6 +2051,7 @@ function CustomerPage() {
         milk: form.milk,
         syrups: form.syrups,
         notes: form.notes,
+        source: isClergy ? "clergy" : "",
       });
 
       if (!data.ok) {
@@ -2071,6 +2088,7 @@ function CustomerPage() {
         syrups: form.syrups.join(", "),
         notes: form.notes,
         status: "waiting",
+        source: isClergy ? "clergy" : "",
         position: Number(data.position || 1)
       });
       setForm(defaultForm());
@@ -2121,7 +2139,9 @@ function CustomerPage() {
     return <IosInstallGate onRefresh={() => window.location.reload()} />;
   }
 
-  if (!isOpen && !myOrder) {
+  const orderingOpen = isClergy ? clergyOrderingEnabled : isOpen;
+
+  if (!orderingOpen && !myOrder) {
     return <>
       <Header isOpen={isOpen} />
       <main className={largeText ? "closedPage customerLargeText" : "closedPage"}>
@@ -2129,8 +2149,8 @@ function CustomerPage() {
           <TextSizeControl largeText={largeText} onChange={updateTextSize} />
         </div>
         <div className="closedIcon">🚫</div>
-        <h1>We're closed</h1>
-        <p>{message || "Orders aren't being taken right now. Check back soon!"}</p>
+        <h1>{isClergy ? "Clergy ordering is closed" : "We're closed"}</h1>
+        <p>{isClergy ? "Please check with the Arise! Coffee team." : (message || "Orders aren't being taken right now. Check back soon!")}</p>
         <button className="ghostBtn" onClick={refreshStatusOnly}>Refresh status</button>
       </main>
     </>;
@@ -2139,18 +2159,18 @@ function CustomerPage() {
   return (
     <>
       <Header isOpen={isOpen} />
-      <QueueTimerBadge isOpen={queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
+      <QueueTimerBadge isOpen={!isClergy && queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
       <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
           <div className="customerSectionHead">
             <div>
-              <h2>Place your order</h2>
-              <p className="sub">{isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates."}</p>
+              <h2>{isClergy ? "Clergy order" : "Place your order"}</h2>
+              <p className="sub">{isClergy ? "Orders from this link stay above the regular queue." : (isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates.")}</p>
             </div>
             <TextSizeControl largeText={largeText} onChange={updateTextSize} />
           </div>
 
-          {isOpen && (
+          {orderingOpen && (
             <>
               {lastOrder && (
                 <button className="lastOrderBtn" onClick={useLastOrder}>
@@ -2455,6 +2475,7 @@ function DisplayPage() {
 function App() {
   const path = window.location.pathname.toLowerCase();
   if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage />;
+  if (path.startsWith("/clergy")) return <CustomerPage isClergy />;
   return path.startsWith("/admin") ? <AdminPage /> : <CustomerPage />;
 }
 

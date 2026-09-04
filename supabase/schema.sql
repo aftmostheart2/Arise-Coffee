@@ -10,7 +10,9 @@ create table if not exists orders (
   milk text,
   syrups text[] default '{}',
   notes text,
-  status text not null default 'waiting'
+  status text not null default 'waiting',
+  source text not null default '',
+  priority boolean not null default false
 );
 
 alter table orders add column if not exists created_at timestamptz not null default now();
@@ -23,6 +25,8 @@ alter table orders add column if not exists milk text;
 alter table orders add column if not exists syrups text[] default '{}';
 alter table orders add column if not exists notes text;
 alter table orders add column if not exists status text not null default 'waiting';
+alter table orders add column if not exists source text not null default '';
+alter table orders add column if not exists priority boolean not null default false;
 
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
@@ -156,6 +160,7 @@ insert into settings (key, value) values
 ('message','""'),
 ('queueTimerMinutes','"30"'),
 ('queueTimerEnabled','"true"'),
+('clergyOrderingEnabled','"false"'),
 ('queueClosesAt','""')
 on conflict (key) do nothing;
 
@@ -217,6 +222,19 @@ as $$
       nullif(arise_setting('queueClosesAt', ''), '') is null
       or nullif(arise_setting('queueClosesAt', ''), '')::timestamptz > now()
     );
+$$;
+
+create or replace function arise_can_place_order(input_source text default '')
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when coalesce(input_source, '') = 'clergy' then arise_setting('clergyOrderingEnabled', 'false') = 'true'
+    else arise_queue_is_open()
+  end;
 $$;
 
 create or replace function arise_inventory_json()
@@ -344,6 +362,8 @@ as $$
       'syrups', array_to_string(coalesce((input_order).syrups, '{}'::text[]), ', '),
       'notes', coalesce((input_order).notes, ''),
       'status', coalesce((input_order).status, 'waiting'),
+      'source', coalesce((input_order).source, ''),
+      'priority', coalesce((input_order).priority, false),
       'position', input_position,
       'ordersAhead', case when input_position is null then null else greatest(0, input_position - 1) end
     )
@@ -363,6 +383,7 @@ as $$
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+    'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 $$;
@@ -404,7 +425,8 @@ as $$
     select
       orders as order_row,
       orders.created_at,
-      row_number() over (order by created_at) as position
+      orders.priority,
+      row_number() over (order by priority desc, created_at) as position
     from orders
     where status <> 'complete'
   )
@@ -414,8 +436,9 @@ as $$
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+    'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
-    'orders', coalesce(jsonb_agg(arise_order_json(active.order_row, active.position::integer) order by active.created_at), '[]'::jsonb),
+    'orders', coalesce(jsonb_agg(arise_order_json(active.order_row, active.position::integer) order by active.priority desc, active.created_at), '[]'::jsonb),
     'inventory', arise_inventory_json()
   )
   from active;
@@ -461,6 +484,7 @@ as $$
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+    'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(
       (
@@ -515,7 +539,7 @@ begin
   from (
     select
       id::text as id,
-      row_number() over (order by created_at) as position
+      row_number() over (order by priority desc, created_at) as position
     from orders
     where status <> 'complete'
   ) active
@@ -557,6 +581,7 @@ begin
         'message', arise_setting('message', ''),
         'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
         'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+        'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
         'queueClosesAt', arise_setting('queueClosesAt', ''),
         'order', jsonb_build_object(
           'id', coalesce(canceled_order.original_order_id_text, canceled_order.original_order_id::text),
@@ -583,6 +608,7 @@ begin
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+    'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'order', arise_order_json(found_order, found_position),
     'position', found_position,
@@ -600,12 +626,15 @@ as $$
 declare
   new_id text;
   order_state jsonb;
+  order_source text;
 begin
-  if not arise_queue_is_open() then
+  order_source := case when coalesce(input_order->>'source', '') = 'clergy' then 'clergy' else '' end;
+
+  if not arise_can_place_order(order_source) then
     return jsonb_build_object('ok', false, 'error', 'Queue closed');
   end if;
 
-  insert into orders (name, customer_name, drink, temp, temperature, milk, syrups, notes, status)
+  insert into orders (name, customer_name, drink, temp, temperature, milk, syrups, notes, status, source, priority)
   values (
     coalesce(input_order->>'name', ''),
     coalesce(input_order->>'name', ''),
@@ -615,7 +644,9 @@ begin
     coalesce(input_order->>'milk', ''),
     coalesce(array(select jsonb_array_elements_text(coalesce(input_order->'syrups', '[]'::jsonb))), '{}'::text[]),
     coalesce(input_order->>'notes', ''),
-    'waiting'
+    'waiting',
+    order_source,
+    order_source = 'clergy'
   )
   returning id::text into new_id;
 
@@ -633,7 +664,8 @@ $$;
 drop function if exists arise_update_admin(text, boolean, text);
 drop function if exists arise_update_admin(text, boolean, text, integer);
 drop function if exists arise_update_admin(text, boolean, text, integer, boolean);
-create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null, input_timer_enabled boolean default null)
+drop function if exists arise_update_admin(text, boolean, text, integer, boolean, boolean);
+create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null, input_timer_enabled boolean default null, input_clergy_enabled boolean default null)
 returns jsonb
 language plpgsql
 security definer
@@ -659,6 +691,12 @@ begin
   if input_timer_enabled is not null then
     insert into settings (key, value)
     values ('queueTimerEnabled', to_jsonb(case when next_timer_enabled then 'true' else 'false' end)::text)
+    on conflict (key) do update set value = excluded.value;
+  end if;
+
+  if input_clergy_enabled is not null then
+    insert into settings (key, value)
+    values ('clergyOrderingEnabled', to_jsonb(case when input_clergy_enabled then 'true' else 'false' end)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
@@ -783,6 +821,7 @@ begin
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+    'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -845,6 +884,7 @@ begin
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
+    'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -1289,7 +1329,7 @@ grant execute on function arise_orders() to anon;
 grant execute on function arise_display() to anon;
 grant execute on function arise_order(text) to anon;
 grant execute on function arise_place_order(jsonb) to anon;
-grant execute on function arise_update_admin(text, boolean, text, integer, boolean) to anon;
+grant execute on function arise_update_admin(text, boolean, text, integer, boolean, boolean) to anon;
 grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_cancel_order(text, text, text) to anon;
 grant execute on function arise_cancel_active_orders(text, text) to anon;
