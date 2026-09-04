@@ -2652,3 +2652,177 @@ input:focus,textarea:focus{
     touch-action:manipulation;
   }
 }
+
+/* Admin full refresh */
+.adminSubpage{
+  display:grid;
+  gap:18px;
+}
+.adminSubpage .adminTop{
+  background:
+    radial-gradient(circle at top right,rgba(200,130,58,.18),transparent 32%),
+    linear-gradient(135deg,rgba(44,20,0,.78),rgba(18,7,0,.52));
+  border-color:rgba(200,130,58,.18);
+  border-radius:18px;
+  min-height:128px;
+  align-items:center;
+  box-shadow:0 22px 70px rgba(0,0,0,.22);
+}
+.adminSubpage .adminTop h2{
+  font-size:34px;
+}
+.adminSubpage .adminTopActions{
+  background:rgba(12,5,0,.28);
+  border:1px solid rgba(200,130,58,.10);
+  border-radius:14px;
+  padding:10px;
+}
+.adminSubpage .archivePanel,.adminSubpage .analyticsPanel,.adminSubpage .menuPanel{
+  background:linear-gradient(180deg,rgba(32,14,0,.72),rgba(18,7,0,.54));
+  border-color:rgba(200,130,58,.14);
+  border-radius:18px;
+  box-shadow:0 24px 70px rgba(0,0,0,.18);
+}
+.adminSubpage .archiveHeader,.adminSubpage .menuSubhead{
+  background:rgba(12,5,0,.24);
+  border:1px solid rgba(200,130,58,.08);
+  border-radius:14px;
+  padding:14px;
+}
+.adminSubpage .archiveHeader h2,.adminSubpage .menuSubhead h3{
+  font-size:21px;
+}
+.adminSubpage .menuSectionCard{
+  background:linear-gradient(180deg,rgba(26,11,0,.64),rgba(12,5,0,.30));
+  border-color:rgba(200,130,58,.10);
+  border-radius:18px;
+  padding:18px;
+}
+.adminSubpage .menuEditorItem,.adminSubpage .ingredientEditorItem{
+  background:linear-gradient(180deg,rgba(24,10,0,.78),rgba(12,5,0,.48));
+  border-color:rgba(200,130,58,.12);
+  border-radius:16px;
+  padding:16px;
+}
+.adminSubpage .menuEditorItem:hover,.adminSubpage .ingredientEditorItem:hover{
+  border-color:rgba(200,130,58,.22);
+}
+.adminSubpage .menuCardControls{
+  background:rgba(255,248,240,.025);
+  border:1px solid rgba(200,130,58,.06);
+  border-radius:14px;
+  padding:12px;
+}
+.adminSubpage .menuItemActions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.adminSubpage .ingredientEditorItem .menuItemActions{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+}
+.adminSubpage .menuItemActions button{
+  min-width:0;
+}
+.archiveList{
+  display:grid;
+  gap:10px;
+}
+.adminSubpage .archiveOrder{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:14px;
+  align-items:center;
+  background:linear-gradient(180deg,rgba(24,10,0,.74),rgba(12,5,0,.44));
+  border-radius:14px;
+  padding:14px;
+}
+.archiveOrderMeta{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  justify-content:flex-end;
+}
+.archiveOrderMeta span{
+  color:var(--muted);
+  font-size:12px;
+  white-space:nowrap;
+}
+.adminSubpage .analyticsWeekBar{
+  border-radius:16px;
+  background:rgba(12,5,0,.40);
+  padding:14px;
+}
+.adminSubpage .analyticsSummary{
+  gap:12px;
+}
+.adminSubpage .analyticsSummary div,.adminSubpage .analyticsList{
+  background:linear-gradient(180deg,rgba(24,10,0,.78),rgba(12,5,0,.48));
+  border-color:rgba(200,130,58,.12);
+  border-radius:16px;
+  padding:16px;
+}
+.adminSubpage .analyticsSummary strong{
+  font-size:32px;
+}
+.adminSubpage .analyticsGrid{
+  gap:12px;
+}
+.adminSubpage .analyticsRow{
+  min-height:40px;
+  align-items:center;
+}
+.adminSubpage .settingsGrid{
+  gap:16px;
+}
+.adminSubpage .settingsCard{
+  background:
+    radial-gradient(circle at top right,rgba(200,130,58,.10),transparent 28%),
+    linear-gradient(180deg,rgba(34,15,0,.74),rgba(14,6,0,.50));
+  border-color:rgba(200,130,58,.14);
+  border-radius:18px;
+  padding:18px;
+}
+.adminSubpage .settingsCard h3{
+  font-size:20px;
+}
+.adminSubpage .settingsActions{
+  justify-self:end;
+  min-width:min(100%,420px);
+  justify-content:flex-end;
+}
+
+@media(max-width:760px){
+  .adminSubpage .adminTop{
+    min-height:0;
+    align-items:stretch;
+  }
+  .adminSubpage .adminTop h2{
+    font-size:30px;
+  }
+  .adminSubpage .adminTopActions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .adminSubpage .menuEditorList,.adminSubpage .ingredientEditorGrid{
+    grid-template-columns:1fr;
+  }
+  .adminSubpage .menuItemActions,.adminSubpage .ingredientEditorItem .menuItemActions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .adminSubpage .archiveOrder{
+    grid-template-columns:1fr;
+  }
+  .archiveOrderMeta{
+    justify-content:space-between;
+  }
+  .adminSubpage .analyticsSummary,.adminSubpage .analyticsGrid,.adminSubpage .settingsGrid{
+    grid-template-columns:1fr;
+  }
+  .adminSubpage .settingsActions{
+    justify-self:stretch;
+  }
+  .adminSubpage .settingsActions .primaryBtn{
+    width:100%;
+  }
+}

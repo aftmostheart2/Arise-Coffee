@@ -1062,7 +1062,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
-        <main className="adminPage">
+        <main className="adminPage adminSubpage menuAdminPage">
           <section className="adminTop">
             <div>
               <h2>Menu</h2>
@@ -1102,7 +1102,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
-        <main className="adminPage">
+        <main className="adminPage adminSubpage">
           <section className="adminTop">
             <div>
               <h2>Archive</h2>
@@ -1133,15 +1133,15 @@ function AdminPage() {
               <div className="archiveList">
                 {archive.map(item => (
                   <div className="archiveOrder" key={item.id}>
-                  <div>
-                    <strong>{item.name || "Unnamed order"}</strong>
-                    <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
-                    {item.notes && <em>"{item.notes}"</em>}
-                  </div>
-                  <div className="archiveOrderMeta">
-                    <span>{item.archivedAt ? new Date(item.archivedAt).toLocaleString() : ""}</span>
-                    <button className="dangerOutlineBtn" disabled={archiveBusy} onClick={() => deleteArchivedOrder(item.id)}>Delete</button>
-                  </div>
+                    <div>
+                      <strong>{item.name || "Unnamed order"}</strong>
+                      <p>{item.temp} {item.drink}{item.milk ? ` · ${item.milk}` : ""}{item.syrups ? ` · ${item.syrups}` : ""}</p>
+                      {item.notes && <em>"{item.notes}"</em>}
+                    </div>
+                    <div className="archiveOrderMeta">
+                      <span>{item.archivedAt ? new Date(item.archivedAt).toLocaleString() : ""}</span>
+                      <button className="dangerOutlineBtn" disabled={archiveBusy} onClick={() => deleteArchivedOrder(item.id)}>Delete</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1156,7 +1156,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
-        <main className="adminPage">
+        <main className="adminPage adminSubpage">
           <section className="adminTop">
             <div>
               <h2>Analytics</h2>
@@ -1216,7 +1216,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
-        <main className="adminPage">
+        <main className="adminPage adminSubpage">
           <section className="adminTop">
             <div>
               <h2>Settings</h2>
