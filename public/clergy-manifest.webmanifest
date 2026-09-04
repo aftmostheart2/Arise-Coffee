@@ -2,7 +2,7 @@
   "name": "Arise! Coffee Clergy",
   "short_name": "Arise!",
   "description": "Clergy priority ordering for Arise! Coffee.",
-  "start_url": "/clergy",
+  "start_url": "/?mode=clergy",
   "scope": "/",
   "display": "standalone",
   "background_color": "#1C0A00",

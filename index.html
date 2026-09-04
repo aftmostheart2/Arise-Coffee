@@ -9,7 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link id="app-manifest" rel="manifest" href="/manifest.webmanifest" />
   <script>
-    if (window.location.pathname.toLowerCase().startsWith("/clergy")) {
+    const appParams = new URLSearchParams(window.location.search);
+    if (window.location.pathname.toLowerCase().startsWith("/clergy") || appParams.get("mode") === "clergy") {
       document.getElementById("app-manifest")?.setAttribute("href", "/clergy-manifest.webmanifest");
       document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", "Arise! Clergy");
     }
