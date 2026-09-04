@@ -16,15 +16,15 @@ const APP_ENTRY_MODE_KEY = "arise-app-entry-mode";
 
 const BIBLE_QUOTES = [
   { text: "Let all that you do be done with love.", reference: "1 Corinthians 16:14" },
-  { text: "Rejoice always, pray without ceasing, in everything give thanks.", reference: "1 Thessalonians 5:16-18" },
+  { text: "Rejoice always, pray without ceasing, in everything give thanks.", reference: "1 Thessalonians 5:16-18", excerpt: true },
   { text: "Come to Me, all you who labor and are heavy laden, and I will give you rest.", reference: "Matthew 11:28" },
   { text: "Blessed are the pure in heart, for they shall see God.", reference: "Matthew 5:8" },
-  { text: "Peace I leave with you, My peace I give to you.", reference: "John 14:27" },
+  { text: "Peace I leave with you, My peace I give to you.", reference: "John 14:27", excerpt: true },
   { text: "I can do all things through Christ who strengthens me.", reference: "Philippians 4:13" },
   { text: "Be kindly affectionate to one another with brotherly love.", reference: "Romans 12:10" },
-  { text: "And let the peace of God rule in your hearts.", reference: "Colossians 3:15" },
+  { text: "And let the peace of God rule in your hearts.", reference: "Colossians 3:15", excerpt: true },
   { text: "For we walk by faith, not by sight.", reference: "2 Corinthians 5:7" },
-  { text: "Whatever you do, do it heartily, as to the Lord and not to men.", reference: "Colossians 3:23" },
+  { text: "Whatever you do, do it heartily, as to the Lord and not to men.", reference: "Colossians 3:23", excerpt: true },
 ];
 
 const DRINKS = [
@@ -2406,8 +2406,8 @@ function CustomerPage({ isClergy = false }) {
                 {orderQuote && (
                   <div className="scriptureCard">
                     <div className="label gold">A verse for your wait</div>
-                    <p>"{orderQuote.text}"</p>
-                    <span>{orderQuote.reference}</span>
+                    <p>{orderQuote.excerpt ? "..." : ""}"{orderQuote.text}"{orderQuote.excerpt ? "..." : ""}</p>
+                    <span>{orderQuote.reference}{orderQuote.excerpt ? " excerpt" : ""}</span>
                   </div>
                 )}
                 {!["ready","complete","canceled"].includes(myOrder.status) && (
