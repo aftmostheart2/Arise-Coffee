@@ -12,6 +12,7 @@ const TEXT_SIZE_KEY = "arise-text-size";
 const LAST_ORDER_KEY = "arise-last-order";
 const LAST_ORDER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_TIMER_POSITION_KEY = "arise-admin-timer-position";
+const APP_ENTRY_MODE_KEY = "arise-app-entry-mode";
 
 const DRINKS = [
   { id: "americano", label: "Americano", desc: "No milk, water only", temps: ["Hot", "Cold"], milk: false, syrups: true },
@@ -2550,7 +2551,17 @@ function DisplayPage() {
 function App() {
   const path = window.location.pathname.toLowerCase();
   if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage />;
-  if (path.startsWith("/clergy")) return <CustomerPage isClergy />;
+  if (path.startsWith("/clergy")) {
+    try {
+      localStorage.setItem(APP_ENTRY_MODE_KEY, "clergy");
+    } catch {}
+    return <CustomerPage isClergy />;
+  }
+  if (path === "/" && isStandaloneApp()) {
+    try {
+      if (localStorage.getItem(APP_ENTRY_MODE_KEY) === "clergy") return <CustomerPage isClergy />;
+    } catch {}
+  }
   return path.startsWith("/admin") ? <AdminPage /> : <CustomerPage />;
 }
 
