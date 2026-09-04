@@ -1313,7 +1313,7 @@ function AdminPage() {
     <>
       <Header isOpen={isOpen} />
       <QueueTimerBadge isOpen={queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} draggable />
-      <main className="adminPage">
+      <main className="adminPage adminDashboard">
         <section className="adminTop">
           <div>
             <h2>Admin Control</h2>
@@ -1355,6 +1355,7 @@ function AdminPage() {
             <div>
               <div className="label">Queue Status</div>
               <div className={isOpen ? "statusOpen" : "statusClosed"}>{isOpen ? "● Open" : "● Closed"}</div>
+              <p className="queueCommandHint">{queueTimerEnabled ? `${queueTimerMinutes} minute ordering window` : "Manual close mode"}</p>
             </div>
             <div className="queueTimerControl">
               <button disabled={busy} className={isOpen ? "dangerBtn" : "successBtn"} onClick={() => saveAdmin({ isOpen: !isOpen, message, queueTimerMinutes, queueTimerEnabled })}>

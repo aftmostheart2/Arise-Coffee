@@ -1116,9 +1116,25 @@ input:focus,textarea:focus{
   .closedPage h1{font-size:32px}
 }
 
-/* Admin navigation polish */
-.adminTop{
+/* Admin operations board */
+.adminDashboard{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(360px,.58fr);
+  grid-template-areas:
+    "top top"
+    "stats stats"
+    "command tools"
+    "inventory orders";
   gap:16px;
+}
+.adminTop{
+  grid-area:top;
+  gap:16px;
+  background:
+    radial-gradient(circle at top right,rgba(200,130,58,.16),transparent 34%),
+    linear-gradient(180deg,rgba(44,20,0,.70),rgba(18,7,0,.46));
+  border-color:rgba(200,130,58,.18);
+  box-shadow:0 22px 70px rgba(0,0,0,.20);
 }
 .adminTopActions{
   display:flex;
@@ -1128,18 +1144,29 @@ input:focus,textarea:focus{
   justify-content:flex-end;
 }
 .adminStatusStrip{
+  grid-area:stats;
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:10px;
-  margin-bottom:14px;
 }
 .adminStatusStrip div{
-  background:linear-gradient(180deg,rgba(40,19,2,.62),rgba(18,7,0,.42));
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(180deg,rgba(40,19,2,.66),rgba(18,7,0,.42));
   border:1px solid rgba(200,130,58,.14);
   border-radius:14px;
   padding:13px 14px;
   min-height:72px;
   box-shadow:0 16px 50px rgba(0,0,0,.12);
+}
+.adminStatusStrip div:after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:3px;
+  background:linear-gradient(90deg,rgba(200,130,58,.72),rgba(107,191,107,.34));
 }
 .adminStatusStrip span{
   display:block;
@@ -1158,10 +1185,10 @@ input:focus,textarea:focus{
   line-height:1;
 }
 .adminCommandCenter{
+  grid-area:command;
   display:grid;
-  grid-template-columns:minmax(260px,1fr) minmax(240px,.9fr);
+  grid-template-columns:1fr;
   gap:12px;
-  margin-bottom:16px;
 }
 .queueCommand,.adminQuickActions{
   background:linear-gradient(180deg,rgba(44,20,0,.70),rgba(24,10,0,.58));
@@ -1171,10 +1198,17 @@ input:focus,textarea:focus{
   box-shadow:0 18px 60px rgba(0,0,0,.14);
 }
 .queueCommand{
-  display:flex;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
   align-items:center;
-  justify-content:space-between;
   gap:14px;
+  min-height:144px;
+  border-color:rgba(200,130,58,.22);
+}
+.queueCommandHint{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:13px;
 }
 .queueTimerControl{
   display:flex;
@@ -1218,8 +1252,10 @@ input:focus,textarea:focus{
   min-height:62px;
 }
 .queueCommand .successBtn,.queueCommand .dangerBtn{
-  min-width:140px;
-  min-height:44px;
+  min-width:178px;
+  min-height:58px;
+  border-radius:12px;
+  font-size:16px;
 }
 .adminQuickActions{
   display:grid;
@@ -1231,10 +1267,10 @@ input:focus,textarea:focus{
   width:100%;
 }
 .adminTools{
+  grid-area:tools;
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:12px;
-  margin-bottom:16px;
 }
 .toolTile{
   text-align:left;
@@ -1243,7 +1279,7 @@ input:focus,textarea:focus{
   border-radius:14px;
   color:var(--text);
   padding:14px;
-  min-height:76px;
+  min-height:88px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
 }
 .toolTile strong{
@@ -1267,6 +1303,39 @@ input:focus,textarea:focus{
 }
 .closedMessagePanel{
   margin-bottom:16px;
+}
+.adminDashboard .inventoryPanel{
+  grid-area:inventory;
+  margin:0;
+}
+.adminDashboard .orders{
+  grid-area:orders;
+  margin:0;
+  align-self:start;
+  position:sticky;
+  top:92px;
+  max-height:calc(100dvh - 116px);
+  overflow:auto;
+}
+.adminDashboard .orders .sectionHeader{
+  position:sticky;
+  top:0;
+  z-index:2;
+  margin:-18px -18px 14px;
+  padding:18px;
+  background:linear-gradient(180deg,rgba(44,20,0,.96),rgba(36,16,0,.90));
+  border-bottom:1px solid rgba(200,130,58,.12);
+  border-radius:14px 14px 0 0;
+}
+.adminDashboard .inventoryPanel .sectionHeader{
+  align-items:flex-start;
+}
+.adminDashboard .adminOrder{
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(36,16,0,.94),rgba(24,10,0,.88));
+}
+.adminDashboard .adminOrder.making{
+  background:linear-gradient(180deg,rgba(43,35,10,.92),rgba(27,22,8,.86));
 }
 .settingsGrid{
   display:grid;
@@ -1328,6 +1397,9 @@ input:focus,textarea:focus{
 }
 
 @media(max-width:760px){
+  .adminDashboard{
+    display:block;
+  }
   .adminTop{
     flex-direction:column;
     align-items:stretch;
@@ -1350,7 +1422,8 @@ input:focus,textarea:focus{
   }
   .queueCommand{
     align-items:stretch;
-    flex-direction:column;
+    grid-template-columns:1fr;
+    min-height:0;
   }
   .queueTimerControl{
     justify-content:flex-start;
@@ -1360,6 +1433,17 @@ input:focus,textarea:focus{
   }
   .queueCommand .successBtn,.queueCommand .dangerBtn{
     width:100%;
+  }
+  .adminDashboard .inventoryPanel,.adminDashboard .orders{
+    margin-top:16px;
+  }
+  .adminDashboard .orders{
+    position:static;
+    max-height:none;
+    overflow:visible;
+  }
+  .adminDashboard .orders .sectionHeader{
+    position:static;
   }
 }
 
@@ -1414,6 +1498,16 @@ input:focus,textarea:focus{
     max-width:1060px;
     padding:26px 22px 64px;
   }
+  .adminDashboard{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "top"
+      "stats"
+      "command"
+      "tools"
+      "inventory"
+      "orders";
+  }
   .adminTop{
     align-items:flex-start;
   }
@@ -1422,8 +1516,7 @@ input:focus,textarea:focus{
     padding:7px 10px;
   }
   .adminCommandCenter{
-    grid-template-columns:minmax(0,1.1fr) minmax(260px,.8fr);
-    gap:14px;
+    grid-template-columns:1fr;
   }
   .adminTools{
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -1452,6 +1545,14 @@ input:focus,textarea:focus{
   }
   .ingredientEditorGrid{
     grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .adminDashboard .orders{
+    position:static;
+    max-height:none;
+    overflow:visible;
+  }
+  .adminDashboard .orders .sectionHeader{
+    position:static;
   }
 }
 
@@ -1491,6 +1592,12 @@ input:focus,textarea:focus{
   }
   .orders .sectionHeader,.orders .empty{
     grid-column:1 / -1;
+  }
+  .adminDashboard .orders{
+    display:block;
+  }
+  .adminDashboard .orders .sectionHeader,.adminDashboard .orders .empty{
+    grid-column:auto;
   }
   .adminOrder{
     margin-bottom:0;
