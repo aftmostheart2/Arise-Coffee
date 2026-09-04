@@ -15,16 +15,16 @@ const ADMIN_TIMER_POSITION_KEY = "arise-admin-timer-position";
 const APP_ENTRY_MODE_KEY = "arise-app-entry-mode";
 
 const BIBLE_QUOTES = [
-  { text: "Taste and see that the Lord is good.", reference: "Psalm 34:8" },
-  { text: "Be still, and know that I am God.", reference: "Psalm 46:10" },
   { text: "Let all that you do be done with love.", reference: "1 Corinthians 16:14" },
   { text: "Rejoice always, pray without ceasing, in everything give thanks.", reference: "1 Thessalonians 5:16-18" },
   { text: "Come to Me, all you who labor and are heavy laden, and I will give you rest.", reference: "Matthew 11:28" },
-  { text: "Serve the Lord with gladness; come before His presence with singing.", reference: "Psalm 100:2" },
-  { text: "The Lord is my shepherd; I shall not want.", reference: "Psalm 23:1" },
   { text: "Blessed are the pure in heart, for they shall see God.", reference: "Matthew 5:8" },
-  { text: "The Lord will give strength to His people; the Lord will bless His people with peace.", reference: "Psalm 29:11" },
-  { text: "Commit your way to the Lord, trust also in Him, and He shall bring it to pass.", reference: "Psalm 37:5" },
+  { text: "Peace I leave with you, My peace I give to you.", reference: "John 14:27" },
+  { text: "I can do all things through Christ who strengthens me.", reference: "Philippians 4:13" },
+  { text: "Be kindly affectionate to one another with brotherly love.", reference: "Romans 12:10" },
+  { text: "And let the peace of God rule in your hearts.", reference: "Colossians 3:15" },
+  { text: "For we walk by faith, not by sight.", reference: "2 Corinthians 5:7" },
+  { text: "Whatever you do, do it heartily, as to the Lord and not to men.", reference: "Colossians 3:23" },
 ];
 
 const DRINKS = [
