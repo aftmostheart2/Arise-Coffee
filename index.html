@@ -7,7 +7,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Arise! Coffee" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="manifest" href="/manifest.webmanifest" />
+  <link id="app-manifest" rel="manifest" href="/manifest.webmanifest" />
+  <script>
+    if (window.location.pathname.toLowerCase().startsWith("/clergy")) {
+      document.getElementById("app-manifest")?.setAttribute("href", "/clergy-manifest.webmanifest");
+      document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", "Arise! Clergy");
+    }
+  </script>
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <title>Arise! Coffee</title>

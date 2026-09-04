@@ -2550,6 +2550,12 @@ function DisplayPage() {
 
 function App() {
   const path = window.location.pathname.toLowerCase();
+  const manifest = document.querySelector('link[rel="manifest"]');
+  if (manifest) {
+    const manifestHref = path.startsWith("/clergy") ? "/clergy-manifest.webmanifest" : "/manifest.webmanifest";
+    if (manifest.getAttribute("href") !== manifestHref) manifest.setAttribute("href", manifestHref);
+  }
+
   if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage />;
   if (path.startsWith("/clergy")) {
     try {
