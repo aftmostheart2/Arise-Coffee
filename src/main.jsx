@@ -557,11 +557,14 @@ function AdminPage() {
   const messageEditingRef = useRef(false);
   const adminSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
   const adminMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
-  const orderCounts = useMemo(() => ({
-    waiting: orders.filter(order => order.status === "waiting").length,
-    making: orders.filter(order => order.status === "making").length,
-    ready: orders.filter(order => ["ready", "complete"].includes(order.status)).length,
-  }), [orders]);
+  const visibleOrders = useMemo(() => orders.filter(o => o.status !== "complete"), [orders]);
+  const pickupOrders = useMemo(() => visibleOrders.filter(o => o.fulfillmentType !== "delivery"), [visibleOrders]);
+  const deliveryOrders = useMemo(() => visibleOrders.filter(o => o.fulfillmentType === "delivery"), [visibleOrders]);
+  const pickupOrderCounts = useMemo(() => ({
+    waiting: pickupOrders.filter(order => order.status === "waiting").length,
+    making: pickupOrders.filter(order => order.status === "making").length,
+    ready: pickupOrders.filter(order => ["ready", "complete"].includes(order.status)).length,
+  }), [pickupOrders]);
 
   function syncAdminMessage(nextMessage) {
     if (!messageEditingRef.current && typeof nextMessage === "string") {
@@ -1096,9 +1099,6 @@ function AdminPage() {
     </>;
   }
 
-  const visibleOrders = orders.filter(o => o.status !== "complete");
-  const deliveryOrders = visibleOrders.filter(o => o.fulfillmentType === "delivery");
-
   if (adminView === "menu") {
     return (
       <>
@@ -1428,7 +1428,8 @@ function AdminPage() {
             <h2>Admin Control</h2>
             <p className="sub">Live queue, inventory, and order tools.</p>
             <div className="adminMeta">
-              <span>Active orders: {visibleOrders.length}</span>
+              <span>Pickup: {pickupOrders.length}</span>
+              <span>Delivery: {deliveryOrders.length}</span>
               <span className={connectionOk ? "online" : "offline"}>{connectionOk ? "Online" : "Connection issue"}</span>
               <span>Updated {formatUpdatedAt(lastUpdated)}</span>
               <button className="adminMetaLink" onClick={() => window.location.assign("/display")}>TV</button>
@@ -1543,19 +1544,19 @@ function AdminPage() {
               <section className="adminStatusStrip" aria-label="Order summary">
                 <div>
                   <span>Waiting</span>
-                  <strong>{orderCounts.waiting}</strong>
+                  <strong>{pickupOrderCounts.waiting}</strong>
                 </div>
                 <div>
                   <span>Being made</span>
-                  <strong>{orderCounts.making}</strong>
+                  <strong>{pickupOrderCounts.making}</strong>
                 </div>
                 <div>
                   <span>Ready</span>
-                  <strong>{orderCounts.ready}</strong>
+                  <strong>{pickupOrderCounts.ready}</strong>
                 </div>
               </section>
 
-              {visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
+              {pickupOrders.length === 0 ? <div className="empty smallEmpty">No pickup orders.</div> : pickupOrders.map((o, idx) => (
                 <div className={"adminOrder " + o.status} key={o.id}>
                   <div className="orderTop">
                     <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
@@ -1563,10 +1564,8 @@ function AdminPage() {
                       <div className="orderNameLine">
                         <strong>{o.name}</strong>
                         {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
-                        {o.fulfillmentType === "delivery" && <span className="orderSourceBadge deliveryBadge">Delivery</span>}
                       </div>
                       <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
-                      {o.fulfillmentType === "delivery" && <span className="orderAge">Deliver to {o.deliveryLocation || "classroom"}</span>}
                       {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
                       {o.notes && <em>"{o.notes}"</em>}
                     </div>
@@ -1575,7 +1574,7 @@ function AdminPage() {
                   <div className="adminActions">
                     <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
                     <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
-                    <button onClick={() => updateStatus(o.id, "complete")}>{o.fulfillmentType === "delivery" ? "Ready for Delivery" : "Ready for Pickup"}</button>
+                    <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
                     <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
                   </div>
                   <input
