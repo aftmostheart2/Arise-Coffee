@@ -1966,6 +1966,7 @@ function CustomerPage({ isClergy = false }) {
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
   const submittingRef = useRef(false);
