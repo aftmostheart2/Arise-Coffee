@@ -911,6 +911,11 @@ function AdminPage() {
     saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled, deliveryEnabled });
   }
 
+  function saveDeliverySetting(nextDeliveryEnabled) {
+    setDeliveryEnabled(nextDeliveryEnabled);
+    saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled, deliveryEnabled: nextDeliveryEnabled });
+  }
+
   function formatWeekRange(start, end) {
     if (!start || !end) return "Selected week";
     const startDate = new Date(start);
@@ -1328,7 +1333,7 @@ function AdminPage() {
                 <input
                   type="checkbox"
                   checked={deliveryEnabled}
-                  onChange={event => setDeliveryEnabled(event.target.checked)}
+                  onChange={event => saveDeliverySetting(event.target.checked)}
                 />
                 Delivery option
               </label>
