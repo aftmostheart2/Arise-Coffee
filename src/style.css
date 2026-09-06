@@ -57,9 +57,9 @@ h2{font-size:24px;margin-bottom:4px}
 .label span{letter-spacing:0;text-transform:none;color:#5A3A20;font-size:11px}
 .gold{color:#C8823A!important}
 
-input,textarea{width:100%;padding:11px 14px;background:#2C1400;border:1px solid rgba(200,130,58,.25);border-radius:4px;color:#FFF8F0}
+input,textarea,select{width:100%;padding:11px 14px;background:#2C1400;border:1px solid rgba(200,130,58,.25);border-radius:4px;color:#FFF8F0}
 textarea{resize:vertical}
-input:focus,textarea:focus{outline:2px solid #C8823A}
+input:focus,textarea:focus,select:focus{outline:2px solid #C8823A}
 .drinkList{display:flex;flex-direction:column;gap:7px}
 .drink{width:100%;padding:10px 14px;text-align:left;border-radius:4px;background:#2C1400;color:#A08060;border:1px solid rgba(200,130,58,.2)}
 .drink.active{background:#C8823A;color:#FFF8F0;border-color:#C8823A}
@@ -68,6 +68,9 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .wrap{flex-wrap:wrap}
 .choice{flex:1;padding:11px;border-radius:4px;background:#2C1400;color:#A08060;border:1px solid rgba(200,130,58,.2);font-weight:500}
 .choice.active{background:#C8823A;color:#FFF8F0;border-color:#C8823A}
+.deliveryFields{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+.deliveryDisclaimer{color:#B39B86;background:rgba(200,130,58,.10);border:1px solid rgba(200,130,58,.22);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.35}
+.deliveryBadge{border-color:rgba(93,149,222,.35)!important;color:#9FC0EA!important;background:rgba(93,149,222,.10)!important}
 .servedOnly{margin-bottom:18px;font-size:12px;color:#5A3A20;padding:9px 13px;background:#2C1400;border-radius:4px;border:1px solid rgba(200,130,58,.15)}
 .servedOnly strong{color:#A08060}
 .syrups{display:flex;flex-wrap:wrap;gap:7px}
@@ -266,7 +269,7 @@ input:focus,textarea:focus{outline:2px solid #C8823A}
 .analyticsWeekBar div{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
 .analyticsWeekBar strong{color:#FFF8F0;font-size:14px}
 .analyticsWeekBar span{color:#8A9B8E;font-size:12px}
-.analyticsSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.analyticsSummary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
 .analyticsSummary div,.analyticsList{background:#2C1400;border:1px solid rgba(200,130,58,.14);border-radius:8px;padding:12px}
 .analyticsSummary span{display:block;color:#8A9B8E;font-size:11px;margin-bottom:4px}
 .analyticsSummary strong{font-family:"Playfair Display",Georgia,serif;color:#C8823A;font-size:24px}

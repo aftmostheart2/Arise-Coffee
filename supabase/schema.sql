@@ -12,7 +12,9 @@ create table if not exists orders (
   notes text,
   status text not null default 'waiting',
   source text not null default '',
-  priority boolean not null default false
+  priority boolean not null default false,
+  fulfillment_type text not null default 'pickup',
+  delivery_location text
 );
 
 alter table orders add column if not exists created_at timestamptz not null default now();
@@ -27,6 +29,8 @@ alter table orders add column if not exists notes text;
 alter table orders add column if not exists status text not null default 'waiting';
 alter table orders add column if not exists source text not null default '';
 alter table orders add column if not exists priority boolean not null default false;
+alter table orders add column if not exists fulfillment_type text not null default 'pickup';
+alter table orders add column if not exists delivery_location text;
 
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
@@ -98,6 +102,8 @@ alter table archived_orders add column if not exists milk text;
 alter table archived_orders add column if not exists syrups text;
 alter table archived_orders add column if not exists notes text;
 alter table archived_orders add column if not exists status text;
+alter table archived_orders add column if not exists fulfillment_type text;
+alter table archived_orders add column if not exists delivery_location text;
 
 insert into inventory (item, type, available) values
 ('Caramel','syrup',true),
@@ -161,6 +167,7 @@ insert into settings (key, value) values
 ('queueTimerMinutes','"30"'),
 ('queueTimerEnabled','"true"'),
 ('clergyOrderingEnabled','"false"'),
+('deliveryEnabled','"false"'),
 ('queueClosesAt','""')
 on conflict (key) do nothing;
 
@@ -364,6 +371,8 @@ as $$
       'status', coalesce((input_order).status, 'waiting'),
       'source', coalesce((input_order).source, ''),
       'priority', coalesce((input_order).priority, false),
+      'fulfillmentType', coalesce((input_order).fulfillment_type, 'pickup'),
+      'deliveryLocation', coalesce((input_order).delivery_location, ''),
       'position', input_position,
       'ordersAhead', case when input_position is null then null else greatest(0, input_position - 1) end
     )
@@ -384,6 +393,7 @@ as $$
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 $$;
@@ -437,6 +447,7 @@ as $$
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(jsonb_agg(arise_order_json(active.order_row, active.position::integer) order by active.priority desc, active.created_at), '[]'::jsonb),
     'inventory', arise_inventory_json()
@@ -485,6 +496,7 @@ as $$
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(
       (
@@ -582,6 +594,7 @@ begin
         'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
         'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
         'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+        'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
         'queueClosesAt', arise_setting('queueClosesAt', ''),
         'order', jsonb_build_object(
           'id', coalesce(canceled_order.original_order_id_text, canceled_order.original_order_id::text),
@@ -593,6 +606,8 @@ begin
           'syrups', coalesce(canceled_order.syrups, ''),
           'notes', coalesce(canceled_order.notes, ''),
           'status', 'canceled',
+          'fulfillmentType', coalesce(canceled_order.fulfillment_type, canceled_order.order_data->>'fulfillment_type', 'pickup'),
+          'deliveryLocation', coalesce(canceled_order.delivery_location, canceled_order.order_data->>'delivery_location', ''),
           'position', null,
           'ordersAhead', null
         ),
@@ -609,6 +624,7 @@ begin
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'order', arise_order_json(found_order, found_position),
     'position', found_position,
@@ -634,7 +650,7 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Queue closed');
   end if;
 
-  insert into orders (name, customer_name, drink, temp, temperature, milk, syrups, notes, status, source, priority)
+  insert into orders (name, customer_name, drink, temp, temperature, milk, syrups, notes, status, source, priority, fulfillment_type, delivery_location)
   values (
     coalesce(input_order->>'name', ''),
     coalesce(input_order->>'name', ''),
@@ -646,7 +662,9 @@ begin
     coalesce(input_order->>'notes', ''),
     'waiting',
     order_source,
-    order_source = 'clergy'
+    order_source = 'clergy',
+    case when coalesce(input_order->>'fulfillmentType', 'pickup') = 'delivery' then 'delivery' else 'pickup' end,
+    case when coalesce(input_order->>'fulfillmentType', 'pickup') = 'delivery' then nullif(trim(coalesce(input_order->>'deliveryLocation', '')), '') else null end
   )
   returning id::text into new_id;
 
@@ -665,7 +683,8 @@ drop function if exists arise_update_admin(text, boolean, text);
 drop function if exists arise_update_admin(text, boolean, text, integer);
 drop function if exists arise_update_admin(text, boolean, text, integer, boolean);
 drop function if exists arise_update_admin(text, boolean, text, integer, boolean, boolean);
-create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null, input_timer_enabled boolean default null, input_clergy_enabled boolean default null)
+drop function if exists arise_update_admin(text, boolean, text, integer, boolean, boolean, boolean);
+create or replace function arise_update_admin(input_pin text, input_is_open boolean default null, input_message text default null, input_timer_minutes integer default null, input_timer_enabled boolean default null, input_clergy_enabled boolean default null, input_delivery_enabled boolean default null)
 returns jsonb
 language plpgsql
 security definer
@@ -697,6 +716,12 @@ begin
   if input_clergy_enabled is not null then
     insert into settings (key, value)
     values ('clergyOrderingEnabled', to_jsonb(case when input_clergy_enabled then 'true' else 'false' end)::text)
+    on conflict (key) do update set value = excluded.value;
+  end if;
+
+  if input_delivery_enabled is not null then
+    insert into settings (key, value)
+    values ('deliveryEnabled', to_jsonb(case when input_delivery_enabled then 'true' else 'false' end)::text)
     on conflict (key) do update set value = excluded.value;
   end if;
 
@@ -822,6 +847,7 @@ begin
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -885,6 +911,7 @@ begin
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -1199,7 +1226,9 @@ as $$
               'milk', coalesce(milk, ''),
               'syrups', coalesce(syrups, ''),
               'notes', coalesce(notes, ''),
-              'status', coalesce(status, '')
+              'status', coalesce(status, ''),
+              'fulfillmentType', coalesce(fulfillment_type, order_data->>'fulfillment_type', 'pickup'),
+              'deliveryLocation', coalesce(delivery_location, order_data->>'delivery_location', '')
             )
             order by archived_at desc
           )
@@ -1252,7 +1281,8 @@ as $$
       nullif(trim(coalesce(drink, '')), '') as drink,
       nullif(trim(coalesce(temperature, '')), '') as temperature,
       nullif(trim(coalesce(milk, '')), '') as milk,
-      nullif(trim(coalesce(syrups, '')), '') as syrups
+      nullif(trim(coalesce(syrups, '')), '') as syrups,
+      case when coalesce(fulfillment_type, order_data->>'fulfillment_type', 'pickup') = 'delivery' then 'delivery' else 'pickup' end as fulfillment_type
     from archived_orders
     cross join week_bounds
     where archived_at >= week_bounds.week_start
@@ -1275,6 +1305,8 @@ as $$
         'totalOrders', (select count(*) from base),
         'hotOrders', (select count(*) from base where lower(temperature) = 'hot'),
         'coldOrders', (select count(*) from base where lower(temperature) = 'cold'),
+        'pickupOrders', (select count(*) from base where fulfillment_type = 'pickup'),
+        'deliveryOrders', (select count(*) from base where fulfillment_type = 'delivery'),
         'topDrinks', coalesce(
           (
             select jsonb_agg(jsonb_build_object('item', drink, 'count', count) order by count desc, drink)
@@ -1330,7 +1362,7 @@ grant execute on function arise_orders() to anon;
 grant execute on function arise_display() to anon;
 grant execute on function arise_order(text) to anon;
 grant execute on function arise_place_order(jsonb) to anon;
-grant execute on function arise_update_admin(text, boolean, text, integer, boolean, boolean) to anon;
+grant execute on function arise_update_admin(text, boolean, text, integer, boolean, boolean, boolean) to anon;
 grant execute on function arise_update_status(text, text, text) to anon;
 grant execute on function arise_cancel_order(text, text, text) to anon;
 grant execute on function arise_cancel_active_orders(text, text) to anon;

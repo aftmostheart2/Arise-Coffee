@@ -120,6 +120,7 @@ export async function updateAdmin(pin, payload) {
       input_timer_minutes: Number.isFinite(Number(payload.queueTimerMinutes)) ? Number(payload.queueTimerMinutes) : null,
       input_timer_enabled: typeof payload.queueTimerEnabled === "boolean" ? payload.queueTimerEnabled : null,
       input_clergy_enabled: typeof payload.clergyOrderingEnabled === "boolean" ? payload.clergyOrderingEnabled : null,
+      input_delivery_enabled: typeof payload.deliveryEnabled === "boolean" ? payload.deliveryEnabled : null,
     });
   } catch {
     return { ok: false, error: "Connection error" };
@@ -137,6 +138,8 @@ export async function placeOrder(order) {
         syrups: Array.isArray(order.syrups) ? order.syrups : [],
         notes: order.notes || "",
         source: order.source || "",
+        fulfillmentType: order.fulfillmentType === "delivery" ? "delivery" : "pickup",
+        deliveryLocation: order.fulfillmentType === "delivery" ? String(order.deliveryLocation || "") : "",
       },
     });
   } catch {

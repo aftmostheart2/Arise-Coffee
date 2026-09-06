@@ -41,6 +41,7 @@ const DRINKS = [
 const MILKS = ["Whole milk", "Almond milk", "Oat milk", "Soy milk"];
 const SYRUPS = ["Caramel", "Sugar Free Caramel", "Vanilla", "Sugar Free Vanilla", "Mocha", "White Chocolate", "Honey", "Cinnamon Powder", "Hazelnut"];
 const MAX_SYRUPS = 2;
+const DELIVERY_LOCATIONS = ["Pre-K", "Kindergarten", "1st Grade", "2nd Grade", "3rd Grade", "4th Grade", "5th Grade", "Middle School", "High School", "Other"];
 
 function makeDrinkId(label) {
   const base = String(label || "")
@@ -127,7 +128,7 @@ function getDrink(id, drinks = DRINKS) {
 }
 
 function defaultForm() {
-  return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "" };
+  return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "", fulfillmentType: "pickup", deliveryLocation: "", customDeliveryLocation: "" };
 }
 
 function randomBibleQuote() {
@@ -245,6 +246,8 @@ function normalizeOrderFromSingle(order) {
   return {
     ...order,
     syrups: Array.isArray(order.syrups) ? order.syrups.join(", ") : order.syrups,
+    fulfillmentType: order.fulfillmentType === "delivery" ? "delivery" : "pickup",
+    deliveryLocation: order.deliveryLocation || "",
     position,
     ordersAhead
   };
@@ -538,6 +541,7 @@ function AdminPage() {
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
@@ -577,6 +581,9 @@ function AdminPage() {
     }
     if (typeof data?.clergyOrderingEnabled === "boolean") {
       setClergyOrderingEnabled(Boolean(data.clergyOrderingEnabled));
+    }
+    if (typeof data?.deliveryEnabled === "boolean") {
+      setDeliveryEnabled(Boolean(data.deliveryEnabled));
     }
   }
 
@@ -898,7 +905,7 @@ function AdminPage() {
   }
 
   function saveSettings() {
-    saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled });
+    saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled, deliveryEnabled });
   }
 
   function formatWeekRange(start, end) {
@@ -1090,6 +1097,7 @@ function AdminPage() {
   }
 
   const visibleOrders = orders.filter(o => o.status !== "complete");
+  const deliveryOrders = visibleOrders.filter(o => o.fulfillmentType === "delivery");
 
   if (adminView === "menu") {
     return (
@@ -1230,6 +1238,14 @@ function AdminPage() {
                     <span>Cold</span>
                     <strong>{analytics.coldOrders || 0}</strong>
                   </div>
+                  <div>
+                    <span>Pickup</span>
+                    <strong>{analytics.pickupOrders || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Delivery</span>
+                    <strong>{analytics.deliveryOrders || 0}</strong>
+                  </div>
                 </div>
 
                 <div className="analyticsGrid">
@@ -1303,6 +1319,21 @@ function AdminPage() {
               </label>
             </div>
 
+            <div className="settingsCard">
+              <div>
+                <h3>Classroom Delivery</h3>
+                <p className="sub">Let customers request delivery after the queue window.</p>
+              </div>
+              <label className="adminCheck settingsToggle">
+                <input
+                  type="checkbox"
+                  checked={deliveryEnabled}
+                  onChange={event => setDeliveryEnabled(event.target.checked)}
+                />
+                Delivery option
+              </label>
+            </div>
+
             <div className="settingsCard settingsWide">
               <div>
                 <h3>Closed Message</h3>
@@ -1340,6 +1371,53 @@ function AdminPage() {
     );
   }
 
+  if (adminView === "delivery") {
+    return (
+      <>
+        <Header isOpen={isOpen} />
+        <main className="adminPage adminSubpage">
+          <section className="adminTop">
+            <div>
+              <h2>Delivery</h2>
+              <p className="sub">Classroom delivery orders only.</p>
+            </div>
+            <div className="adminTopActions">
+              <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
+              <button className="ghostBtn" onClick={() => setAdminView("dashboard")}>Back to dashboard</button>
+            </div>
+          </section>
+
+          <section className="orders deliveryOrders">
+            {deliveryOrders.length === 0 ? <div className="empty smallEmpty">No delivery orders.</div> : deliveryOrders.map((o, idx) => (
+              <div className={"adminOrder deliveryOrder " + o.status} key={o.id}>
+                <div className="orderTop">
+                  <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
+                  <div>
+                    <div className="orderNameLine">
+                      <strong>{o.name}</strong>
+                      <span className="orderSourceBadge deliveryBadge">Delivery</span>
+                    </div>
+                    <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
+                    <span className="orderAge">Deliver to {o.deliveryLocation || "classroom"}</span>
+                    {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
+                    {o.notes && <em>"{o.notes}"</em>}
+                  </div>
+                  <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
+                </div>
+                <div className="adminActions">
+                  <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
+                  <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
+                  <button onClick={() => updateStatus(o.id, "complete")}>Ready for Delivery</button>
+                  <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
+                </div>
+              </div>
+            ))}
+          </section>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Header isOpen={isOpen} />
@@ -1359,21 +1437,6 @@ function AdminPage() {
           <div className="adminTopActions">
             <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
             <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
-          </div>
-        </section>
-
-        <section className="adminStatusStrip" aria-label="Order summary">
-          <div>
-            <span>Waiting</span>
-            <strong>{orderCounts.waiting}</strong>
-          </div>
-          <div>
-            <span>Being made</span>
-            <strong>{orderCounts.making}</strong>
-          </div>
-          <div>
-            <span>Ready</span>
-            <strong>{orderCounts.ready}</strong>
           </div>
         </section>
 
@@ -1410,6 +1473,10 @@ function AdminPage() {
           <button className={analyticsOpen ? "toolTile active" : "toolTile"} onClick={toggleAnalytics}>
             <strong>Analytics</strong>
             <span>Popular items</span>
+          </button>
+          <button className={adminView === "delivery" ? "toolTile active" : "toolTile"} onClick={() => setAdminView("delivery")}>
+            <strong>Delivery</strong>
+            <span>{deliveryOrders.length} classroom order{deliveryOrders.length === 1 ? "" : "s"}</span>
           </button>
           <button className={adminView === "settings" ? "toolTile active" : "toolTile"} onClick={openSettingsScreen}>
             <strong>Settings</strong>
@@ -1471,6 +1538,21 @@ function AdminPage() {
             <button className="collapseBtn" onClick={() => togglePanel("orders")}>{collapsedPanels.orders ? "Show" : "Hide"}</button>
           </div>
 
+          <section className="adminStatusStrip" aria-label="Order summary">
+            <div>
+              <span>Waiting</span>
+              <strong>{orderCounts.waiting}</strong>
+            </div>
+            <div>
+              <span>Being made</span>
+              <strong>{orderCounts.making}</strong>
+            </div>
+            <div>
+              <span>Ready</span>
+              <strong>{orderCounts.ready}</strong>
+            </div>
+          </section>
+
           {!collapsedPanels.orders && (
             visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
               <div className={"adminOrder " + o.status} key={o.id}>
@@ -1480,8 +1562,10 @@ function AdminPage() {
                     <div className="orderNameLine">
                       <strong>{o.name}</strong>
                       {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
+                      {o.fulfillmentType === "delivery" && <span className="orderSourceBadge deliveryBadge">Delivery</span>}
                     </div>
                     <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
+                    {o.fulfillmentType === "delivery" && <span className="orderAge">Deliver to {o.deliveryLocation || "classroom"}</span>}
                     {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
                     {o.notes && <em>"{o.notes}"</em>}
                   </div>
@@ -1490,7 +1574,7 @@ function AdminPage() {
                 <div className="adminActions">
                   <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
                   <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
-                  <button onClick={() => updateStatus(o.id, "complete")}>Ready for Pickup</button>
+                  <button onClick={() => updateStatus(o.id, "complete")}>{o.fulfillmentType === "delivery" ? "Ready for Delivery" : "Ready for Pickup"}</button>
                   <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
                 </div>
                 <input
@@ -2073,6 +2157,8 @@ function CustomerPage({ isClergy = false }) {
       milk: pending?.milk || "",
       syrups: pending?.syrups || [],
       notes: pending?.notes ?? f.notes,
+      fulfillmentType: pending?.fulfillmentType || f.fulfillmentType,
+      deliveryLocation: pending?.deliveryLocation || f.deliveryLocation,
     }));
     setErrors({});
   }, [form.drinkId, customerDrinks]);
@@ -2106,6 +2192,10 @@ function CustomerPage({ isClergy = false }) {
     if (!form.name.trim()) e.name = "Please enter your name";
     else if (!hasFirstAndLastName(form.name)) e.name = "Please enter first and last name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
+    if (deliveryEnabled && form.fulfillmentType === "delivery") {
+      const location = form.deliveryLocation === "Other" ? form.customDeliveryLocation.trim() : form.deliveryLocation;
+      if (!location) e.delivery = "Please choose a classroom or grade";
+    }
     if (form.milk && !isInventoryAvailable(inventoryLookup, form.milk)) e.milk = form.milk + " is out of stock";
     const outSyrup = form.syrups.find(s => !isInventoryAvailable(inventoryLookup, s));
     if (outSyrup) e.syrups = outSyrup + " is out of stock";
@@ -2135,7 +2225,14 @@ function CustomerPage({ isClergy = false }) {
       ? lastOrder.syrups.filter(s => isInventoryAvailable(inventoryLookup, s) && (!savedAllowedSyrups || savedAllowedSyrups.has(s))).slice(0, MAX_SYRUPS)
       : [];
 
-    pendingLastOrderRef.current = { temp: nextTemp, milk: nextMilk, syrups: nextSyrups, notes: lastOrder.notes || "" };
+    pendingLastOrderRef.current = {
+      temp: nextTemp,
+      milk: nextMilk,
+      syrups: nextSyrups,
+      notes: lastOrder.notes || "",
+      fulfillmentType: deliveryEnabled ? lastOrder.fulfillmentType || "pickup" : "pickup",
+      deliveryLocation: deliveryEnabled ? lastOrder.deliveryLocation || "" : "",
+    };
     setForm(f => ({ ...f, drinkId: savedDrink.id }));
     setErrors({});
   }
@@ -2172,6 +2269,10 @@ function CustomerPage({ isClergy = false }) {
         syrups: form.syrups,
         notes: form.notes,
         source: isClergy ? "clergy" : "",
+        fulfillmentType: deliveryEnabled ? form.fulfillmentType : "pickup",
+        deliveryLocation: deliveryEnabled && form.fulfillmentType === "delivery"
+          ? (form.deliveryLocation === "Other" ? form.customDeliveryLocation.trim() : form.deliveryLocation)
+          : "",
       });
 
       if (!data.ok) {
@@ -2191,6 +2292,10 @@ function CustomerPage({ isClergy = false }) {
         milk: form.milk,
         syrups: form.syrups,
         notes: form.notes,
+        fulfillmentType: deliveryEnabled ? form.fulfillmentType : "pickup",
+        deliveryLocation: deliveryEnabled && form.fulfillmentType === "delivery"
+          ? (form.deliveryLocation === "Other" ? form.customDeliveryLocation.trim() : form.deliveryLocation)
+          : "",
         expiresAt: Date.now() + LAST_ORDER_TTL_MS,
       };
       localStorage.setItem(LAST_ORDER_KEY, JSON.stringify(savedOrder));
@@ -2212,6 +2317,10 @@ function CustomerPage({ isClergy = false }) {
         notes: form.notes,
         status: "waiting",
         source: isClergy ? "clergy" : "",
+        fulfillmentType: deliveryEnabled ? form.fulfillmentType : "pickup",
+        deliveryLocation: deliveryEnabled && form.fulfillmentType === "delivery"
+          ? (form.deliveryLocation === "Other" ? form.customDeliveryLocation.trim() : form.deliveryLocation)
+          : "",
         position: Number(data.position || 1)
       });
       setForm(defaultForm());
@@ -2367,6 +2476,35 @@ function CustomerPage({ isClergy = false }) {
 
               {!drink.syrups && !drink.milk && <div className="servedOnly">Served as listed: <strong>{drink.label}</strong></div>}
 
+              {deliveryEnabled && !isClergy && (
+                <div className="field">
+                  {lbl("Pickup or delivery")}
+                  <div className="row">
+                    <button className={form.fulfillmentType === "pickup" ? "choice active" : "choice"} onClick={() => setForm(f => ({ ...f, fulfillmentType: "pickup", deliveryLocation: "", customDeliveryLocation: "" }))}>Pickup</button>
+                    <button className={form.fulfillmentType === "delivery" ? "choice active" : "choice"} onClick={() => setForm(f => ({ ...f, fulfillmentType: "delivery" }))}>Deliver to classroom</button>
+                  </div>
+                  {form.fulfillmentType === "delivery" && (
+                    <div className="deliveryFields">
+                      <div className="deliveryDisclaimer">Delivery orders are brought after the 30-minute queue window closes. Pickup orders may be ready sooner.</div>
+                      <select value={form.deliveryLocation} onChange={event => {
+                        setForm(f => ({ ...f, deliveryLocation: event.target.value, customDeliveryLocation: event.target.value === "Other" ? f.customDeliveryLocation : "" }));
+                        setErrors(er => ({ ...er, delivery: "" }));
+                      }}>
+                        <option value="">Choose classroom / grade</option>
+                        {DELIVERY_LOCATIONS.map(location => <option key={location} value={location}>{location}</option>)}
+                      </select>
+                      {form.deliveryLocation === "Other" && (
+                        <input value={form.customDeliveryLocation} onChange={event => {
+                          setForm(f => ({ ...f, customDeliveryLocation: event.target.value }));
+                          setErrors(er => ({ ...er, delivery: "" }));
+                        }} placeholder="Classroom or grade" />
+                      )}
+                      {errors.delivery && <div className="errorText">{errors.delivery}</div>}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="field">
                 {lbl("Notes", "(optional)")}
                 <textarea value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} rows={2} placeholder="Any special requests?" />
@@ -2403,6 +2541,7 @@ function CustomerPage({ isClergy = false }) {
                 <div className="customerDrinkSummary">
                   <strong>{myOrder.temp} {myOrder.drink}</strong>
                   <p>{myOrder.milk ? myOrder.milk : "No milk"}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
+                  {myOrder.fulfillmentType === "delivery" && <p>Delivery to {myOrder.deliveryLocation || "classroom"} after the queue window closes.</p>}
                   {myOrder.notes && <em>"{myOrder.notes}"</em>}
                 </div>
 
@@ -2431,7 +2570,7 @@ function CustomerPage({ isClergy = false }) {
 
                 {myOrder.status === "making" && <div className="makingNotice">Your drink is being prepared now.</div>}
                 {myOrder.status === "canceled" && <div className="cancelNotice">Your order was canceled.{myOrder.notes ? ` ${myOrder.notes}` : ""}</div>}
-                {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">Your drink is ready. Please go to the kitchen.</div>}
+                {["ready","complete"].includes(myOrder.status) && <div className="readyNotice">{myOrder.fulfillmentType === "delivery" ? `Your drink is ready for delivery to ${myOrder.deliveryLocation || "your classroom"}.` : "Your drink is ready. Please go to the kitchen."}</div>}
                 {orderQuote && (
                   <div className="scriptureCard">
                     <div className="label gold">A verse for your wait</div>
