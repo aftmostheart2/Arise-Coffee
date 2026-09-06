@@ -541,7 +541,7 @@ function AdminPage() {
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
-  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(true);
   const [nowMs, setNowMs] = useState(Date.now());
   const [busy, setBusy] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
@@ -1968,7 +1968,7 @@ function CustomerPage({ isClergy = false }) {
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
   const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
-  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(true);
   const [nowMs, setNowMs] = useState(Date.now());
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
   const submittingRef = useRef(false);
@@ -2010,6 +2010,9 @@ function CustomerPage({ isClergy = false }) {
     }
     if (typeof data?.clergyOrderingEnabled === "boolean") {
       setClergyOrderingEnabled(Boolean(data.clergyOrderingEnabled));
+    }
+    if (typeof data?.deliveryEnabled === "boolean") {
+      setDeliveryEnabled(Boolean(data.deliveryEnabled));
     }
   }
 

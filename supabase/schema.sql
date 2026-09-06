@@ -167,7 +167,7 @@ insert into settings (key, value) values
 ('queueTimerMinutes','"30"'),
 ('queueTimerEnabled','"true"'),
 ('clergyOrderingEnabled','"false"'),
-('deliveryEnabled','"false"'),
+('deliveryEnabled','"true"'),
 ('queueClosesAt','""')
 on conflict (key) do nothing;
 
@@ -393,7 +393,7 @@ as $$
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 $$;
@@ -447,7 +447,7 @@ as $$
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(jsonb_agg(arise_order_json(active.order_row, active.position::integer) order by active.priority desc, active.created_at), '[]'::jsonb),
     'inventory', arise_inventory_json()
@@ -496,7 +496,7 @@ as $$
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'orders', coalesce(
       (
@@ -594,7 +594,7 @@ begin
         'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
         'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
         'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-        'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+        'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
         'queueClosesAt', arise_setting('queueClosesAt', ''),
         'order', jsonb_build_object(
           'id', coalesce(canceled_order.original_order_id_text, canceled_order.original_order_id::text),
@@ -624,7 +624,7 @@ begin
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', ''),
     'order', arise_order_json(found_order, found_position),
     'position', found_position,
@@ -847,7 +847,7 @@ begin
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
@@ -911,7 +911,7 @@ begin
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
     'queueTimerEnabled', arise_setting('queueTimerEnabled', 'true') = 'true',
     'clergyOrderingEnabled', arise_setting('clergyOrderingEnabled', 'false') = 'true',
-    'deliveryEnabled', arise_setting('deliveryEnabled', 'false') = 'true',
+    'deliveryEnabled', arise_setting('deliveryEnabled', 'true') = 'true',
     'queueClosesAt', arise_setting('queueClosesAt', '')
   );
 end;
