@@ -71,8 +71,6 @@ input:focus,textarea:focus,select:focus{outline:2px solid #C8823A}
 .deliveryFields{margin-top:10px;display:flex;flex-direction:column;gap:10px}
 .deliveryDisclaimer{color:#B39B86;background:rgba(200,130,58,.10);border:1px solid rgba(200,130,58,.22);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.35}
 .deliveryBadge{border-color:rgba(93,149,222,.35)!important;color:#9FC0EA!important;background:rgba(93,149,222,.10)!important}
-.iosInlineNotice{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;padding:12px 14px;border:1px solid rgba(200,130,58,.24);border-radius:8px;background:rgba(200,130,58,.10);color:#B39B86;font-size:13px;line-height:1.35}
-.iosInlineNotice strong{color:#FFF8F0}
 .servedOnly{margin-bottom:18px;font-size:12px;color:#5A3A20;padding:9px 13px;background:#2C1400;border-radius:4px;border:1px solid rgba(200,130,58,.15)}
 .servedOnly strong{color:#A08060}
 .syrups{display:flex;flex-wrap:wrap;gap:7px}

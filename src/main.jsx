@@ -1928,7 +1928,7 @@ function IosInstallGate({ onRefresh }) {
       <section className="iosInstallCard">
         <div className="brandMark">☕</div>
         <h1>Install Arise! Coffee</h1>
-        <p>On iPhone or iPad, please add Arise! Coffee to your Home Screen before ordering so ready notifications can work.</p>
+        <p>On iPhone or iPad, add Arise! Coffee to your Home Screen before ordering. This lets ready alerts work like an app.</p>
         <ol>
           <li>Tap the Share button in Safari.</li>
           <li>Choose Add to Home Screen.</li>
@@ -2376,6 +2376,11 @@ function CustomerPage({ isClergy = false }) {
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
 
   const orderingOpen = isClergy ? clergyOrderingEnabled : isOpen;
+  const shouldGateIosInstall = !isClergy && requiresIosInstall && !myOrderId && !myOrder;
+
+  if (shouldGateIosInstall) {
+    return <IosInstallGate onRefresh={() => window.location.reload()} />;
+  }
 
   if (!orderingOpen && !myOrder) {
     return <>
@@ -2408,13 +2413,6 @@ function CustomerPage({ isClergy = false }) {
 
           {orderingOpen && (
             <>
-              {requiresIosInstall && !myOrderId && !myOrder && (
-                <div className="iosInlineNotice">
-                  <strong>For ready alerts</strong>
-                  <span>On iPhone or iPad, add Arise! Coffee to your Home Screen and open it from the app icon.</span>
-                </div>
-              )}
-
               {lastOrder && (
                 <button className="lastOrderBtn" onClick={useLastOrder}>
                   <span>Use last order</span>
