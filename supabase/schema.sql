@@ -1257,6 +1257,7 @@ as $$
     cross join week_bounds
     where archived_at >= week_bounds.week_start
       and archived_at < week_bounds.week_end
+      and lower(coalesce(status, '')) <> 'canceled'
   ),
   syrup_items as (
     select nullif(trim(syrup_value), '') as syrup
