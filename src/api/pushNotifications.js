@@ -20,16 +20,19 @@ export function isStandaloneApp() {
 
 export function getPushDeviceHint() {
   if (isAppleTouchDevice() && !isStandaloneApp()) {
-    return "iPhone/iPad: for ready notifications on future orders, tap Share, Add to Home Screen, then open Arise! Coffee from there.";
+    return "iPhone/iPad: ready alerts work from the Home Screen app. Tap Share, Add to Home Screen, then open Arise! Coffee from the new app icon.";
   }
 
   return "";
 }
 
 export function getPushSupportStatus() {
-  if (!("serviceWorker" in navigator)) return { ok: false, reason: "Notifications are not supported in this browser." };
-  if (!("PushManager" in window)) return { ok: false, reason: "Push notifications are not supported in this browser." };
-  if (!("Notification" in window)) return { ok: false, reason: "Notifications are not supported in this browser." };
+  if (isAppleTouchDevice() && !isStandaloneApp()) {
+    return { ok: false, reason: "On iPhone or iPad, add Arise! Coffee to your Home Screen and open it from the app icon to enable ready alerts." };
+  }
+  if (!("serviceWorker" in navigator)) return { ok: false, reason: "Ready alerts are not available here. Open Arise! Coffee from the Home Screen app." };
+  if (!("PushManager" in window)) return { ok: false, reason: "Ready alerts are not available here. Open Arise! Coffee from the Home Screen app." };
+  if (!("Notification" in window)) return { ok: false, reason: "Ready alerts are not available here. Open Arise! Coffee from the Home Screen app." };
   if (!vapidPublicKey) return { ok: false, reason: "Notifications are not configured yet." };
   if (Notification.permission === "denied") return { ok: false, reason: "Notifications are blocked for this site." };
   return { ok: true, reason: "" };

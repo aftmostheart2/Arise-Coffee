@@ -2407,8 +2407,8 @@ function CustomerPage({ isClergy = false }) {
             <>
               {requiresIosInstall && !myOrderId && !myOrder && (
                 <div className="iosInlineNotice">
-                  <strong>For ready alerts on iPhone</strong>
-                  <span>Add Arise! Coffee to your Home Screen, then open it from there.</span>
+                  <strong>For ready alerts</strong>
+                  <span>On iPhone or iPad, add Arise! Coffee to your Home Screen and open it from the app icon.</span>
                 </div>
               )}
 
