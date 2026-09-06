@@ -2369,10 +2369,6 @@ function CustomerPage({ isClergy = false }) {
 
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
 
-  if (requiresIosInstall && !myOrderId && !myOrder) {
-    return <IosInstallGate onRefresh={() => window.location.reload()} />;
-  }
-
   const orderingOpen = isClergy ? clergyOrderingEnabled : isOpen;
 
   if (!orderingOpen && !myOrder) {
@@ -2406,6 +2402,13 @@ function CustomerPage({ isClergy = false }) {
 
           {orderingOpen && (
             <>
+              {requiresIosInstall && !myOrderId && !myOrder && (
+                <div className="iosInlineNotice">
+                  <strong>For ready alerts on iPhone</strong>
+                  <span>Add Arise! Coffee to your Home Screen, then open it from there.</span>
+                </div>
+              )}
+
               {lastOrder && (
                 <button className="lastOrderBtn" onClick={useLastOrder}>
                   <span>Use last order</span>
@@ -2743,6 +2746,35 @@ function DisplayPage() {
   );
 }
 
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <>
+          <Header isOpen={false} statusText="Refresh" />
+          <main className="closedPage">
+            <div className="closedIcon">!</div>
+            <h1>Refresh Arise! Coffee</h1>
+            <p>Something did not load right. Please refresh this page and try again.</p>
+            <button className="ghostBtn" onClick={() => window.location.reload()}>Refresh</button>
+          </main>
+        </>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   const path = window.location.pathname.toLowerCase();
   const host = window.location.hostname.toLowerCase();
@@ -2772,4 +2804,8 @@ function App() {
   return path.startsWith("/admin") ? <AdminPage /> : <CustomerPage />;
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);
