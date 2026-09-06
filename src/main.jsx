@@ -1538,53 +1538,55 @@ function AdminPage() {
             <button className="collapseBtn" onClick={() => togglePanel("orders")}>{collapsedPanels.orders ? "Show" : "Hide"}</button>
           </div>
 
-          <section className="adminStatusStrip" aria-label="Order summary">
-            <div>
-              <span>Waiting</span>
-              <strong>{orderCounts.waiting}</strong>
-            </div>
-            <div>
-              <span>Being made</span>
-              <strong>{orderCounts.making}</strong>
-            </div>
-            <div>
-              <span>Ready</span>
-              <strong>{orderCounts.ready}</strong>
-            </div>
-          </section>
-
           {!collapsedPanels.orders && (
-            visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
-              <div className={"adminOrder " + o.status} key={o.id}>
-                <div className="orderTop">
-                  <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
-                  <div>
-                    <div className="orderNameLine">
-                      <strong>{o.name}</strong>
-                      {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
-                      {o.fulfillmentType === "delivery" && <span className="orderSourceBadge deliveryBadge">Delivery</span>}
+            <>
+              <section className="adminStatusStrip" aria-label="Order summary">
+                <div>
+                  <span>Waiting</span>
+                  <strong>{orderCounts.waiting}</strong>
+                </div>
+                <div>
+                  <span>Being made</span>
+                  <strong>{orderCounts.making}</strong>
+                </div>
+                <div>
+                  <span>Ready</span>
+                  <strong>{orderCounts.ready}</strong>
+                </div>
+              </section>
+
+              {visibleOrders.length === 0 ? <div className="empty smallEmpty">No active orders.</div> : visibleOrders.map((o, idx) => (
+                <div className={"adminOrder " + o.status} key={o.id}>
+                  <div className="orderTop">
+                    <div className="orderNum">#{String(idx + 1).padStart(3, "0")}</div>
+                    <div>
+                      <div className="orderNameLine">
+                        <strong>{o.name}</strong>
+                        {o.source === "clergy" && <span className="orderSourceBadge">Clergy</span>}
+                        {o.fulfillmentType === "delivery" && <span className="orderSourceBadge deliveryBadge">Delivery</span>}
+                      </div>
+                      <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
+                      {o.fulfillmentType === "delivery" && <span className="orderAge">Deliver to {o.deliveryLocation || "classroom"}</span>}
+                      {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
+                      {o.notes && <em>"{o.notes}"</em>}
                     </div>
-                    <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
-                    {o.fulfillmentType === "delivery" && <span className="orderAge">Deliver to {o.deliveryLocation || "classroom"}</span>}
-                    {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
-                    {o.notes && <em>"{o.notes}"</em>}
+                    <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
                   </div>
-                  <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
+                  <div className="adminActions">
+                    <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
+                    <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
+                    <button onClick={() => updateStatus(o.id, "complete")}>{o.fulfillmentType === "delivery" ? "Ready for Delivery" : "Ready for Pickup"}</button>
+                    <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
+                  </div>
+                  <input
+                    className="orderCancelInput"
+                    value={orderCancelReasons[o.id] || ""}
+                    onChange={event => setOrderCancelReasons(current => ({ ...current, [o.id]: event.target.value }))}
+                    placeholder="Individual cancel message"
+                  />
                 </div>
-                <div className="adminActions">
-                  <button className={o.status === "waiting" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "waiting")}>Waiting</button>
-                  <button className={o.status === "making" ? "activeStatusAction" : ""} onClick={() => updateStatus(o.id, "making")}>Start Making</button>
-                  <button onClick={() => updateStatus(o.id, "complete")}>{o.fulfillmentType === "delivery" ? "Ready for Delivery" : "Ready for Pickup"}</button>
-                  <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
-                </div>
-                <input
-                  className="orderCancelInput"
-                  value={orderCancelReasons[o.id] || ""}
-                  onChange={event => setOrderCancelReasons(current => ({ ...current, [o.id]: event.target.value }))}
-                  placeholder="Individual cancel message"
-                />
-              </div>
-            ))
+              ))}
+            </>
           )}
         </section>
       </main>
