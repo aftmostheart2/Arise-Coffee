@@ -1410,6 +1410,12 @@ function AdminPage() {
                   <button onClick={() => updateStatus(o.id, "complete")}>Ready for Delivery</button>
                   <button className="cancelOrderBtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
                 </div>
+                <input
+                  className="orderCancelInput"
+                  value={orderCancelReasons[o.id] || ""}
+                  onChange={event => setOrderCancelReasons(current => ({ ...current, [o.id]: event.target.value }))}
+                  placeholder="Individual cancel message"
+                />
               </div>
             ))}
           </section>
