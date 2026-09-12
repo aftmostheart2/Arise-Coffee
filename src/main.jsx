@@ -555,6 +555,7 @@ function AdminPage() {
   const statusLoadingRef = useRef(false);
   const inventoryLoadingRef = useRef(false);
   const messageEditingRef = useRef(false);
+  const settingsEditingRef = useRef(false);
   const adminSyrups = useMemo(() => inventoryItemsByType(inventory, "syrup", SYRUPS), [inventory]);
   const adminMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS), [inventory]);
   const visibleOrders = useMemo(() => orders.filter(o => o.status !== "complete"), [orders]);
@@ -573,10 +574,10 @@ function AdminPage() {
   }
 
   function syncQueueTimer(data) {
-    if (Number.isFinite(Number(data?.queueTimerMinutes))) {
+    if (!settingsEditingRef.current && Number.isFinite(Number(data?.queueTimerMinutes))) {
       setQueueTimerMinutes(normalizeTimerMinutes(data.queueTimerMinutes));
     }
-    if (typeof data?.queueTimerEnabled === "boolean") {
+    if (!settingsEditingRef.current && typeof data?.queueTimerEnabled === "boolean") {
       setQueueTimerEnabled(Boolean(data.queueTimerEnabled));
     }
     if (typeof data?.queueClosesAt === "string") {
@@ -687,6 +688,7 @@ function AdminPage() {
       if (data.ok) {
         setNotice("Saved");
         messageEditingRef.current = false;
+        settingsEditingRef.current = false;
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
         syncQueueTimer(data);
@@ -909,6 +911,16 @@ function AdminPage() {
 
   function saveSettings() {
     saveAdmin({ isOpen, message, queueTimerMinutes, queueTimerEnabled, clergyOrderingEnabled, deliveryEnabled });
+  }
+
+  function updateQueueTimerMinutes(nextValue) {
+    settingsEditingRef.current = true;
+    setQueueTimerMinutes(normalizeTimerMinutes(nextValue));
+  }
+
+  function updateQueueTimerEnabled(nextEnabled) {
+    settingsEditingRef.current = true;
+    setQueueTimerEnabled(nextEnabled);
   }
 
   function saveDeliverySetting(nextDeliveryEnabled) {
@@ -1292,7 +1304,7 @@ function AdminPage() {
                 <input
                   type="checkbox"
                   checked={queueTimerEnabled}
-                  onChange={event => setQueueTimerEnabled(event.target.checked)}
+                  onChange={event => updateQueueTimerEnabled(event.target.checked)}
                 />
                 Auto-close timer
               </label>
@@ -1304,7 +1316,7 @@ function AdminPage() {
                   max="240"
                   value={queueTimerMinutes}
                   disabled={!queueTimerEnabled}
-                  onChange={event => setQueueTimerMinutes(normalizeTimerMinutes(event.target.value))}
+                  onChange={event => updateQueueTimerMinutes(event.target.value)}
                 />
               </label>
             </div>
