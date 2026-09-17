@@ -2502,6 +2502,7 @@ function CustomerPage({ isClergy = false }) {
                   </div>
                   {form.fulfillmentType === "delivery" && (
                     <div className="deliveryFields">
+                      <div className="deliveryServantsNotice" role="status">For Servants only</div>
                       <div className="deliveryDisclaimer">Delivery orders are brought after the 30-minute queue window closes. Pickup orders may be ready sooner.</div>
                       <select value={form.deliveryLocation} onChange={event => {
                         setForm(f => ({ ...f, deliveryLocation: event.target.value, customDeliveryLocation: event.target.value === "Other" ? f.customDeliveryLocation : "" }));
