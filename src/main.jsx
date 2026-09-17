@@ -681,6 +681,14 @@ function AdminPage() {
   }, [pin]);
 
   async function saveAdmin(payload) {
+    if (payload.queueTimerMinutes !== undefined) {
+      const minutes = Number(payload.queueTimerMinutes);
+      if (String(payload.queueTimerMinutes).trim() === "" || !Number.isInteger(minutes) || minutes < 1 || minutes > 240) {
+        setNotice("Enter a whole number between 1 and 240 for the timer minutes.");
+        return;
+      }
+      payload = { ...payload, queueTimerMinutes: minutes };
+    }
     setBusy(true);
     setNotice("");
     try {
@@ -915,7 +923,7 @@ function AdminPage() {
 
   function updateQueueTimerMinutes(nextValue) {
     settingsEditingRef.current = true;
-    setQueueTimerMinutes(normalizeTimerMinutes(nextValue));
+    setQueueTimerMinutes(nextValue);
   }
 
   function updateQueueTimerEnabled(nextEnabled) {
