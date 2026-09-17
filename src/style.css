@@ -2472,6 +2472,10 @@ input:focus,textarea:focus{
 }
 
 /* TV queue display: warm Arise board */
+.displayCountdown{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px 28px;padding:20px;color:#FFE2BB;background:#392514;border-bottom:2px solid #E8AD65;text-align:center}
+.displayCountdown span{font-size:28px;font-weight:700;line-height:1.2}
+.displayCountdown strong{font-size:64px;line-height:1;font-variant-numeric:tabular-nums;min-width:6ch;letter-spacing:0}
+@media(max-width:600px){.displayCountdown span{font-size:22px}.displayCountdown strong{font-size:48px}}
 .displayPage{
   min-height:100vh;
   width:100%;

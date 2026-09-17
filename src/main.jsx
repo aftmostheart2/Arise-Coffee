@@ -2649,10 +2649,14 @@ function firstName(name) {
   return String(name || "").trim().split(/\s+/)[0] || "Guest";
 }
 
-function DisplayPage() {
+function DisplayPage({ isClergy = false }) {
   const [orders, setOrders] = useState([]);
   const [ready, setReady] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
+  const [queueTimerEnabled, setQueueTimerEnabled] = useState(false);
+  const [queueClosesAt, setQueueClosesAt] = useState("");
+  const [nowMs, setNowMs] = useState(Date.now());
+  const [displayLoaded, setDisplayLoaded] = useState(false);
   const [readyPopup, setReadyPopup] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const seenReadyRef = useRef(new Set());
@@ -2669,6 +2673,10 @@ function DisplayPage() {
       setOrders(nextOrders);
       setReady(nextReady);
       if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
+      setQueueTimerEnabled(data.queueTimerEnabled === true);
+      setQueueClosesAt(data.queueClosesAt || "");
+      setNowMs(Date.now());
+      setDisplayLoaded(true);
 
       if (!initializedRef.current) {
         nextReady.forEach(order => seenReadyRef.current.add(order.id));
@@ -2689,6 +2697,7 @@ function DisplayPage() {
   useEffect(() => {
     refreshDisplay();
     const id = setInterval(refreshDisplay, 3000);
+    const clockId = setInterval(() => setNowMs(Date.now()), 1000);
     function updateFullscreenState() {
       setIsFullscreen(Boolean(document.fullscreenElement));
     }
@@ -2704,6 +2713,7 @@ function DisplayPage() {
     document.addEventListener("keydown", handleDisplayKeydown);
     return () => {
       clearInterval(id);
+      clearInterval(clockId);
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
       document.removeEventListener("fullscreenchange", updateFullscreenState);
       document.removeEventListener("keydown", handleDisplayKeydown);
@@ -2725,6 +2735,8 @@ function DisplayPage() {
   const making = orders.filter(order => order.status === "making");
   const waiting = orders.filter(order => order.status !== "making");
   const boardRows = [...making, ...waiting].slice(0, 14);
+  const timeLeft = formatQueueTimeLeft(queueClosesAt, nowMs);
+  const orderingClosed = !isOpen || (queueTimerEnabled && timeLeft !== "" && !hasQueueTimeLeft(queueClosesAt, nowMs));
 
   return (
     <main className="displayPage">
@@ -2737,9 +2749,15 @@ function DisplayPage() {
       </header>
 
       <section className="displayBoard">
+        {!isClergy && displayLoaded && (
+          <div className="displayCountdown">
+            <span>{orderingClosed ? "Ordering closed" : queueTimerEnabled && timeLeft ? "Ordering closes in" : "Ordering open"}</span>
+            {!orderingClosed && queueTimerEnabled && timeLeft && <strong>{timeLeft}</strong>}
+          </div>
+        )}
         <div className="displayBoardTitle">
           <span>Order Status</span>
-          <strong className={isOpen ? "displayOpen" : "displayClosed"}>{isOpen ? "Open" : "Closed"}</strong>
+          <strong className={(isClergy ? isOpen : !orderingClosed) ? "displayOpen" : "displayClosed"}>{(isClergy ? isOpen : !orderingClosed) ? "Open" : "Closed"}</strong>
         </div>
         <div className="displayTable">
           <div className="displayTableHead">
@@ -2824,7 +2842,7 @@ function App() {
     if (manifest.getAttribute("href") !== manifestHref) manifest.setAttribute("href", manifestHref);
   }
 
-  if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage />;
+  if (path.startsWith("/display") || path.startsWith("/tv")) return <DisplayPage isClergy={shouldUseClergyMode} />;
   if (shouldUseClergyMode) {
     try {
       localStorage.setItem(APP_ENTRY_MODE_KEY, "clergy");
