@@ -11,5 +11,7 @@
     "react-dom": "latest",
     "@supabase/supabase-js": "^2.45.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^8.0.0"
+  }
 }

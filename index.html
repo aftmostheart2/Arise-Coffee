@@ -12,8 +12,10 @@
     const appParams = new URLSearchParams(window.location.search);
     const appHost = window.location.hostname.toLowerCase();
     if (appHost.startsWith("clergy-") || appHost.startsWith("clergy.") || window.location.pathname.toLowerCase().startsWith("/clergy") || appParams.get("mode") === "clergy") {
-      document.getElementById("app-manifest")?.setAttribute("href", "/clergy-manifest.webmanifest");
-      document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", "Arise! Clergy");
+      var appManifest = document.getElementById("app-manifest");
+      var appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (appManifest) appManifest.setAttribute("href", "/clergy-manifest.webmanifest");
+      if (appTitle) appTitle.setAttribute("content", "Arise! Clergy");
     }
   </script>
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
