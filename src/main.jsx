@@ -2312,7 +2312,12 @@ function CustomerPage({ isClergy = false }) {
       });
 
       if (!data.ok) {
-        alert(data.error || "Could not place order");
+        if (!isClergy && data.code === "ACTIVE_ORDER_EXISTS") {
+          setErrors(er => ({ ...er, name: data.error }));
+          nameRef.current?.focus();
+        } else {
+          alert(data.error || "Could not place order");
+        }
         await refreshStatusOnly();
         setBusy(false);
         submittingRef.current = false;
