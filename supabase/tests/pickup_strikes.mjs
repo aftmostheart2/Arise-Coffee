@@ -26,11 +26,14 @@ try {
   const migration = readFileSync(new URL("../migrations/202609260002_pickup_strikes.sql", import.meta.url), "utf8");
   await db.exec(migration);
   await db.exec(migration);
+  const deleteMigration = readFileSync(new URL("../migrations/202609260003_delete_pickup_names.sql", import.meta.url), "utf8");
+  await db.exec(deleteMigration);
+  await db.exec(deleteMigration);
   await db.exec(`UPDATE settings SET value = '"test-pin"' WHERE key = 'pin';
     UPDATE settings SET value = '"true"' WHERE key IN ('isOpen', 'clergyOrderingEnabled');
     UPDATE settings SET value = '"false"' WHERE key = 'queueTimerEnabled'; SET ROLE anon;`);
   check((await strikes()).enabled, false, "Starts with enforcement off");
-  for (const action of ["list", "add", "remove", "reset", "setEnabled"]) {
+  for (const action of ["list", "add", "remove", "reset", "delete", "setEnabled"]) {
     const denied = await strikes(action, "Adam Basilious", true, "wrong");
     check(denied.ok, false, `${action} requires correct PIN`);
     check(denied.entries, undefined, "No name list disclosed");
@@ -77,8 +80,28 @@ try {
   check((await strikes("add", "Adam Basilious")).entries[0].strikes, 1, "Fresh start after reset");
   await db.exec("RESET ROLE;");
   await db.exec(migration);
+  await db.exec(deleteMigration);
   check((await strikes()).entries[0].strikes, 1, "Reapplying migration preserves strikes");
   check((await strikes()).enabled, true, "Reapplying migration preserves setting");
+  await db.exec("SET ROLE anon;");
+  await assert.rejects(db.query("DELETE FROM customer_pickup_strikes"), /permission denied/);
+  checks++;
+  await strikes("add", "Another Person");
+  await strikes("add", "Adam Basilious");
+  await strikes("add", "Adam Basilious");
+  check((await strikes("delete", "Adam Basilious", null, "wrong")).ok, false, "Unauthorized deletion denied for existing record");
+  check((await place()).code, "CUSTOMER_BLACKLISTED", "Denied deletion preserves blacklist");
+  const deleted = await strikes("delete", "  BASILIOUS  adam ");
+  check(deleted.entries.length, 1, "Delete removes the matched entry entirely");
+  check(deleted.entries[0].name, "Another Person", "Delete preserves other names");
+  check((await place()).code, "ACTIVE_ORDER_EXISTS", "Deletion preserves existing orders and the duplicate-order rule");
+  await finishOrders();
+  check((await place()).ok, true, "Deleted blacklist no longer prevents ordering");
+  check((await strikes("delete", "Adam Basilious")).entries.length, 1, "Repeated deletion is harmless");
+  const restarted = await strikes("add", "Adam Basilious");
+  check(restarted.entries.find(entry => entry.name === "Adam Basilious").strikes, 1, "A deleted name can restart at one strike");
+  await strikes("reset", "Adam Basilious");
+  check((await strikes("delete", "Adam Basilious")).entries.length, 1, "Zero-strike names can be deleted");
   console.log(`PASS: ${checks} pickup-strike checks including anonymous-role access controls`);
 } finally {
   await db.close();

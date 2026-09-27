@@ -675,14 +675,16 @@ begin
     end if;
     insert into settings (key, value) values ('pickupBlacklistEnabled', to_jsonb(input_enabled)::text)
     on conflict (key) do update set value = excluded.value;
-  elsif input_action in ('add', 'remove', 'reset') then
+  elsif input_action in ('add', 'remove', 'reset', 'delete') then
     normalized_name := arise_customer_name_key(input_name);
     if normalized_name = '' or position(' ' in normalized_name) = 0 then
       return jsonb_build_object('ok', false, 'error', 'Please enter first and last name');
     end if;
     -- Use the same lock as ordering so strikes and new orders are checked in sequence.
     perform pg_advisory_xact_lock(72641, hashtext(normalized_name));
-    if input_action = 'add' then
+    if input_action = 'delete' then
+      delete from customer_pickup_strikes where name_key = normalized_name;
+    elsif input_action = 'add' then
       insert into customer_pickup_strikes (name_key, customer_name, strikes)
       values (normalized_name, regexp_replace(btrim(input_name), '[[:space:]]+', ' ', 'g'), 1)
       on conflict (name_key) do update

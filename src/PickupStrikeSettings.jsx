@@ -35,6 +35,8 @@ export default function PickupStrikeSettings({ pin }) {
         setNotice(`Strikes cleared for ${values.name}.`);
       } else if (operation === "remove") {
         setNotice(`One strike removed for ${values.name}.`);
+      } else if (operation === "delete") {
+        setNotice(`${values.name} deleted from the missed-pickup list.`);
       } else if (operation === "setEnabled") {
         setNotice(data.enabled ? "Three-strike blacklisting enabled." : "Blacklisting paused. Existing strikes are saved.");
       }
@@ -108,6 +110,11 @@ export default function PickupStrikeSettings({ pin }) {
                       update("reset", { name: entry.name });
                     }
                   }}>{entry.blacklisted ? "Remove blacklist" : "Clear strikes"}</button>
+                  <button className="dangerBtn" disabled={busy} onClick={() => {
+                    if (window.confirm(`Delete ${entry.name} from the missed-pickup list? This removes all their strikes and any blacklist. Their orders will not be deleted.`)) {
+                      update("delete", { name: entry.name });
+                    }
+                  }}>Delete name</button>
                 </div>
               </li>
             ))}

@@ -24,6 +24,8 @@ try {
   const latestMigration = readFileSync(new URL("../migrations/202609260002_pickup_strikes.sql", import.meta.url), "utf8");
   await db.exec(latestMigration);
   await db.exec(latestMigration);
+  const deleteMigration = readFileSync(new URL("../migrations/202609260003_delete_pickup_names.sql", import.meta.url), "utf8");
+  await db.exec(deleteMigration);
   await db.exec(`UPDATE settings SET value = '"true"' WHERE key IN ('isOpen', 'clergyOrderingEnabled');
     UPDATE settings SET value = '"false"' WHERE key = 'queueTimerEnabled';`);
   const first = await place("Adam Basilious");
@@ -47,7 +49,7 @@ try {
   check((await place("Basilious Adam")).code, "ACTIVE_ORDER_EXISTS", "Existing name-only rows");
   await db.exec(`UPDATE settings SET value = '"false"' WHERE key = 'isOpen';`);
   check((await place("Another Person")).error, "Queue closed", "Preserve queue closure");
-  check(latestMigration.includes(schema.slice(schema.indexOf("create or replace function arise_customer_name_key("), schema.indexOf("\ndrop function if exists arise_update_admin"))), true, "Latest migration matches schema");
+  check(deleteMigration.includes(schema.slice(schema.indexOf("create or replace function arise_customer_strikes("), schema.indexOf("create or replace function arise_place_order("))), true, "Latest migration matches schema");
   console.log(`PASS: ${checks} assertions, schema installation, and repeatable migration`);
 } finally {
   await db.close();
