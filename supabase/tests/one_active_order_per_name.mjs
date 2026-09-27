@@ -14,13 +14,16 @@ function check(value, expected, message) {
   checks++;
 }
 try {
-  await db.exec("CREATE ROLE anon; CREATE ROLE service_role;");
+  await db.exec("CREATE ROLE anon; CREATE ROLE service_role; CREATE ROLE authenticated;");
   const schema = readFileSync(new URL("../schema.sql", import.meta.url), "utf8");
   // Scheduled push cleanup is unrelated and requires Supabase's pg_cron extension.
   await db.exec(schema.slice(0, schema.indexOf("create extension if not exists pg_cron")));
   const migration = readFileSync(new URL("../migrations/202609260001_one_active_order_per_name.sql", import.meta.url), "utf8");
   await db.exec(migration);
   await db.exec(migration);
+  const latestMigration = readFileSync(new URL("../migrations/202609260002_pickup_strikes.sql", import.meta.url), "utf8");
+  await db.exec(latestMigration);
+  await db.exec(latestMigration);
   await db.exec(`UPDATE settings SET value = '"true"' WHERE key IN ('isOpen', 'clergyOrderingEnabled');
     UPDATE settings SET value = '"false"' WHERE key = 'queueTimerEnabled';`);
   const first = await place("Adam Basilious");
@@ -44,7 +47,7 @@ try {
   check((await place("Basilious Adam")).code, "ACTIVE_ORDER_EXISTS", "Existing name-only rows");
   await db.exec(`UPDATE settings SET value = '"false"' WHERE key = 'isOpen';`);
   check((await place("Another Person")).error, "Queue closed", "Preserve queue closure");
-  check(migration.includes(schema.slice(schema.indexOf("create or replace function arise_customer_name_key("), schema.indexOf("\ndrop function if exists arise_update_admin"))), true, "Migration matches schema");
+  check(latestMigration.includes(schema.slice(schema.indexOf("create or replace function arise_customer_name_key("), schema.indexOf("\ndrop function if exists arise_update_admin"))), true, "Latest migration matches schema");
   console.log(`PASS: ${checks} assertions, schema installation, and repeatable migration`);
 } finally {
   await db.close();

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { apiGet, apiPost } from "./api/backend";
+import PickupStrikeSettings from "./PickupStrikeSettings";
 import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendCancelNotification, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
@@ -1390,6 +1391,7 @@ function AdminPage() {
             </div>
           </section>
 
+          <PickupStrikeSettings pin={pin} />
           {notice && <div className="notice settingsNotice">{notice}</div>}
         </main>
       </>
@@ -2312,7 +2314,7 @@ function CustomerPage({ isClergy = false }) {
       });
 
       if (!data.ok) {
-        if (!isClergy && data.code === "ACTIVE_ORDER_EXISTS") {
+        if (!isClergy && ["ACTIVE_ORDER_EXISTS", "CUSTOMER_BLACKLISTED"].includes(data.code)) {
           setErrors(er => ({ ...er, name: data.error }));
           nameRef.current?.focus();
         } else {

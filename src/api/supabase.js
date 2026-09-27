@@ -27,6 +27,18 @@ export async function apiGet(action, params = {}) {
 }
 
 export async function apiPost(payload) {
+  if (payload.action === "customerStrikes") {
+    try {
+      return await callRpc("arise_customer_strikes", {
+        input_pin: String(payload.pin || ""),
+        input_action: payload.operation || "list",
+        input_name: payload.name || "",
+        input_enabled: typeof payload.enabled === "boolean" ? payload.enabled : null,
+      });
+    } catch {
+      return { ok: false, error: "Could not load or save pickup strikes. Check the connection and that the latest Supabase update is installed." };
+    }
+  }
   if (payload.action === "login") return login(payload.pin);
   if (payload.action === "admin") {
     const { action, pin, ...adminPayload } = payload;

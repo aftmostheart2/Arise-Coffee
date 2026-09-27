@@ -68,6 +68,22 @@ input:focus,textarea:focus,select:focus{outline:2px solid #C8823A}
 .wrap{flex-wrap:wrap}
 .choice{flex:1;padding:11px;border-radius:4px;background:#2C1400;color:#A08060;border:1px solid rgba(200,130,58,.2);font-weight:500}
 .choice.active{background:#C8823A;color:#FFF8F0;border-color:#C8823A}
+.pickupStrikes{margin-top:28px;padding-top:24px;border-top:1px solid rgba(200,130,58,.3);min-width:0}
+.pickupStrikesHeader{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.pickupStrikesHeader h3{font-size:22px;letter-spacing:0}
+.pickupStrikesState,.pickupStrikeNotice{margin:10px 0;color:#B9CABB;font-size:14px}
+.pickupStrikeForm{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px;margin:18px 0}
+.pickupStrikeForm .settingsField{flex:1 1 240px;min-width:0}
+.pickupStrikes input:not([type="checkbox"]){width:100%;min-width:0;box-sizing:border-box}
+.pickupStrikes button{white-space:normal;min-height:44px}
+.pickupStrikeList{list-style:none;padding:0;margin:16px 0 0}
+.pickupStrikeRow{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:16px 0;border-top:1px solid rgba(200,130,58,.2)}
+.pickupStrikePerson{display:flex;flex-direction:column;gap:6px;min-width:0;overflow-wrap:anywhere;flex:1 1 180px}
+.pickupStrikePerson strong{font-size:18px;letter-spacing:0}
+.pickupStrikePerson span{color:#B9CABB;font-size:14px}
+.pickupBlacklistStatus{color:#FFB8B0;font-size:14px}
+.pickupStrikeActions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:600px){.pickupStrikeActions{width:100%}.pickupStrikeActions button{flex:1 1 130px}.pickupStrikeForm button{width:100%}}
 .deliveryFields{margin-top:10px;display:flex;flex-direction:column;gap:10px}
 .deliveryServantsNotice{padding:16px 12px;border:2px solid #E8AD65;border-radius:8px;background:#392514;color:#FFE2BB;font-size:26px;font-weight:800;line-height:1.2;text-align:center;overflow-wrap:anywhere}
 .deliveryDisclaimer{color:#B39B86;background:rgba(200,130,58,.10);border:1px solid rgba(200,130,58,.22);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.35}
