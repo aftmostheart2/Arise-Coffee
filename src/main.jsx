@@ -1944,29 +1944,33 @@ function ReadyAlertModal({ busy, message, deviceHint, onEnable, onClose }) {
   );
 }
 
-function IosInstallGate({ onRefresh }) {
+function IosInstallGate({ onRefresh, onContinue, isClergy = false }) {
   const [notice, setNotice] = useState("");
+  const appName = isClergy ? "Arise! Clergy" : "Arise! Coffee";
 
   function checkInstall() {
     if (isStandaloneApp()) {
       onRefresh();
       return;
     }
-    setNotice("Still opening in Safari. After Add to Home Screen, open Arise! Coffee from the new Home Screen icon.");
+    setNotice(`Still opening in Safari. After Add to Home Screen, open ${appName} from the new Home Screen icon.`);
   }
 
   return (
     <main className="iosInstallPage">
       <section className="iosInstallCard">
         <div className="brandMark">☕</div>
-        <h1>Install Arise! Coffee</h1>
-        <p>On iPhone or iPad, add Arise! Coffee to your Home Screen before ordering. This lets ready alerts work like an app.</p>
+        <h1>Install {appName}</h1>
+        <p>{isClergy
+          ? "On iPhone or iPad, add Arise! Clergy to your Home Screen to enable ready notifications on supported devices. You can also continue without notifications."
+          : "On iPhone or iPad, add Arise! Coffee to your Home Screen before ordering. This lets ready alerts work like an app."}</p>
         <ol>
           <li>Tap the Share button in Safari.</li>
           <li>Choose Add to Home Screen.</li>
-          <li>Open Arise! Coffee from the new Home Screen icon.</li>
+          <li>Open {appName} from the new Home Screen icon.</li>
         </ol>
         <button className="joinBtn" onClick={checkInstall}>I opened it from Home Screen</button>
+        {onContinue && <button className="ghostBtn iosInstallSkip" onClick={onContinue}>Continue without notifications</button>}
         {notice && <p className="iosInstallNotice">{notice}</p>}
       </section>
     </main>
@@ -1974,6 +1978,13 @@ function IosInstallGate({ onRefresh }) {
 }
 
 function CustomerPage({ isClergy = false }) {
+  const [skipClergyInstall, setSkipClergyInstall] = useState(() => {
+    try {
+      return sessionStorage.getItem("arise-clergy-without-notifications") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [form, setForm] = useState(() => {
     const savedName = localStorage.getItem("arise-customer-name") || "";
     return { ...defaultForm(), name: savedName };
@@ -2024,6 +2035,15 @@ function CustomerPage({ isClergy = false }) {
   }, [inventory, drink]);
   const pushDeviceHint = useMemo(() => getPushDeviceHint(), []);
   const requiresIosInstall = useMemo(() => isAppleTouchDevice() && !isStandaloneApp(), []);
+  const withoutNotifications = isClergy && requiresIosInstall && skipClergyInstall;
+
+  function continueClergyWithoutNotifications() {
+    setSkipClergyInstall(true);
+    setShowReadyAlertPrompt(false);
+    try {
+      sessionStorage.setItem("arise-clergy-without-notifications", "true");
+    } catch {}
+  }
 
   function updateTextSize(nextLargeText) {
     setLargeText(nextLargeText);
@@ -2413,10 +2433,14 @@ function CustomerPage({ isClergy = false }) {
   const lbl = (text, hint) => <div className="label">{text}{hint && <span> {hint}</span>}</div>;
 
   const orderingOpen = isClergy ? clergyOrderingEnabled : isOpen;
-  const shouldGateIosInstall = !isClergy && requiresIosInstall && !myOrderId && !myOrder;
+  const shouldGateIosInstall = requiresIosInstall && !withoutNotifications && !myOrderId && !myOrder;
 
   if (shouldGateIosInstall) {
-    return <IosInstallGate onRefresh={() => window.location.reload()} />;
+    return <IosInstallGate
+      isClergy={isClergy}
+      onRefresh={() => window.location.reload()}
+      onContinue={isClergy ? continueClergyWithoutNotifications : undefined}
+    />;
   }
 
   if (!orderingOpen && !myOrder) {
@@ -2623,7 +2647,9 @@ function CustomerPage({ isClergy = false }) {
                     <span>{orderQuote.reference}{orderQuote.excerpt ? " excerpt" : ""}</span>
                   </div>
                 )}
-                {!["ready","complete","canceled"].includes(myOrder.status) && (
+                {!["ready","complete","canceled"].includes(myOrder.status) && (withoutNotifications ? (
+                  <p className="deviceHint">Notifications are off. Keep this page open to check when your drink is ready.</p>
+                ) : (
                   <div className="notifyBox">
                     <button className="ghostBtn" disabled={pushState.busy || pushState.enabled} onClick={enableReadyNotification}>
                       {pushState.busy ? "Enabling..." : pushState.enabled ? "Notifications enabled" : "Notify me when my order is ready"}
@@ -2631,7 +2657,7 @@ function CustomerPage({ isClergy = false }) {
                     {pushDeviceHint && !pushState.enabled && <p className="deviceHint">{pushDeviceHint}</p>}
                     {pushState.message && <p>{pushState.message}</p>}
                   </div>
-                )}
+                ))}
                 {["complete","canceled"].includes(myOrder.status) && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
               </div>
             );
@@ -2639,7 +2665,7 @@ function CustomerPage({ isClergy = false }) {
         </section>
       </main>
       {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}
-      {!showDonation && showReadyAlertPrompt && myOrder && !["ready","complete"].includes(myOrder.status) && !pushState.enabled && (
+      {!withoutNotifications && !showDonation && showReadyAlertPrompt && myOrder && !["ready","complete"].includes(myOrder.status) && !pushState.enabled && (
         <ReadyAlertModal
           busy={pushState.busy}
           message={pushState.message}
