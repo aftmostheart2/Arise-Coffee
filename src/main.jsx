@@ -1944,17 +1944,8 @@ function ReadyAlertModal({ busy, message, deviceHint, onEnable, onClose }) {
   );
 }
 
-function IosInstallGate({ onRefresh, onContinue, isClergy = false }) {
-  const [notice, setNotice] = useState("");
+function IosInstallGate({ onContinue, isClergy = false }) {
   const appName = isClergy ? "Arise! Clergy" : "Arise! Coffee";
-
-  function checkInstall() {
-    if (isStandaloneApp()) {
-      onRefresh();
-      return;
-    }
-    setNotice(`Still opening in Safari. After Add to Home Screen, open ${appName} from the new Home Screen icon.`);
-  }
 
   return (
     <main className="iosInstallPage">
@@ -1969,9 +1960,8 @@ function IosInstallGate({ onRefresh, onContinue, isClergy = false }) {
           <li>Choose Add to Home Screen.</li>
           <li>Open {appName} from the new Home Screen icon.</li>
         </ol>
-        <button className="joinBtn" onClick={checkInstall}>I opened it from Home Screen</button>
+        <p className="iosInstallNotice">Already installed? Go to your Home Screen and tap {appName}.</p>
         {onContinue && <button className="ghostBtn iosInstallSkip" onClick={onContinue}>Continue without notifications</button>}
-        {notice && <p className="iosInstallNotice">{notice}</p>}
       </section>
     </main>
   );
@@ -2438,7 +2428,6 @@ function CustomerPage({ isClergy = false }) {
   if (shouldGateIosInstall) {
     return <IosInstallGate
       isClergy={isClergy}
-      onRefresh={() => window.location.reload()}
       onContinue={isClergy ? continueClergyWithoutNotifications : undefined}
     />;
   }
