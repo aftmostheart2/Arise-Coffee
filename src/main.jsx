@@ -2000,7 +2000,8 @@ function CustomerPage({ isClergy = false }) {
   const [queueTimerMinutes, setQueueTimerMinutes] = useState(30);
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(true);
   const [queueClosesAt, setQueueClosesAt] = useState("");
-  const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(false);
+  const [clergyOrderingEnabled, setClergyOrderingEnabled] = useState(null);
+  const [customerStatusError, setCustomerStatusError] = useState(false);
   const [deliveryEnabled, setDeliveryEnabled] = useState(true);
   const [nowMs, setNowMs] = useState(Date.now());
   const [pushState, setPushState] = useState({ busy: false, enabled: false, message: "" });
@@ -2052,6 +2053,9 @@ function CustomerPage({ isClergy = false }) {
     }
     if (typeof data?.clergyOrderingEnabled === "boolean") {
       setClergyOrderingEnabled(Boolean(data.clergyOrderingEnabled));
+      setCustomerStatusError(false);
+    } else if (isClergy) {
+      setCustomerStatusError(true);
     }
     if (typeof data?.deliveryEnabled === "boolean") {
       setDeliveryEnabled(Boolean(data.deliveryEnabled));
@@ -2096,13 +2100,17 @@ function CustomerPage({ isClergy = false }) {
     orderLoadingRef.current = true;
     try {
       const data = await apiGet("order", { id: myOrderId });
-      if (data.ok === false) return;
+      if (data.ok === false) {
+        setCustomerStatusError(true);
+        return;
+      }
       if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
       if (typeof data.message === "string") setMessage(data.message || "");
       syncCustomerQueueTimer(data);
       if (data.inventory) setInventory(cacheInventory(data.inventory));
       updateMyOrder(data.order, data.position);
     } catch {
+      setCustomerStatusError(true);
     } finally {
       orderLoadingRef.current = false;
     }
@@ -2115,8 +2123,12 @@ function CustomerPage({ isClergy = false }) {
         if (typeof data.isOpen === "boolean") setIsOpen(Boolean(data.isOpen));
         if (typeof data.message === "string") setMessage(data.message || "");
         syncCustomerQueueTimer(data);
+      } else {
+        setCustomerStatusError(true);
       }
-    } catch {}
+    } catch {
+      setCustomerStatusError(true);
+    }
     await refreshInventoryOnly();
   }
 
@@ -2145,7 +2157,7 @@ function CustomerPage({ isClergy = false }) {
   }
 
   async function refreshStatusOnly() {
-    if (statusLoadingRef.current) return isOpen;
+    if (statusLoadingRef.current) return isClergy ? clergyOrderingEnabled === true : isOpen;
     statusLoadingRef.current = true;
     try {
       const data = await apiGet("status");
@@ -2159,7 +2171,8 @@ function CustomerPage({ isClergy = false }) {
     } finally {
       statusLoadingRef.current = false;
     }
-    return isOpen;
+    setCustomerStatusError(true);
+    return isClergy ? false : isOpen;
   }
 
   useEffect(() => {
@@ -2432,9 +2445,20 @@ function CustomerPage({ isClergy = false }) {
     />;
   }
 
+  if (isClergy && clergyOrderingEnabled === null && !myOrder) {
+    return <>
+      <Header isOpen={false} statusText={customerStatusError ? "Offline" : "Checking"} />
+      <main className={largeText ? "closedPage customerLargeText" : "closedPage"}>
+        <h1>Arise! Clergy</h1>
+        <p role="status">{customerStatusError ? "Could not check ordering availability. Please check your connection and try again." : "Checking ordering availability..."}</p>
+        {customerStatusError && <button className="ghostBtn" onClick={refreshStatusOnly}>Try again</button>}
+      </main>
+    </>;
+  }
+
   if (!orderingOpen && !myOrder) {
     return <>
-      <Header isOpen={isOpen} />
+      <Header isOpen={orderingOpen} />
       <main className={largeText ? "closedPage customerLargeText" : "closedPage"}>
         <div className="customerTools closedTools">
           <TextSizeControl largeText={largeText} onChange={updateTextSize} />
@@ -2449,7 +2473,7 @@ function CustomerPage({ isClergy = false }) {
 
   return (
     <>
-      <Header isOpen={isOpen} />
+      <Header isOpen={orderingOpen} />
       <QueueTimerBadge isOpen={!isClergy && queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
       <main className={largeText ? "layout customerLargeText" : "layout"}>
         <section className="formCol">
