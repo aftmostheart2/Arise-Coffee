@@ -2782,7 +2782,7 @@ function DisplayPage({ isClergy = false }) {
   const making = orders.filter(order => order.status === "making");
   const waiting = orders.filter(order => order.status !== "making");
   const sortedOrders = [...making, ...waiting];
-  const rowsPerPage = 4;
+  const rowsPerPage = 6;
   const pageCount = Math.max(1, Math.ceil(sortedOrders.length / rowsPerPage));
   const currentPage = queuePage % pageCount;
   const pageStart = currentPage * rowsPerPage;
@@ -2793,7 +2793,7 @@ function DisplayPage({ isClergy = false }) {
   useEffect(() => {
     setQueuePage(page => page % pageCount);
     if (pageCount === 1) return;
-    const id = setInterval(() => setQueuePage(page => (page + 1) % pageCount), 10000);
+    const id = setInterval(() => setQueuePage(page => (page + 1) % pageCount), 7500);
     return () => clearInterval(id);
   }, [pageCount]);
 
