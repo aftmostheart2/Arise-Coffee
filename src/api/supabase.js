@@ -27,6 +27,13 @@ export async function apiGet(action, params = {}) {
 }
 
 export async function apiPost(payload) {
+  if (payload.action === "pickupSettings") {
+    try {
+      return await callRpc("arise_pickup_settings", { input_pin: payload.pin, input_options: payload.options || null });
+    } catch {
+      return { ok: false, error: "Could not load or save pickup settings. Check your connection and install the pickup settings SQL update." };
+    }
+  }
   if (["pickupAdmin", "confirmPickup", "updatePickup"].includes(payload.action)) {
     try {
       if (payload.action === "pickupAdmin") return await callRpc("arise_pickup_admin", { input_pin: payload.pin });

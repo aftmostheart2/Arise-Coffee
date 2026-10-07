@@ -8,11 +8,13 @@ export default function PickupOrders({ pin, refreshKey, delivery = false, onRead
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [adminPickup, setAdminPickup] = useState(true);
   const pending = useRef(false);
   const refreshing = useRef(false);
   const revision = useRef(0);
 
   function sync(data) {
+    setAdminPickup(data.pickupOptions?.adminPickup !== false);
     setReady(data.ready || []);
     if (onReadyCount) onReadyCount((data.ready || []).filter(order => (order.fulfillmentType === "delivery") === delivery).length);
     setCollected(data.collected || []);
@@ -71,14 +73,14 @@ export default function PickupOrders({ pin, refreshKey, delivery = false, onRead
       {pendingOrders.map(order => (
         <div className="pickupAdminRow" key={order.id}>
           <div><strong>{order.name}</strong><p>{order.temp} {order.drink}{delivery && order.deliveryLocation ? ` · ${order.deliveryLocation}` : ""}</p></div>
-          <button className="successBtn" disabled={busy} onClick={() => markCollected(order, true)}>{delivery ? "Mark delivered" : "Picked up"}</button>
+          {adminPickup && <button className="successBtn" disabled={busy} onClick={() => markCollected(order, true)}>{delivery ? "Mark delivered" : "Picked up"}</button>}
         </div>
       ))}
       {recentOrders.length > 0 && <details className="pickupRecent">
         <summary>Awaiting final archive ({recentOrders.length})</summary>
         {recentOrders.map(order => (
           <div className="pickupAdminRow" key={order.id}>
-            <div><strong>{order.name}</strong><p>{order.temp} {order.drink} · {order.pickedUpAt ? (delivery ? "Delivered" : "Picked up") : "30-minute auto archive"}</p></div>
+            <div><strong>{order.name}</strong><p>{order.temp} {order.drink} · {order.pickedUpAt ? (delivery ? "Delivered" : "Picked up") : "Auto archived"}</p></div>
             <button className="ghostBtn" disabled={busy} onClick={() => markCollected(order, false)}>Restore to ready</button>
           </div>
         ))}

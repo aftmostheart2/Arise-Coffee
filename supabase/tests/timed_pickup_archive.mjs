@@ -51,5 +51,33 @@ try {
   await rpc("arise_clear_completed", ["test-pin"]);
   assert.equal((await db.query("select count(*)::int as n from archived_orders")).rows[0].n, 2, "Finalization is idempotent and includes expired orders");
   assert.equal((await db.query("select count(*)::int as n from customer_pickup_strikes")).rows[0].n, 0);
+  const settingsMigration = read("../migrations/202610070003_pickup_settings.sql");
+  await db.exec(settingsMigration);
+  await db.exec(settingsMigration);
+  await db.exec("set role anon");
+  assert.deepEqual((await rpc("arise_pickup_settings", ["test-pin"])).pickupOptions,
+    { showReady: true, archiveMinutes: 30, adminPickup: true });
+  const options = { showReady: false, archiveMinutes: 5, adminPickup: false };
+  assert.equal((await rpc("arise_pickup_settings", ["wrong", options])).ok, false);
+  for (const value of [0, 241, 1.5, "", null]) {
+    assert.equal((await rpc("arise_pickup_settings", ["test-pin", { ...options, archiveMinutes: value }])).ok, false);
+  }
+  assert.equal((await rpc("arise_pickup_settings", ["test-pin", {}])).ok, false);
+  assert.equal((await rpc("arise_pickup_settings", ["test-pin", options])).ok, true);
+  assert.deepEqual((await rpc("arise_display")).pickupOptions, options);
+  const third = await rpc("arise_place_order", [JSON.stringify({ name: "Settings Guest", drink: "Latte" })]);
+  await rpc("arise_update_status", ["test-pin", third.id, "complete"]);
+  assert.equal((await rpc("arise_update_pickup", ["test-pin", third.id, true])).ok, false);
+  await db.exec("reset role");
+  await db.query("update orders set ready_at = now() - interval '6 minutes' where id::text = $1", [third.id]);
+  assert.equal((await rpc("arise_display")).ready.length, 0);
+  assert.equal((await rpc("arise_pickup_admin", ["test-pin"])).collected[0].pendingArchive, true);
+  await rpc("arise_pickup_settings", ["test-pin", { ...options, archiveMinutes: 10, adminPickup: true }]);
+  assert.equal((await rpc("arise_display")).ready.length, 1);
+  assert.equal((await rpc("arise_update_pickup", ["test-pin", third.id, true])).ok, true);
+  await rpc("arise_clear_completed", ["test-pin"]);
+  assert.equal((await db.query("select count(*)::int as n from archived_orders")).rows[0].n, 3);
+  await db.exec(settingsMigration);
+  assert.equal((await rpc("arise_pickup_settings", ["test-pin"])).pickupOptions.archiveMinutes, 10);
   console.log("Timed archive tests passed");
 } finally { await db.close(); }

@@ -238,6 +238,41 @@ as $$
   select coalesce(input_pin, '') = arise_setting('pin', '');
 $$;
 
+create or replace function arise_pickup_options()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'showReady', arise_setting('pickupShowReady', 'true') = 'true',
+    'archiveMinutes', arise_setting('pickupArchiveMinutes', '30')::integer,
+    'adminPickup', arise_setting('pickupAdminEnabled', 'true') = 'true'
+  );
+$$;
+
+create or replace function arise_pickup_settings(input_pin text, input_options jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+  if input_options is not null then
+    if jsonb_typeof(input_options->'showReady') is distinct from 'boolean'
+      or jsonb_typeof(input_options->'adminPickup') is distinct from 'boolean'
+      or jsonb_typeof(input_options->'archiveMinutes') is distinct from 'number'
+      or (input_options->>'archiveMinutes')::numeric <> trunc((input_options->>'archiveMinutes')::numeric)
+      or (input_options->>'archiveMinutes')::numeric not between 1 and 240 then
+      return jsonb_build_object('ok', false, 'error', 'Choose a whole number from 1 to 240 minutes and valid pickup options.');
+    end if;
+    insert into settings (key, value) values
+      ('pickupShowReady', (input_options->'showReady')::text),
+      ('pickupArchiveMinutes', (input_options->'archiveMinutes')::text),
+      ('pickupAdminEnabled', (input_options->'adminPickup')::text)
+    on conflict (key) do update set value = excluded.value;
+  end if;
+  return jsonb_build_object('ok', true, 'pickupOptions', arise_pickup_options());
+end;
+$$;
+revoke all on function arise_pickup_settings(text, jsonb) from public;
+grant execute on function arise_pickup_settings(text, jsonb) to anon;
+
 create or replace function arise_queue_is_open()
 returns boolean
 language sql
@@ -399,7 +434,7 @@ as $$
       'pickedUpAt', (input_order).picked_up_at,
       'readyAt', (input_order).ready_at,
       'pendingArchive', ((input_order).status in ('ready', 'complete') and
-        ((input_order).picked_up_at is not null or (input_order).ready_at <= now() - interval '30 minutes')),
+        ((input_order).picked_up_at is not null or (input_order).ready_at <= now() - make_interval(mins => arise_setting('pickupArchiveMinutes', '30')::integer))),
       'position', input_position,
       'ordersAhead', case when input_position is null then null else greatest(0, input_position - 1) end
     )
@@ -514,12 +549,13 @@ as $$
     from orders
     where status in ('ready', 'complete')
       and picked_up_at is null
-      and ready_at > now() - interval '30 minutes'
+      and ready_at > now() - make_interval(mins => arise_setting('pickupArchiveMinutes', '30')::integer)
       and coalesce(fulfillment_type, 'pickup') <> 'delivery'
     order by created_at desc
   )
   select jsonb_build_object(
     'ok', true,
+    'pickupOptions', arise_pickup_options(),
     'isOpen', arise_queue_is_open(),
     'message', arise_setting('message', ''),
     'queueTimerMinutes', coalesce(nullif(arise_setting('queueTimerMinutes', '30'), '')::integer, 30),
@@ -1265,12 +1301,13 @@ begin
   end if;
   return jsonb_build_object(
     'ok', true,
+    'pickupOptions', arise_pickup_options(),
     'ready', coalesce((select jsonb_agg(arise_order_json(o, null) order by o.created_at)
       from orders o where status in ('ready', 'complete') and picked_up_at is null
-        and ready_at > now() - interval '30 minutes'), '[]'::jsonb),
+        and ready_at > now() - make_interval(mins => arise_setting('pickupArchiveMinutes', '30')::integer)), '[]'::jsonb),
     'collected', coalesce((select jsonb_agg(arise_order_json(o, null) order by o.picked_up_at desc)
       from (select * from orders where status in ('ready', 'complete') and
-        (picked_up_at is not null or ready_at <= now() - interval '30 minutes')) o), '[]'::jsonb)
+        (picked_up_at is not null or ready_at <= now() - make_interval(mins => arise_setting('pickupArchiveMinutes', '30')::integer))) o), '[]'::jsonb)
   );
 end;
 $$;
@@ -1302,6 +1339,9 @@ begin
   end if;
   if input_picked_up is null then
     return jsonb_build_object('ok', false, 'error', 'Choose a pickup status');
+  end if;
+  if input_picked_up and arise_setting('pickupAdminEnabled', 'true') <> 'true' then
+    return jsonb_build_object('ok', false, 'error', 'Admin pickup confirmation is disabled in Settings.');
   end if;
   update orders
   set picked_up_at = case when input_picked_up then coalesce(picked_up_at, now()) else null end,
@@ -1336,7 +1376,7 @@ begin
   with collected as (
     delete from orders
     where status in ('ready', 'complete') and
-      (picked_up_at is not null or ready_at <= now() - interval '30 minutes')
+      (picked_up_at is not null or ready_at <= now() - make_interval(mins => arise_setting('pickupArchiveMinutes', '30')::integer))
     returning *
   )
   insert into archived_orders (

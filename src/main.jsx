@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import { apiGet, apiPost } from "./api/backend";
 import PickupStrikeSettings from "./PickupStrikeSettings";
+import PickupSettings from "./PickupSettings";
 import PickupOrders from "./PickupOrders";
 import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendCancelNotification, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
@@ -829,7 +830,7 @@ function AdminPage() {
   }
 
   async function clearCompleted() {
-    if (!confirm("Finalize picked-up and 30-minute auto-archived orders for analytics? Drinks still within their pickup window will stay visible.")) return;
+    if (!confirm("Finalize picked-up and auto-archived orders for analytics? Drinks still within their pickup window will stay visible.")) return;
     const data = await apiPost({ action: "clearCompleted", pin });
     if (data.ok) {
       setOrders(data.orders || []);
@@ -1394,6 +1395,7 @@ function AdminPage() {
           </section>
 
           <PickupStrikeSettings pin={pin} />
+          <PickupSettings pin={pin} />
           {notice && <div className="notice settingsNotice">{notice}</div>}
         </main>
       </>
@@ -2708,6 +2710,7 @@ function displayName(name) {
 }
 
 function DisplayPage({ isClergy = false }) {
+  const [showReady, setShowReady] = useState(true);
   const [orders, setOrders] = useState([]);
   const [queuePage, setQueuePage] = useState(0);
   const [readyPage, setReadyPage] = useState(0);
@@ -2730,6 +2733,7 @@ function DisplayPage({ isClergy = false }) {
 
       const nextOrders = Array.isArray(data.orders) ? data.orders : [];
       const nextReady = Array.isArray(data.ready) ? data.ready : [];
+      setShowReady(data.pickupOptions?.showReady !== false);
       setOrders(nextOrders);
       setReady(nextReady);
       setReadyPopup(current => current && nextReady.some(order => order.id === current.id) ? current : null);
@@ -2835,7 +2839,7 @@ function DisplayPage({ isClergy = false }) {
         {!isFullscreen && <button className="displayFullscreenBtn" onClick={toggleFullscreen}>Fullscreen</button>}
       </header>
 
-      <div className="displayBoards">
+      <div className="displayBoards" style={!showReady ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
       <section className="displayBoard">
         {!isClergy && displayLoaded && (
           <div className="displayCountdown">
@@ -2873,7 +2877,7 @@ function DisplayPage({ isClergy = false }) {
         </div>
       </section>
 
-      <aside className="displayPickupPanel" aria-labelledby="tv-pickup-title">
+      {showReady && <aside className="displayPickupPanel" aria-labelledby="tv-pickup-title">
         <div className="displayPickupHeading">
           <h2 id="tv-pickup-title">Ready for Pickup</h2>
           <p>Go to the kitchen</p>
@@ -2883,10 +2887,10 @@ function DisplayPage({ isClergy = false }) {
           {readyRows.map(order => <li key={order.id}><strong>{displayName(order.name)}</strong><span>{order.temp} {order.drink}</span></li>)}
         </ul>
         {ready.length === 0 && <p className="displayPickupEmpty">No drinks waiting for pickup.</p>}
-      </aside>
+      </aside>}
       </div>
 
-      {readyPopup && (
+      {showReady && readyPopup && (
         <div className="readyDisplayOverlay">
           <div className="readyDisplayCard">
             <span>Ready for pickup · Go to kitchen</span>
