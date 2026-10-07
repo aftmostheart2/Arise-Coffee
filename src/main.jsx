@@ -2826,19 +2826,21 @@ function DisplayPage({ isClergy = false }) {
             <span>Member Name</span>
             <span>Order</span>
           </div>
-          {boardRows.length === 0 ? (
-            <div className="displayEmpty">No active coffee orders</div>
-          ) : boardRows.map((order, index) => (
-            <div className={order.status === "making" ? "displayTableRow making" : "displayTableRow"} key={order.id}>
-              <span className="displayStatusCell">
-                <b>#{order.position || pageStart + index + 1}</b>
-                <span>{order.status === "making" ? "Being made" : "Waiting"}</span>
-              </span>
-              <span>{order.status === "making" ? "Now" : (order.position || 1) <= 1 ? "Up next" : waitText(order.position).replace("Estimated wait: ", "")}</span>
-              <strong>{displayName(order.name)}</strong>
-              <span>{order.temp} {order.drink}</span>
-            </div>
-          ))}
+          <div className="displayQueueRows">
+            {boardRows.length === 0 ? (
+              <div className="displayEmpty">No active coffee orders</div>
+            ) : boardRows.map((order, index) => (
+              <div className={order.status === "making" ? "displayTableRow making" : "displayTableRow"} key={order.id}>
+                <span className="displayStatusCell">
+                  <b>#{order.position || pageStart + index + 1}</b>
+                  <span>{order.status === "making" ? "Being made" : "Waiting"}</span>
+                </span>
+                <span>{order.status === "making" ? "Now" : (order.position || 1) <= 1 ? "Up next" : waitText(order.position).replace("Estimated wait: ", "")}</span>
+                <strong>{displayName(order.name)}</strong>
+                <span>{order.temp} {order.drink}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

@@ -2708,6 +2708,38 @@ input:focus,textarea:focus{
   .readyDisplayCard p{font-size:24px}
 }
 
+/* Spread TV pages across the viewport; retain natural scrolling on phones. */
+@media(min-width:761px){
+  .displayPage{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    height:100dvh;
+    padding:12px;
+  }
+  .displayHeader{flex:0 0 auto;margin-bottom:10px;padding:12px 20px}
+  .displayHeader h1{font-size:44px}
+  .displayBoard{display:flex;flex-direction:column;flex:1 0 auto;min-height:0;border-radius:8px}
+  .displayCountdown{flex:0 0 auto;padding:10px 20px}
+  .displayCountdown strong{font-size:52px}
+  .displayBoardTitle{flex:0 0 auto;min-height:58px}
+  .displayTable{display:flex;flex-direction:column;flex:1 0 auto;min-height:0}
+  .displayTableHead{flex:0 0 auto}
+  .displayTableHead span{padding:10px 20px}
+  .displayQueueRows{
+    display:grid;
+    grid-template-rows:repeat(6,minmax(min-content,1fr));
+    gap:10px;
+    padding:10px;
+    flex:1 0 auto;
+    min-height:0;
+  }
+  .displayQueueRows .displayTableRow{min-height:80px;border:1px solid rgba(200,130,58,.26);border-radius:6px}
+  .displayQueueRows .displayTableRow > span,.displayQueueRows .displayTableRow > strong{padding:10px 20px}
+  .displayQueueRows .displayEmpty{grid-row:1 / -1;display:flex;align-items:center;justify-content:center}
+  .displayReadyStrip{flex:0 0 auto;min-height:64px;margin-top:10px;padding:10px 20px;border-radius:8px}
+}
+
 @media(pointer:coarse){
   header .adminDot{
     position:absolute;
