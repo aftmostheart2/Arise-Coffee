@@ -2710,6 +2710,10 @@ function displayName(name) {
 }
 
 function DisplayPage({ isClergy = false }) {
+  const queueRowsRef = useRef(null);
+  const pickupRowsRef = useRef(null);
+  const [rowsPerPage, setRowsPerPage] = useState(6);
+  const [readyRowsPerPage, setReadyRowsPerPage] = useState(4);
   const [showReady, setShowReady] = useState(true);
   const [orders, setOrders] = useState([]);
   const [queuePage, setQueuePage] = useState(0);
@@ -2804,16 +2808,47 @@ function DisplayPage({ isClergy = false }) {
   const making = orders.filter(order => order.status === "making");
   const waiting = orders.filter(order => order.status !== "making");
   const sortedOrders = [...making, ...waiting];
-  const rowsPerPage = 6;
   const pageCount = Math.max(1, Math.ceil(sortedOrders.length / rowsPerPage));
   const currentPage = queuePage % pageCount;
   const pageStart = currentPage * rowsPerPage;
   const boardRows = sortedOrders.slice(pageStart, pageStart + rowsPerPage);
-  const readyPageCount = Math.max(1, Math.ceil(ready.length / 4));
+  const readyPageCount = Math.max(1, Math.ceil(ready.length / readyRowsPerPage));
   const currentReadyPage = readyPage % readyPageCount;
-  const readyRows = ready.slice(currentReadyPage * 4, currentReadyPage * 4 + 4);
+  const readyRows = ready.slice(currentReadyPage * readyRowsPerPage, currentReadyPage * readyRowsPerPage + readyRowsPerPage);
   const timeLeft = formatQueueTimeLeft(queueClosesAt, nowMs);
   const orderingClosed = !isOpen || (queueTimerEnabled && timeLeft !== "" && !hasQueueTimeLeft(queueClosesAt, nowMs));
+
+  useEffect(() => {
+    function fitRows() {
+      if (window.innerWidth <= 1000) {
+        setRowsPerPage(6);
+        setReadyRowsPerPage(4);
+        return;
+      }
+      const queueHeight = queueRowsRef.current?.clientHeight || 0;
+      const readyHeight = pickupRowsRef.current?.clientHeight || 0;
+      setRowsPerPage(Math.max(1, Math.min(6, Math.floor((queueHeight - 10) / 150))));
+      setReadyRowsPerPage(Math.max(1, Math.min(4, Math.floor((readyHeight + 16) / 170))));
+    }
+    fitRows();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fitRows) : null;
+    if (queueRowsRef.current) observer?.observe(queueRowsRef.current);
+    if (pickupRowsRef.current) observer?.observe(pickupRowsRef.current);
+    window.addEventListener("resize", fitRows);
+    return () => { observer?.disconnect(); window.removeEventListener("resize", fitRows); };
+  }, [showReady, displayLoaded, isClergy]);
+
+  useEffect(() => {
+    if (window.innerWidth <= 1000) return;
+    // Long names can need more space than the baseline row height.
+    const frame = requestAnimationFrame(() => {
+      const queue = queueRowsRef.current;
+      const pickup = pickupRowsRef.current;
+      if (queue && queue.scrollHeight > queue.clientHeight + 1) setRowsPerPage(count => Math.max(1, count - 1));
+      if (pickup && pickup.scrollHeight > pickup.clientHeight + 1) setReadyRowsPerPage(count => Math.max(1, count - 1));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [orders, ready, currentPage, currentReadyPage, rowsPerPage, readyRowsPerPage]);
 
   useEffect(() => {
     setQueuePage(page => page % pageCount);
@@ -2859,7 +2894,7 @@ function DisplayPage({ isClergy = false }) {
             <span>Member Name</span>
             <span>Order</span>
           </div>
-          <div className="displayQueueRows">
+          <div className="displayQueueRows" ref={queueRowsRef} style={{ "--queue-rows": rowsPerPage }}>
             {boardRows.length === 0 ? (
               <div className="displayEmpty">No active coffee orders</div>
             ) : boardRows.map((order, index) => (
@@ -2883,7 +2918,7 @@ function DisplayPage({ isClergy = false }) {
           <p>Go to the kitchen</p>
           <small>{ready.length} ready{readyPageCount > 1 ? ` · Page ${currentReadyPage + 1} of ${readyPageCount}` : ""}</small>
         </div>
-        <ul className="displayPickupNames">
+        <ul className="displayPickupNames" ref={pickupRowsRef} style={{ "--ready-rows": readyRowsPerPage }}>
           {readyRows.map(order => <li key={order.id}><strong>{displayName(order.name)}</strong><span>{order.temp} {order.drink}</span></li>)}
         </ul>
         {ready.length === 0 && <p className="displayPickupEmpty">No drinks waiting for pickup.</p>}

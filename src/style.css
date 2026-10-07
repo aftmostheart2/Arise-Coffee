@@ -2738,7 +2738,7 @@ input:focus,textarea:focus{
 .tvFullscreen::-webkit-scrollbar,.tvFullscreen body::-webkit-scrollbar,.tvFullscreen #root::-webkit-scrollbar,.tvFullscreen .displayPage::-webkit-scrollbar{
   display:none;
 }
-@media(min-width:761px){
+@media(min-width:1001px){
   .displayPage{
     display:flex;
     flex-direction:column;
@@ -2748,22 +2748,28 @@ input:focus,textarea:focus{
   }
   .displayHeader{flex:0 0 auto;margin-bottom:10px;padding:12px 20px}
   .displayHeader h1{font-size:44px}
-  .displayBoard{display:flex;flex-direction:column;flex:1 0 auto;min-height:0;border-radius:8px}
+  .displayBoards{flex:1 1 0;grid-template-rows:minmax(0,1fr)}
+  .displayBoard{display:flex;flex-direction:column;flex:1 1 0;min-height:0;border-radius:8px}
+  .displayPickupPanel{min-height:0}
+  .displayPickupHeading{flex:0 0 auto}
+  .displayPickupNames{flex:1 1 0;min-height:0;grid-template-rows:repeat(var(--ready-rows,4),minmax(0,1fr))}
+  .displayPickupNames li{min-height:0}
+  .displayPickupNames:empty{display:none}
   .displayCountdown{flex:0 0 auto;padding:10px 20px}
   .displayCountdown strong{font-size:52px}
   .displayBoardTitle{flex:0 0 auto;min-height:58px}
-  .displayTable{display:flex;flex-direction:column;flex:1 0 auto;min-height:0}
+  .displayTable{display:flex;flex-direction:column;flex:1 1 0;min-height:0}
   .displayTableHead{flex:0 0 auto}
   .displayTableHead span{padding:10px 20px}
   .displayQueueRows{
     display:grid;
-    grid-template-rows:repeat(6,minmax(min-content,1fr));
+    grid-template-rows:repeat(var(--queue-rows,6),minmax(0,1fr));
     gap:10px;
     padding:10px;
-    flex:1 0 auto;
+    flex:1 1 0;
     min-height:0;
   }
-  .displayQueueRows .displayTableRow{min-height:80px;border:1px solid rgba(200,130,58,.26);border-radius:6px}
+  .displayQueueRows .displayTableRow{min-height:0;border:1px solid rgba(200,130,58,.26);border-radius:6px}
   .displayQueueRows .displayTableRow > span,.displayQueueRows .displayTableRow > strong{padding:10px 20px}
   .displayQueueRows .displayEmpty{grid-row:1 / -1;display:flex;align-items:center;justify-content:center}
   .displayReadyStrip{flex:0 0 auto;min-height:64px;margin-top:10px;padding:10px 20px;border-radius:8px}
