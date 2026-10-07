@@ -2549,6 +2549,8 @@ input:focus,textarea:focus{
 .displayBoardTitle{
   min-height:74px;
   padding:0 26px;
+  gap:12px;
+  flex-wrap:wrap;
   background:linear-gradient(90deg,rgba(200,130,58,.16),rgba(200,130,58,.04));
   border-bottom:1px solid rgba(200,130,58,.20);
 }
@@ -2610,6 +2612,9 @@ input:focus,textarea:focus{
 .displayTableRow > span:nth-child(2){
   color:#E2AF67;
 }
+.displayTableRow > .displayStatusCell{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
+.displayStatusCell > span{font-size:22px;line-height:1.2}
+.displayPageIndicator{font-size:18px;line-height:1.4;color:#E2AF67;letter-spacing:0;font-variant-numeric:tabular-nums}
 .displayTableRow strong{
   color:#FFF8F0;
   text-transform:none;

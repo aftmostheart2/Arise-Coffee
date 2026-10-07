@@ -2697,6 +2697,7 @@ function displayName(name) {
 
 function DisplayPage({ isClergy = false }) {
   const [orders, setOrders] = useState([]);
+  const [queuePage, setQueuePage] = useState(0);
   const [ready, setReady] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
   const [queueTimerEnabled, setQueueTimerEnabled] = useState(false);
@@ -2780,9 +2781,21 @@ function DisplayPage({ isClergy = false }) {
 
   const making = orders.filter(order => order.status === "making");
   const waiting = orders.filter(order => order.status !== "making");
-  const boardRows = [...making, ...waiting].slice(0, 14);
+  const sortedOrders = [...making, ...waiting];
+  const rowsPerPage = 4;
+  const pageCount = Math.max(1, Math.ceil(sortedOrders.length / rowsPerPage));
+  const currentPage = queuePage % pageCount;
+  const pageStart = currentPage * rowsPerPage;
+  const boardRows = sortedOrders.slice(pageStart, pageStart + rowsPerPage);
   const timeLeft = formatQueueTimeLeft(queueClosesAt, nowMs);
   const orderingClosed = !isOpen || (queueTimerEnabled && timeLeft !== "" && !hasQueueTimeLeft(queueClosesAt, nowMs));
+
+  useEffect(() => {
+    setQueuePage(page => page % pageCount);
+    if (pageCount === 1) return;
+    const id = setInterval(() => setQueuePage(page => (page + 1) % pageCount), 10000);
+    return () => clearInterval(id);
+  }, [pageCount]);
 
   return (
     <main className="displayPage">
@@ -2803,20 +2816,24 @@ function DisplayPage({ isClergy = false }) {
         )}
         <div className="displayBoardTitle">
           <span>Order Status</span>
+          {sortedOrders.length > 0 && <small className="displayPageIndicator">Page {currentPage + 1} of {pageCount} · {sortedOrders.length} active orders</small>}
           <strong className={(isClergy ? isOpen : !orderingClosed) ? "displayOpen" : "displayClosed"}>{(isClergy ? isOpen : !orderingClosed) ? "Open" : "Closed"}</strong>
         </div>
         <div className="displayTable">
           <div className="displayTableHead">
-            <span>Status</span>
+            <span>Spot / Status</span>
             <span>Wait Time</span>
             <span>Member Name</span>
             <span>Order</span>
           </div>
           {boardRows.length === 0 ? (
             <div className="displayEmpty">No active coffee orders</div>
-          ) : boardRows.map(order => (
+          ) : boardRows.map((order, index) => (
             <div className={order.status === "making" ? "displayTableRow making" : "displayTableRow"} key={order.id}>
-              <span>{order.status === "making" ? "Being made" : "Waiting"}</span>
+              <span className="displayStatusCell">
+                <b>#{order.position || pageStart + index + 1}</b>
+                <span>{order.status === "making" ? "Being made" : "Waiting"}</span>
+              </span>
               <span>{order.status === "making" ? "Now" : (order.position || 1) <= 1 ? "Up next" : waitText(order.position).replace("Estimated wait: ", "")}</span>
               <strong>{displayName(order.name)}</strong>
               <span>{order.temp} {order.drink}</span>
