@@ -2709,6 +2709,12 @@ input:focus,textarea:focus{
 }
 
 /* Spread TV pages across the viewport; retain natural scrolling on phones. */
+.tvFullscreen,.tvFullscreen body,.tvFullscreen #root,.tvFullscreen .displayPage{
+  scrollbar-width:none;
+}
+.tvFullscreen::-webkit-scrollbar,.tvFullscreen body::-webkit-scrollbar,.tvFullscreen #root::-webkit-scrollbar,.tvFullscreen .displayPage::-webkit-scrollbar{
+  display:none;
+}
 @media(min-width:761px){
   .displayPage{
     display:flex;

@@ -2746,7 +2746,9 @@ function DisplayPage({ isClergy = false }) {
     const id = setInterval(refreshDisplay, 3000);
     const clockId = setInterval(() => setNowMs(Date.now()), 1000);
     function updateFullscreenState() {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      const fullscreen = Boolean(document.fullscreenElement);
+      setIsFullscreen(fullscreen);
+      document.documentElement.classList.toggle("tvFullscreen", fullscreen);
     }
     function handleDisplayKeydown(event) {
       if (event.key?.toLowerCase() !== "f") return;
@@ -2756,6 +2758,7 @@ function DisplayPage({ isClergy = false }) {
       event.preventDefault();
       toggleFullscreen();
     }
+    updateFullscreenState();
     document.addEventListener("fullscreenchange", updateFullscreenState);
     document.addEventListener("keydown", handleDisplayKeydown);
     return () => {
@@ -2764,6 +2767,7 @@ function DisplayPage({ isClergy = false }) {
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
       document.removeEventListener("fullscreenchange", updateFullscreenState);
       document.removeEventListener("keydown", handleDisplayKeydown);
+      document.documentElement.classList.remove("tvFullscreen");
     };
   }, []);
 
