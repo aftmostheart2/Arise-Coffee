@@ -207,7 +207,7 @@ function waitText(position) {
 
   if (ahead === 0) return "You're up next";
 
-  const minutes = ahead * 4;
+  const minutes = ahead;
 
   return `Estimated wait: ~${minutes} min`;
 }
@@ -2691,8 +2691,8 @@ function CustomerPage({ isClergy = false }) {
   );
 }
 
-function firstName(name) {
-  return String(name || "").trim().split(/\s+/)[0] || "Guest";
+function displayName(name) {
+  return String(name || "").trim().replace(/\s+/g, " ") || "Guest";
 }
 
 function DisplayPage({ isClergy = false }) {
@@ -2817,8 +2817,8 @@ function DisplayPage({ isClergy = false }) {
           ) : boardRows.map(order => (
             <div className={order.status === "making" ? "displayTableRow making" : "displayTableRow"} key={order.id}>
               <span>{order.status === "making" ? "Being made" : "Waiting"}</span>
-              <span>{order.status === "making" ? "Now" : waitText(order.position || 1).replace("Estimated wait: ", "")}</span>
-              <strong>{firstName(order.name)}</strong>
+              <span>{order.status === "making" ? "Now" : (order.position || 1) <= 1 ? "Up next" : waitText(order.position).replace("Estimated wait: ", "")}</span>
+              <strong>{displayName(order.name)}</strong>
               <span>{order.temp} {order.drink}</span>
             </div>
           ))}
@@ -2828,7 +2828,7 @@ function DisplayPage({ isClergy = false }) {
       {ready.length > 0 && (
         <section className="displayReadyStrip">
           <span>Ready for pickup · Go to kitchen</span>
-          <strong>{ready.slice(0, 4).map(order => firstName(order.name)).join(" · ")}</strong>
+          <strong>{ready.slice(0, 4).map(order => displayName(order.name)).join(" · ")}</strong>
         </section>
       )}
 
@@ -2836,7 +2836,7 @@ function DisplayPage({ isClergy = false }) {
         <div className="readyDisplayOverlay">
           <div className="readyDisplayCard">
             <span>Ready for pickup · Go to kitchen</span>
-            <h2>{firstName(readyPopup.name)}</h2>
+            <h2>{displayName(readyPopup.name)}</h2>
             <p>{readyPopup.temp} {readyPopup.drink}</p>
           </div>
         </div>

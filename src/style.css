@@ -2496,7 +2496,7 @@ input:focus,textarea:focus{
 .displayPage{
   min-height:100vh;
   width:100%;
-  padding:28px;
+  padding:20px;
   background:
     radial-gradient(circle at 14% 0%,rgba(200,130,58,.20),transparent 34%),
     linear-gradient(135deg,#170700 0%,#2A0E00 52%,#120600 100%);
@@ -2574,7 +2574,7 @@ input:focus,textarea:focus{
   background:rgba(224,82,82,.13);
 }
 .displayTableHead,.displayTableRow{
-  grid-template-columns:1fr .72fr 1.05fr 1.45fr;
+  grid-template-columns:minmax(0,.9fr) minmax(0,.65fr) minmax(0,1.7fr) minmax(0,1.5fr);
 }
 .displayTableHead span{
   padding:16px 20px;
@@ -2582,12 +2582,12 @@ input:focus,textarea:focus{
   color:#E2AF67;
   border-right:1px solid rgba(200,130,58,.18);
   border-bottom:1px solid rgba(200,130,58,.22);
-  font-size:17px;
-  letter-spacing:.9px;
+  font-size:22px;
+  letter-spacing:0;
   text-transform:uppercase;
 }
 .displayTableRow{
-  min-height:74px;
+  min-height:96px;
   background:rgba(28,10,0,.78);
   border-bottom:1px solid rgba(200,130,58,.13);
 }
@@ -2598,16 +2598,22 @@ input:focus,textarea:focus{
   padding:16px 20px;
   border-right:1px solid rgba(200,130,58,.12);
   color:#D9C9B8;
-  font-size:24px;
+  font-size:32px;
   font-weight:800;
+  white-space:normal;
+  overflow:visible;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  line-height:1.2;
+  letter-spacing:0;
 }
 .displayTableRow > span:nth-child(2){
-  color:#C8823A;
+  color:#E2AF67;
 }
 .displayTableRow strong{
   color:#FFF8F0;
   text-transform:none;
-  font-size:30px;
+  font-size:40px;
 }
 .displayTableRow.making{
   background:linear-gradient(90deg,rgba(138,155,78,.20),rgba(44,20,0,.80));
@@ -2639,7 +2645,11 @@ input:focus,textarea:focus{
 }
 .displayReadyStrip strong{
   color:#FFF8F0;
-  font-size:34px;
+  font-size:40px;
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
 }
 .readyDisplayOverlay{
   background:rgba(18,6,0,.82);
@@ -2647,6 +2657,9 @@ input:focus,textarea:focus{
 .readyDisplayCard{
   width:min(980px,86vw);
   min-height:430px;
+  max-height:90vh;
+  overflow-y:auto;
+  padding:24px;
   border-radius:26px;
   background:linear-gradient(180deg,#FFF8F0,#F2D8B2);
   color:#1C0A00;
@@ -2658,6 +2671,10 @@ input:focus,textarea:focus{
 .readyDisplayCard h2{
   font-family:"Playfair Display",Georgia,serif;
   color:#1C0A00;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  text-transform:none;
 }
 .readyDisplayCard p{
   color:#5C2D0A;
