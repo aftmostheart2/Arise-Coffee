@@ -829,7 +829,7 @@ function AdminPage() {
   }
 
   async function clearCompleted() {
-    if (!confirm("Archive collected orders? Drinks still waiting for pickup will stay visible.")) return;
+    if (!confirm("Finalize picked-up and 30-minute auto-archived orders for analytics? Drinks still within their pickup window will stay visible.")) return;
     const data = await apiPost({ action: "clearCompleted", pin });
     if (data.ok) {
       setOrders(data.orders || []);
@@ -837,7 +837,7 @@ function AdminPage() {
       setLastUpdated(new Date());
       setConnectionOk(true);
     }
-    else alert(data.error || "Could not archive collected orders");
+    else alert(data.error || "Could not finalize archive");
   }
 
   async function clearAll() {
@@ -1492,7 +1492,7 @@ function AdminPage() {
           </div>
 
           <div className="adminQuickActions">
-            <button className="ghostBtn" onClick={clearCompleted}>Archive picked up</button>
+            <button className="ghostBtn" onClick={clearCompleted}>Finalize archive</button>
             <button className="dangerOutlineBtn" onClick={clearAll}>Clear all after close</button>
             <button className="dangerOutlineBtn" disabled={busy || visibleOrders.length === 0 || !cancelReason.trim()} onClick={cancelActiveOrders}>Cancel all active</button>
           </div>
@@ -1989,14 +1989,6 @@ function CustomerPage({ isClergy = false }) {
   const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS));
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [myOrderId, setMyOrderId] = useState(() => new URLSearchParams(window.location.search).get("order") || localStorage.getItem("coffee-my-order-id") || "");
-  const [pickupToken, setPickupToken] = useState(() => {
-    try { return localStorage.getItem(`arise-pickup-token:${myOrderId}`) || ""; }
-    catch { return ""; }
-  });
-  const [pickupBusy, setPickupBusy] = useState(false);
-  const [pickupError, setPickupError] = useState("");
-  const pickupSubmittingRef = useRef(false);
-  const pickupRevisionRef = useRef(0);
   const [myOrder, setMyOrder] = useState(null);
   const [myOrderPosition, setMyOrderPosition] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -2095,7 +2087,7 @@ function CustomerPage({ isClergy = false }) {
       return nextQuote;
     });
 
-    const isReadyForPickup = !found.pickedUpAt && ["ready", "complete"].includes(found.status);
+    const isReadyForPickup = !found.pickedUpAt && !found.pendingArchive && ["ready", "complete"].includes(found.status);
     const wasReadyForPickup = ["ready", "complete"].includes(previousStatusRef.current);
 
     if (isReadyForPickup && !wasReadyForPickup && !readyAlertShown) {
@@ -2107,13 +2099,11 @@ function CustomerPage({ isClergy = false }) {
   }
 
   async function refreshOrder() {
-    if (!myOrderId || pickupSubmittingRef.current) return;
+    if (!myOrderId) return;
     if (orderLoadingRef.current) return;
     orderLoadingRef.current = true;
-    const pickupRevision = pickupRevisionRef.current;
     try {
       const data = await apiGet("order", { id: myOrderId });
-      if (pickupRevision !== pickupRevisionRef.current) return;
       if (data.ok === false) {
         setCustomerStatusError(true);
         return;
@@ -2313,7 +2303,7 @@ function CustomerPage({ isClergy = false }) {
   }
 
   async function submit() {
-    if (submittingRef.current || pickupSubmittingRef.current) return;
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setBusy(true);
 
@@ -2365,11 +2355,6 @@ function CustomerPage({ isClergy = false }) {
 
       localStorage.setItem("arise-customer-name", form.name.trim());
       localStorage.setItem("coffee-my-order-id", data.id);
-      setPickupToken(data.pickupToken || "");
-      setPickupError("");
-      if (data.pickupToken) {
-        try { localStorage.setItem(`arise-pickup-token:${data.id}`, data.pickupToken); } catch {}
-      }
       const savedOrder = {
         drinkId: form.drinkId,
         drinkLabel: drink.label,
@@ -2418,28 +2403,11 @@ function CustomerPage({ isClergy = false }) {
     submittingRef.current = false;
   }
 
-  async function confirmPickup() {
-    if (!myOrder?.id || !pickupToken || pickupSubmittingRef.current || submittingRef.current) return;
-    if (!window.confirm("Confirm that you have received your drink?")) return;
-    pickupSubmittingRef.current = true;
-    pickupRevisionRef.current += 1;
-    setPickupBusy(true);
-    setPickupError("");
-    try {
-      const data = await apiPost({ action: "confirmPickup", id: myOrder.id, token: pickupToken });
-      if (data.ok && data.order) updateMyOrder(data.order, data.position);
-      else setPickupError(data.error || "Could not confirm pickup. Please try again.");
-    } catch { setPickupError("Connection error. Please try again."); }
-    finally { setPickupBusy(false); pickupSubmittingRef.current = false; }
-  }
-
   function clearMyTicket() {
     localStorage.removeItem("coffee-my-order-id");
     localStorage.removeItem(ORDER_QUOTE_KEY);
     setMyOrderId("");
     setMyOrder(null);
-    setPickupToken("");
-    setPickupError("");
     setMyOrderPosition(1);
     setOrderQuote(null);
     setPushState({ busy: false, enabled: false, message: "" });
@@ -2690,13 +2658,11 @@ function CustomerPage({ isClergy = false }) {
                 {myOrder.status === "canceled" && <div className="cancelNotice">Your order was canceled.{myOrder.notes ? ` ${myOrder.notes}` : ""}</div>}
                 {["ready","complete"].includes(myOrder.status) && (myOrder.pickedUpAt ? (
                   <div className="readyNotice" role="status">Pickup confirmed. Enjoy your drink!</div>
+                ) : myOrder.pendingArchive ? (
+                  <div className="readyNotice">Your order's pickup window has ended. Please speak to Arise staff if you haven't received your drink.</div>
                 ) : (
                   <div className="customerPickup">
                     <div className="readyNotice">{myOrder.fulfillmentType === "delivery" ? `Your drink is ready for delivery to ${myOrder.deliveryLocation || "your classroom"}.` : "Your drink is ready. Please go to the kitchen."}</div>
-                    {pickupToken ? <button className="joinBtn" disabled={pickupBusy} onClick={confirmPickup}>
-                      {pickupBusy ? "Confirming..." : myOrder.fulfillmentType === "delivery" ? "I received my drink" : "I picked up my drink"}
-                    </button> : <p>After collecting your drink, ask Arise staff to mark it picked up.</p>}
-                    {pickupError && <p className="errorText" role="alert">{pickupError}</p>}
                   </div>
                 ))}
                 {orderQuote && (
@@ -2717,7 +2683,7 @@ function CustomerPage({ isClergy = false }) {
                     {pushState.message && <p>{pushState.message}</p>}
                   </div>
                 ))}
-                {(myOrder.pickedUpAt || myOrder.status === "canceled") && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
+                {["ready", "complete", "canceled"].includes(myOrder.status) && <button className="ghostBtn" onClick={clearMyTicket}>Place another order</button>}
               </div>
             );
           })()}

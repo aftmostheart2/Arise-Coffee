@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const { PGlite } = await import(process.env.PGLITE_MODULE || "@electric-sql/pglite");
+const db = new PGlite();
+const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
+async function rpc(name, args = []) {
+  return (await db.query(`select ${name}(${args.map((_, i) => `$${i + 1}`).join(",")}) as result`, args)).rows[0].result;
+}
+try {
+  await db.exec("create role anon; create role authenticated; create role service_role;");
+  const schema = read("../schema.sql");
+  await db.exec(schema.slice(0, schema.indexOf("create extension if not exists pg_cron")));
+  await db.exec(read("../migrations/202610070001_pickup_confirmation.sql"));
+  const migration = read("../migrations/202610070002_timed_pickup_archive.sql");
+  await db.exec(migration);
+  await db.exec(migration);
+  await db.exec(`update settings set value = '"test-pin"' where key = 'pin';
+    update settings set value = '"true"' where key = 'isOpen';
+    update settings set value = '"false"' where key = 'queueTimerEnabled';`);
+  const order = await rpc("arise_place_order", [JSON.stringify({name: "Timed Guest", drink: "Latte"})]);
+  assert.equal(order.ok, true);
+  await db.query("update orders set created_at = now() - interval '2 hours' where id::text = $1", [order.id]);
+  await rpc("arise_update_status", ["test-pin", order.id, "complete"]);
+  assert.equal((await rpc("arise_display")).ready.length, 1, "Clock begins at ready, not placement");
+  assert.equal((await rpc("arise_confirm_pickup", [order.id, order.pickupToken])).ok, false);
+  assert.equal((await rpc("arise_update_pickup", ["wrong", order.id, true])).ok, false);
+  await db.query("update orders set ready_at = now() - interval '29 minutes' where id::text = $1", [order.id]);
+  assert.equal((await rpc("arise_display")).ready.length, 1);
+  await rpc("arise_clear_completed", ["test-pin"]);
+  assert.equal((await rpc("arise_display")).ready.length, 1, "Final archive preserves ready orders");
+  await db.query("update orders set ready_at = now() - interval '30 minutes' where id::text = $1", [order.id]);
+  assert.equal((await rpc("arise_display")).ready.length, 0);
+  let pending = (await rpc("arise_pickup_admin", ["test-pin"])).collected;
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].pickedUpAt, null, "Timeout never claims collection");
+  assert.equal(pending[0].pendingArchive, true);
+  assert.equal((await db.query("select count(*)::int as n from archived_orders")).rows[0].n, 0);
+  await rpc("arise_update_pickup", ["test-pin", order.id, false]);
+  assert.equal((await rpc("arise_display")).ready.length, 1, "Restore renews pickup window");
+  await rpc("arise_update_pickup", ["test-pin", order.id, true]);
+  assert.equal((await rpc("arise_display")).ready.length, 0);
+  assert.ok((await rpc("arise_pickup_admin", ["test-pin"])).collected[0].pickedUpAt);
+  await rpc("arise_clear_completed", ["test-pin"]);
+  assert.equal((await db.query("select count(*)::int as n from archived_orders")).rows[0].n, 1);
+  const second = await rpc("arise_place_order", [JSON.stringify({name: "Expired Guest", drink: "Latte"})]);
+  await rpc("arise_update_status", ["test-pin", second.id, "complete"]);
+  await db.query("update orders set ready_at = now() - interval '31 minutes' where id::text = $1", [second.id]);
+  await db.exec(migration);
+  assert.equal((await rpc("arise_display")).ready.length, 0, "Migration rerun preserves expiry");
+  await rpc("arise_clear_completed", ["test-pin"]);
+  await rpc("arise_clear_completed", ["test-pin"]);
+  assert.equal((await db.query("select count(*)::int as n from archived_orders")).rows[0].n, 2, "Finalization is idempotent and includes expired orders");
+  assert.equal((await db.query("select count(*)::int as n from customer_pickup_strikes")).rows[0].n, 0);
+  console.log("Timed archive tests passed");
+} finally { await db.close(); }

@@ -75,11 +75,11 @@ export default function PickupOrders({ pin, refreshKey, delivery = false, onRead
         </div>
       ))}
       {recentOrders.length > 0 && <details className="pickupRecent">
-        <summary>{delivery ? "Recently delivered" : "Recently picked up"}</summary>
+        <summary>Awaiting final archive ({recentOrders.length})</summary>
         {recentOrders.map(order => (
           <div className="pickupAdminRow" key={order.id}>
-            <div><strong>{order.name}</strong><p>{order.temp} {order.drink}</p></div>
-            <button className="ghostBtn" disabled={busy} onClick={() => markCollected(order, false)}>Undo {delivery ? "delivery" : "pickup"}</button>
+            <div><strong>{order.name}</strong><p>{order.temp} {order.drink} · {order.pickedUpAt ? (delivery ? "Delivered" : "Picked up") : "30-minute auto archive"}</p></div>
+            <button className="ghostBtn" disabled={busy} onClick={() => markCollected(order, false)}>Restore to ready</button>
           </div>
         ))}
       </details>}

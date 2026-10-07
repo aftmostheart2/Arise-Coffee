@@ -33,6 +33,27 @@ alter table orders add column if not exists fulfillment_type text not null defau
 alter table orders add column if not exists delivery_location text;
 alter table orders add column if not exists pickup_token uuid not null default gen_random_uuid();
 alter table orders add column if not exists picked_up_at timestamptz;
+alter table orders add column if not exists ready_at timestamptz;
+update orders set ready_at = now() where status in ('ready', 'complete') and ready_at is null;
+
+create or replace function arise_track_ready_time()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.status in ('ready', 'complete') then
+    if TG_OP = 'INSERT' then
+      new.ready_at := now();
+    elsif old.status not in ('ready', 'complete') then
+      new.ready_at := now();
+    end if;
+  else
+    new.ready_at := null;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists arise_ready_time on orders;
+create trigger arise_ready_time before insert or update on orders
+for each row execute function arise_track_ready_time();
 
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
@@ -376,6 +397,9 @@ as $$
       'fulfillmentType', coalesce((input_order).fulfillment_type, 'pickup'),
       'deliveryLocation', coalesce((input_order).delivery_location, ''),
       'pickedUpAt', (input_order).picked_up_at,
+      'readyAt', (input_order).ready_at,
+      'pendingArchive', ((input_order).status in ('ready', 'complete') and
+        ((input_order).picked_up_at is not null or (input_order).ready_at <= now() - interval '30 minutes')),
       'position', input_position,
       'ordersAhead', case when input_position is null then null else greatest(0, input_position - 1) end
     )
@@ -490,6 +514,7 @@ as $$
     from orders
     where status in ('ready', 'complete')
       and picked_up_at is null
+      and ready_at > now() - interval '30 minutes'
       and coalesce(fulfillment_type, 'pickup') <> 'delivery'
     order by created_at desc
   )
@@ -1241,9 +1266,11 @@ begin
   return jsonb_build_object(
     'ok', true,
     'ready', coalesce((select jsonb_agg(arise_order_json(o, null) order by o.created_at)
-      from orders o where status in ('ready', 'complete') and picked_up_at is null), '[]'::jsonb),
+      from orders o where status in ('ready', 'complete') and picked_up_at is null
+        and ready_at > now() - interval '30 minutes'), '[]'::jsonb),
     'collected', coalesce((select jsonb_agg(arise_order_json(o, null) order by o.picked_up_at desc)
-      from (select * from orders where picked_up_at is not null order by picked_up_at desc limit 20) o), '[]'::jsonb)
+      from (select * from orders where status in ('ready', 'complete') and
+        (picked_up_at is not null or ready_at <= now() - interval '30 minutes')) o), '[]'::jsonb)
   );
 end;
 $$;
@@ -1257,16 +1284,7 @@ as $$
 declare
   updated_order orders;
 begin
-  update orders
-  set picked_up_at = coalesce(picked_up_at, now())
-  where id::text = order_id
-    and pickup_token::text = input_token
-    and status in ('ready', 'complete')
-  returning * into updated_order;
-  if updated_order is null then
-    return jsonb_build_object('ok', false, 'error', 'Could not confirm pickup. Please refresh your order or ask Arise staff.');
-  end if;
-  return jsonb_build_object('ok', true, 'order', arise_order_json(updated_order, null));
+  return jsonb_build_object('ok', false, 'error', 'Only Arise staff can confirm pickup.');
 end;
 $$;
 
@@ -1286,7 +1304,8 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Choose a pickup status');
   end if;
   update orders
-  set picked_up_at = case when input_picked_up then coalesce(picked_up_at, now()) else null end
+  set picked_up_at = case when input_picked_up then coalesce(picked_up_at, now()) else null end,
+      ready_at = case when input_picked_up then ready_at else now() end
   where id::text = order_id and status in ('ready', 'complete')
   returning * into updated_order;
   if updated_order is null then
@@ -1316,7 +1335,8 @@ begin
 
   with collected as (
     delete from orders
-    where status in ('ready', 'complete') and picked_up_at is not null
+    where status in ('ready', 'complete') and
+      (picked_up_at is not null or ready_at <= now() - interval '30 minutes')
     returning *
   )
   insert into archived_orders (
