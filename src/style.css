@@ -2709,6 +2709,29 @@ input:focus,textarea:focus{
 }
 
 /* Spread TV pages across the viewport; retain natural scrolling on phones. */
+.pickupAdminSection{margin:24px 0;padding:20px 0;border-top:1px solid rgba(200,130,58,.25)}
+.pickupAdminSection > p{margin:12px 0;color:#B9CABB}
+.pickupAdminRow{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;padding:18px 0;border-bottom:1px solid rgba(200,130,58,.22)}
+.pickupAdminRow > div{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.pickupAdminRow strong{font-size:22px}
+.pickupAdminRow p{margin-top:6px;color:#B9CABB}
+.pickupAdminRow button{min-height:48px;padding:12px 22px;white-space:normal}
+.pickupRecent{margin-top:20px}
+.pickupRecent summary{cursor:pointer;padding:12px 0;font-weight:700}
+.customerPickup > p{margin:12px 0}
+.displayBoards{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(280px,1fr);gap:16px;flex:1 0 auto;min-height:0}
+.displayBoards > .displayBoard{min-width:0}
+.displayPickupPanel{display:flex;flex-direction:column;min-width:0;background:#17351D;border:2px solid #72BE7E;border-radius:8px;padding:20px}
+.displayPickupHeading{padding-bottom:18px;border-bottom:2px solid #72BE7E}
+.displayPickupHeading h2{font-family:Inter,Arial,sans-serif;font-size:30px;line-height:1.2;letter-spacing:0;color:#FFF}
+.displayPickupHeading p{font-size:28px;color:#C3F3CA;font-weight:800;margin:12px 0}
+.displayPickupHeading small{font-size:18px;color:#C3F3CA}
+.displayPickupNames{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-rows:repeat(4,minmax(min-content,1fr));gap:16px;flex:1 0 auto}
+.displayPickupNames li{display:flex;flex-direction:column;justify-content:center;gap:10px;padding:14px 0;border-bottom:1px solid #58855F;min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.displayPickupNames strong{font-size:38px;line-height:1.15;color:#FFF}
+.displayPickupNames span,.displayPickupEmpty{font-size:24px;line-height:1.3;color:#C3F3CA}
+@media(max-width:1000px){.displayBoards{grid-template-columns:minmax(0,1fr)}.displayPickupPanel{order:-1}.displayPickupNames{grid-template-rows:none;grid-template-columns:repeat(2,minmax(0,1fr))}.displayPickupNames strong{font-size:28px}}
+@media(max-width:600px){.displayPickupNames{grid-template-columns:minmax(0,1fr)}.displayPickupHeading h2{font-size:26px}}
 .tvFullscreen,.tvFullscreen body,.tvFullscreen #root,.tvFullscreen .displayPage{
   scrollbar-width:none;
 }

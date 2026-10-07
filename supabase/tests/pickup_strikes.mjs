@@ -29,6 +29,7 @@ try {
   const deleteMigration = readFileSync(new URL("../migrations/202609260003_delete_pickup_names.sql", import.meta.url), "utf8");
   await db.exec(deleteMigration);
   await db.exec(deleteMigration);
+  await db.exec(readFileSync(new URL("../migrations/202610070001_pickup_confirmation.sql", import.meta.url), "utf8"));
   await db.exec(`UPDATE settings SET value = '"test-pin"' WHERE key = 'pin';
     UPDATE settings SET value = '"true"' WHERE key IN ('isOpen', 'clergyOrderingEnabled');
     UPDATE settings SET value = '"false"' WHERE key = 'queueTimerEnabled'; SET ROLE anon;`);

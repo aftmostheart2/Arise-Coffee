@@ -27,6 +27,15 @@ export async function apiGet(action, params = {}) {
 }
 
 export async function apiPost(payload) {
+  if (["pickupAdmin", "confirmPickup", "updatePickup"].includes(payload.action)) {
+    try {
+      if (payload.action === "pickupAdmin") return await callRpc("arise_pickup_admin", { input_pin: payload.pin });
+      if (payload.action === "confirmPickup") return await callRpc("arise_confirm_pickup", { order_id: payload.id, input_token: payload.token });
+      return await callRpc("arise_update_pickup", { input_pin: payload.pin, order_id: payload.id, input_picked_up: payload.pickedUp });
+    } catch {
+      return { ok: false, error: "Could not update pickup status. Check the connection and that the pickup SQL update is installed." };
+    }
+  }
   if (payload.action === "customerStrikes") {
     try {
       return await callRpc("arise_customer_strikes", {

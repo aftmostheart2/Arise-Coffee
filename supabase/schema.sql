@@ -31,6 +31,8 @@ alter table orders add column if not exists source text not null default '';
 alter table orders add column if not exists priority boolean not null default false;
 alter table orders add column if not exists fulfillment_type text not null default 'pickup';
 alter table orders add column if not exists delivery_location text;
+alter table orders add column if not exists pickup_token uuid not null default gen_random_uuid();
+alter table orders add column if not exists picked_up_at timestamptz;
 
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
@@ -373,6 +375,7 @@ as $$
       'priority', coalesce((input_order).priority, false),
       'fulfillmentType', coalesce((input_order).fulfillment_type, 'pickup'),
       'deliveryLocation', coalesce((input_order).delivery_location, ''),
+      'pickedUpAt', (input_order).picked_up_at,
       'position', input_position,
       'ordersAhead', case when input_position is null then null else greatest(0, input_position - 1) end
     )
@@ -486,8 +489,9 @@ as $$
       status
     from orders
     where status in ('ready', 'complete')
+      and picked_up_at is null
+      and coalesce(fulfillment_type, 'pickup') <> 'delivery'
     order by created_at desc
-    limit 8
   )
   select jsonb_build_object(
     'ok', true,
@@ -788,6 +792,7 @@ begin
   return jsonb_build_object(
     'ok', true,
     'id', new_id,
+    'pickupToken', (select pickup_token::text from orders where id::text = new_id),
     'position', order_state->'position',
     'ordersAhead', order_state->'ordersAhead'
   );
@@ -882,7 +887,8 @@ begin
   end if;
 
   update orders
-  set status = input_status
+  set status = input_status,
+      picked_up_at = case when input_status in ('waiting', 'making') then null else picked_up_at end
   where id::text = order_id
   returning * into updated_order;
 
@@ -1222,6 +1228,81 @@ exception
 end;
 $$;
 
+create or replace function arise_pickup_admin(input_pin text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'ready', coalesce((select jsonb_agg(arise_order_json(o, null) order by o.created_at)
+      from orders o where status in ('ready', 'complete') and picked_up_at is null), '[]'::jsonb),
+    'collected', coalesce((select jsonb_agg(arise_order_json(o, null) order by o.picked_up_at desc)
+      from (select * from orders where picked_up_at is not null order by picked_up_at desc limit 20) o), '[]'::jsonb)
+  );
+end;
+$$;
+
+create or replace function arise_confirm_pickup(order_id text, input_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_order orders;
+begin
+  update orders
+  set picked_up_at = coalesce(picked_up_at, now())
+  where id::text = order_id
+    and pickup_token::text = input_token
+    and status in ('ready', 'complete')
+  returning * into updated_order;
+  if updated_order is null then
+    return jsonb_build_object('ok', false, 'error', 'Could not confirm pickup. Please refresh your order or ask Arise staff.');
+  end if;
+  return jsonb_build_object('ok', true, 'order', arise_order_json(updated_order, null));
+end;
+$$;
+
+create or replace function arise_update_pickup(input_pin text, order_id text, input_picked_up boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_order orders;
+begin
+  if not arise_pin_matches(input_pin) then
+    return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
+  end if;
+  if input_picked_up is null then
+    return jsonb_build_object('ok', false, 'error', 'Choose a pickup status');
+  end if;
+  update orders
+  set picked_up_at = case when input_picked_up then coalesce(picked_up_at, now()) else null end
+  where id::text = order_id and status in ('ready', 'complete')
+  returning * into updated_order;
+  if updated_order is null then
+    return jsonb_build_object('ok', false, 'error', 'Order is no longer ready or has been archived. Refresh the pickup list.');
+  end if;
+  return arise_pickup_admin(input_pin);
+end;
+$$;
+
+revoke all on function arise_pickup_admin(text) from public;
+revoke all on function arise_confirm_pickup(text, text) from public;
+revoke all on function arise_update_pickup(text, text, boolean) from public;
+grant execute on function arise_pickup_admin(text) to anon;
+grant execute on function arise_confirm_pickup(text, text) to anon;
+grant execute on function arise_update_pickup(text, text, boolean) to anon;
+
 create or replace function arise_clear_completed(input_pin text)
 returns jsonb
 language plpgsql
@@ -1233,6 +1314,11 @@ begin
     return jsonb_build_object('ok', false, 'error', 'Wrong PIN');
   end if;
 
+  with collected as (
+    delete from orders
+    where status in ('ready', 'complete') and picked_up_at is not null
+    returning *
+  )
   insert into archived_orders (
     original_order_id,
     original_order_id_text,
@@ -1257,12 +1343,8 @@ begin
     array_to_string(coalesce(syrups, '{}'::text[]), ', '),
     notes,
     status,
-    to_jsonb(orders)
-  from orders
-  where status = 'complete';
-
-  delete from orders
-  where status = 'complete';
+    to_jsonb(collected) - 'pickup_token'
+  from collected;
 
   return arise_orders();
 end;
