@@ -1420,6 +1420,7 @@ function AdminPage() {
 
           <PickupOrders pin={pin} refreshKey={pickupRefreshKey} delivery />
           <section className="orders deliveryOrders">
+            <div className="adminOrderGrid">
             {deliveryOrders.length === 0 ? <div className="empty smallEmpty">No delivery orders.</div> : deliveryOrders.map((o, idx) => (
               <div className={"adminOrder deliveryOrder " + o.status} key={o.id}>
                 <div className="orderTop">
@@ -1450,6 +1451,7 @@ function AdminPage() {
                 />
               </div>
             ))}
+            </div>
           </section>
         </main>
       </>
@@ -1595,6 +1597,7 @@ function AdminPage() {
                 </div>
               </section>
 
+              <div className="adminOrderGrid">
               {pickupOrders.length === 0 ? <div className="empty smallEmpty">No pickup orders.</div> : pickupOrders.map((o, idx) => (
                 <div className={"adminOrder " + o.status} key={o.id}>
                   <div className="orderTop">
@@ -1624,6 +1627,7 @@ function AdminPage() {
                   />
                 </div>
               ))}
+              </div>
             </>
           )}
         </section>
