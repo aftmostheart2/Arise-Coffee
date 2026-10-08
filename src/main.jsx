@@ -568,6 +568,8 @@ function AdminPage() {
   const pickupOrderCounts = useMemo(() => ({
     waiting: pickupOrders.filter(order => order.status === "waiting").length,
     making: pickupOrders.filter(order => order.status === "making").length,
+    hot: pickupOrders.filter(order => ["waiting", "making"].includes(order.status) && String(order.temp || "").trim().toLowerCase() === "hot").length,
+    cold: pickupOrders.filter(order => ["waiting", "making"].includes(order.status) && String(order.temp || "").trim().toLowerCase() === "cold").length,
     ready: pickupOrders.filter(order => ["ready", "complete"].includes(order.status)).length,
   }), [pickupOrders]);
 
@@ -1594,6 +1596,14 @@ function AdminPage() {
                 <div>
                   <span>Ready</span>
                   <strong>{pickupReadyCount}</strong>
+                </div>
+                <div>
+                  <span>Hot</span>
+                  <strong>{pickupOrderCounts.hot}</strong>
+                </div>
+                <div>
+                  <span>Cold</span>
+                  <strong>{pickupOrderCounts.cold}</strong>
                 </div>
               </section>
 
