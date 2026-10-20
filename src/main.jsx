@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import "./redesign.css";
 import { hasBackendConfig, isLocalPreview } from "./supabaseClient";
-import { Church, Coffee, Snowflake, Flame, Star, Check, ArrowRight, ArrowUp, ArrowDown, Eye, EyeOff, Trash2, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
+import { Church, Coffee, Snowflake, Flame, Star, Check, ArrowRight, ArrowUp, ArrowDown, Eye, EyeOff, Trash2, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
 import { apiGet, apiPost } from "./api/backend";
 import PickupStrikeSettings from "./PickupStrikeSettings";
 import PickupSettings from "./PickupSettings";
@@ -427,15 +427,71 @@ function ringReadyAlert() {
 }
 
 function Header({ isOpen, statusText }) {
-  const isAdminPage = window.location.pathname.toLowerCase().startsWith("/admin");
+  const holdTimer = useRef(null);
+  const holdStart = useRef(null);
+  const openedAdmin = useRef(false);
+  const ignoreMouseUntil = useRef(0);
+
+  function cancelHold() {
+    clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+    holdStart.current = null;
+  }
+
+  function startHold(x, y) {
+    cancelHold();
+    openedAdmin.current = false;
+    holdStart.current = { x, y };
+    holdTimer.current = setTimeout(() => {
+      openedAdmin.current = true;
+      cancelHold();
+      window.location.assign("/admin");
+    }, 2000);
+  }
+
+  useEffect(() => {
+    window.addEventListener("blur", cancelHold);
+    document.addEventListener("visibilitychange", cancelHold);
+    return () => {
+      cancelHold();
+      window.removeEventListener("blur", cancelHold);
+      document.removeEventListener("visibilitychange", cancelHold);
+    };
+  }, []);
 
   return (
     <header className="appHeader">
-      <a className="brand" href="/" title="Arise! Coffee">
-        <img className="brandLogo" src="/icons/arise-icon-192.png" alt="" width="42" height="42" />
+      <a className="brand" href="/" title="Arise! Coffee" draggable={false}
+        onTouchStart={event => {
+          ignoreMouseUntil.current = Date.now() + 1000;
+          if (event.touches.length !== 1) { cancelHold(); return; }
+          startHold(event.touches[0].clientX, event.touches[0].clientY);
+        }}
+        onTouchEnd={() => { ignoreMouseUntil.current = Date.now() + 1000; cancelHold(); }}
+        onTouchCancel={cancelHold}
+        onTouchMove={cancelHold}
+        onMouseDown={event => {
+          if (event.button === 0 && Date.now() >= ignoreMouseUntil.current) startHold(event.clientX, event.clientY);
+        }}
+        onMouseUp={cancelHold}
+        onMouseLeave={cancelHold}
+        onMouseMove={event => {
+          const start = holdStart.current;
+          if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) cancelHold();
+        }}
+        onKeyDown={event => {
+          if (event.key === " ") {
+            event.preventDefault();
+            if (!event.repeat) startHold(0, 0);
+          }
+        }}
+        onKeyUp={event => { if (event.key === " ") cancelHold(); }}
+        onBlur={cancelHold}
+        onClick={event => { if (openedAdmin.current) event.preventDefault(); }}
+        onContextMenu={event => { if (holdStart.current || openedAdmin.current) event.preventDefault(); }}>
+        <img className="brandLogo" src="/icons/arise-icon-192.png" alt="" width="42" height="42" draggable={false} />
         <div><h1>ARISE<span className="brandAccent">!</span></h1><p>Coffee & church</p></div>
       </a>
-      {!isAdminPage && <button className="staffAccess iconButton" title="Staff access" aria-label="Staff access" onClick={() => window.location.assign("/admin")}><LockKeyhole size={18} /></button>}
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
     </header>
   );

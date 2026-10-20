@@ -32,7 +32,7 @@ input::placeholder,textarea::placeholder{color:#748078}
 input[type=checkbox]{width:19px;height:19px;min-height:19px;accent-color:var(--accent);flex-shrink:0}
 input[type=number]{font-variant-numeric:tabular-nums}
 .appHeader{position:sticky;top:0;z-index:30;min-height:80px;padding:14px 32px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:none;backdrop-filter:none;gap:16px}
-.brand{gap:12px}
+.brand{gap:12px;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .brandLogo{border-radius:8px;flex:none;object-fit:contain}
 .appHeader h1{display:flex;align-items:baseline;font-size:25px;font-weight:850;line-height:1}
 .brand .brandAccent{display:inline;width:auto;height:auto;background:none;border:0;border-radius:0;font-size:25px;color:var(--accent)}
