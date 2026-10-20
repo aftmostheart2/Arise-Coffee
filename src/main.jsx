@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import "./redesign.css";
+import { hasBackendConfig, isLocalPreview } from "./supabaseClient";
+import { Coffee, Snowflake, Flame, Check, ArrowRight, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
 import { apiGet, apiPost } from "./api/backend";
 import PickupStrikeSettings from "./PickupStrikeSettings";
 import PickupSettings from "./PickupSettings";
@@ -420,12 +423,12 @@ function Header({ isOpen, statusText }) {
   const isAdminPage = window.location.pathname.toLowerCase().startsWith("/admin");
 
   return (
-    <header>
+    <header className="appHeader">
       <a className="brand" href="/" title="Arise! Coffee">
-        <span>☕</span>
-        <div><h1>Arise! Coffee</h1><p>Fresh Coffee • Fast Pickup</p></div>
+        <img className="brandLogo" src="/icons/arise-icon-192.png" alt="" width="42" height="42" />
+        <div><h1>ARISE<span className="brandAccent">!</span></h1><p>Coffee & community</p></div>
       </a>
-      {!isAdminPage && <button className="adminDot" aria-label="Admin access" onClick={() => window.location.assign("/admin")} />}
+      {!isAdminPage && <button className="staffAccess iconButton" title="Staff access" aria-label="Staff access" onClick={() => window.location.assign("/admin")}><LockKeyhole size={18} /></button>}
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
     </header>
   );
@@ -1123,6 +1126,16 @@ function AdminPage() {
     setCollapsedPanels(current => ({ ...current, [panel]: !current[panel] }));
   }
 
+  const adminNavigation = <nav className="workspaceNav" aria-label="Staff workspace">
+    <button aria-current={adminView === "dashboard" ? "page" : undefined} onClick={() => setAdminView("dashboard")}><LayoutGrid size={18} />Orders</button>
+    <button aria-current={adminView === "delivery" ? "page" : undefined} onClick={() => setAdminView("delivery")}><Truck size={18} />Delivery</button>
+    <button aria-current={adminView === "menu" ? "page" : undefined} onClick={openMenuScreen}><Coffee size={18} />Menu</button>
+    <button aria-current={adminView === "archive" ? "page" : undefined} onClick={toggleArchive}><Archive size={18} />Archive</button>
+    <button aria-current={adminView === "analytics" ? "page" : undefined} onClick={toggleAnalytics}><ChartNoAxesCombined size={18} />Analytics</button>
+    <button aria-current={adminView === "settings" ? "page" : undefined} onClick={openSettingsScreen}><Settings size={18} />Settings</button>
+    <a href="/display"><Monitor size={18} />TV display</a>
+  </nav>;
+
   if (!pin) {
     return <>
       <Header isOpen={isOpen} statusText="Admin" />
@@ -1134,6 +1147,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
+      {adminNavigation}
         <main className="adminPage adminSubpage menuAdminPage">
           <section className="adminTop">
             <div>
@@ -1174,6 +1188,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
+      {adminNavigation}
         <main className="adminPage adminSubpage">
           <section className="adminTop">
             <div>
@@ -1228,6 +1243,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
+      {adminNavigation}
         <main className="adminPage adminSubpage">
           <section className="adminTop">
             <div>
@@ -1296,6 +1312,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
+      {adminNavigation}
         <main className="adminPage adminSubpage settingsAdminPage">
           <section className="adminTop">
             <div>
@@ -1408,6 +1425,7 @@ function AdminPage() {
     return (
       <>
         <Header isOpen={isOpen} />
+      {adminNavigation}
         <main className="adminPage adminSubpage">
           <section className="adminTop">
             <div>
@@ -1463,12 +1481,13 @@ function AdminPage() {
   return (
     <>
       <Header isOpen={isOpen} />
+      {adminNavigation}
       <QueueTimerBadge isOpen={queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} draggable />
       <main className="adminPage adminDashboard">
         <section className="adminTop">
           <div>
-            <h2>Admin Control</h2>
-            <p className="sub">Live queue, inventory, and order tools.</p>
+            <div className="eyebrow">STAFF WORKSPACE</div>
+            <h2>Today's service</h2>
             <div className="adminMeta">
               <span>Pickup: {pickupOrders.length}</span>
               <span>Delivery: {deliveryOrders.length}</span>
@@ -1478,8 +1497,8 @@ function AdminPage() {
             </div>
           </div>
           <div className="adminTopActions">
-            <button className="ghostBtn" onClick={refreshAdminData}>Refresh</button>
-            <button className="ghostBtn" onClick={() => { setPin(""); }}>Log out</button>
+            <button className="ghostBtn" onClick={refreshAdminData}><RefreshCw size={16} />Refresh</button>
+            <button className="ghostBtn" onClick={() => { setPin(""); }}><LogOut size={16} />Log out</button>
           </div>
         </section>
 
@@ -1504,34 +1523,10 @@ function AdminPage() {
           </div>
         </section>
 
-        <section className="adminTools">
-          <button className="toolTile" onClick={openMenuScreen}>
-            <strong>Menu</strong>
-            <span>Drinks, milks, syrups</span>
-          </button>
-          <button className={archiveOpen ? "toolTile active" : "toolTile"} onClick={toggleArchive}>
-            <strong>Archive</strong>
-            <span>View past orders</span>
-          </button>
-          <button className={analyticsOpen ? "toolTile active" : "toolTile"} onClick={toggleAnalytics}>
-            <strong>Analytics</strong>
-            <span>Popular items</span>
-          </button>
-          <button className={adminView === "delivery" ? "toolTile active" : "toolTile"} onClick={() => setAdminView("delivery")}>
-            <strong>Delivery</strong>
-            <span>{deliveryOrders.length} classroom order{deliveryOrders.length === 1 ? "" : "s"}</span>
-          </button>
-          <button className={adminView === "settings" ? "toolTile active" : "toolTile"} onClick={openSettingsScreen}>
-            <strong>Settings</strong>
-            <span>Timer, clergy, messages</span>
-          </button>
-        </section>
-
         <section className="inventoryPanel">
           <div className="sectionHeader">
             <div>
               <h2>Syrup & Milk Inventory</h2>
-              <p className="sub">Tap an item to mark it available or out of stock.</p>
             </div>
             <button className="collapseBtn" onClick={() => togglePanel("inventory")}>{collapsedPanels.inventory ? "Show" : "Hide"}</button>
           </div>
@@ -1598,11 +1593,11 @@ function AdminPage() {
                   <strong>{pickupReadyCount}</strong>
                 </div>
                 <div>
-                  <span>Hot</span>
+                  <span><Flame size={16} />Hot</span>
                   <strong>{pickupOrderCounts.hot}</strong>
                 </div>
                 <div>
-                  <span>Cold</span>
+                  <span><Snowflake size={16} />Cold</span>
                   <strong>{pickupOrderCounts.cold}</strong>
                 </div>
               </section>
@@ -1915,7 +1910,7 @@ function DonationModal({ onClose }) {
   return (
     <div className="modalOverlay donationOverlay">
       <div className="donationModal">
-        <div className="donationIcon">☕</div>
+        <div className="donationIcon"><Coffee size={28} /></div>
         <h2>Support HTC</h2>
         <p>
           Arise! Coffee is free, but donations help support Holy Transfiguration Church.
@@ -1943,7 +1938,7 @@ function ReadyAlertModal({ busy, message, deviceHint, onEnable, onClose }) {
   return (
     <div className="modalOverlay donationOverlay">
       <div className="donationModal readyAlertModal">
-        <div className="donationIcon">🔔</div>
+        <div className="donationIcon"><Bell size={28} /></div>
         <h2>Want a ready alert?</h2>
         <p>
           We can notify you when your drink is ready, so you do not have to keep this page open.
@@ -1970,7 +1965,7 @@ function IosInstallGate({ onContinue, isClergy = false }) {
   return (
     <main className="iosInstallPage">
       <section className="iosInstallCard">
-        <div className="brandMark">☕</div>
+        <img className="installLogo" src="/icons/arise-icon-192.png" alt="Arise Coffee" width="80" height="80" />
         <h1>Install {appName}</h1>
         <p>{isClergy
           ? "On iPhone or iPad, add Arise! Clergy to your Home Screen to enable ready notifications on supported devices. You can also continue without notifications."
@@ -2483,7 +2478,7 @@ function CustomerPage({ isClergy = false }) {
         <div className="customerTools closedTools">
           <TextSizeControl largeText={largeText} onChange={updateTextSize} />
         </div>
-        <div className="closedIcon">🚫</div>
+        <div className="closedIcon"><Coffee size={52} strokeWidth={1.3} /></div>
         <h1>{isClergy ? "Clergy ordering is closed" : "We're closed"}</h1>
         <p>{isClergy ? "Please check with the Arise! Coffee team." : (message || "Orders aren't being taken right now. Check back soon!")}</p>
         <button className="ghostBtn" onClick={refreshStatusOnly}>Refresh status</button>
@@ -2495,11 +2490,18 @@ function CustomerPage({ isClergy = false }) {
     <>
       <Header isOpen={orderingOpen} />
       <QueueTimerBadge isOpen={!isClergy && queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
-      <main className={largeText ? "layout customerLargeText" : "layout"}>
+      <main className={largeText ? "layout customerLayout customerLargeText" : "layout customerLayout"}>
+        <div className="customerIntro">
+          <div><div className="eyebrow">{isClergy ? "THE CLERGY TABLE" : "MADE WITH CARE. SHARED WITH LOVE."}</div>
+            <h2>Your coffee. Your moment.</h2>
+            <p>{isClergy ? "A warm welcome to Arise! Clergy." : "Something good is brewing."}</p>
+          </div>
+          <a className="orderJump" href="#your-order"><ClipboardList size={18} />{myOrder ? "Track your order" : "Your order"}<ArrowRight size={16} /></a>
+        </div>
         <section className="formCol">
           <div className="customerSectionHead">
             <div>
-              <h2>{isClergy ? "Clergy order" : "Place your order"}</h2>
+              <h2>{isClergy ? "Clergy menu" : "The coffee menu"}</h2>
               <p className="sub">{isClergy ? "Orders from this link stay above the regular queue." : (isOpen ? "We'll hold your spot in line." : "Queue is closed, but your current order status still updates.")}</p>
             </div>
             <TextSizeControl largeText={largeText} onChange={updateTextSize} />
@@ -2515,23 +2517,28 @@ function CustomerPage({ isClergy = false }) {
               )}
 
               <div className="field">
-                {lbl("Your name")}
-                <input ref={nameRef} value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setErrors(er => ({...er, name: ""})); }} placeholder="e.g. Alex Morgan" />
+                <label className="label" htmlFor="customer-name">Your name</label>
+                <input id="customer-name" autoComplete="name" ref={nameRef} value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setErrors(er => ({...er, name: ""})); }} placeholder="First and last name" />
                 {errors.name && <div className="errorText">{errors.name}</div>}
               </div>
 
               <div className="field">
                 {lbl("Drink")}
                 <div className="drinkList">
-                  {customerDrinks.map(d => <button key={d.id} className={form.drinkId === d.id ? "drink active" : "drink"} onClick={() => setForm(f => ({...f, drinkId: d.id}))}><strong>{d.label}</strong><span>{d.desc}</span></button>)}
+                  {customerDrinks.map(d => <button key={d.id} aria-pressed={form.drinkId === d.id} className={(form.drinkId === d.id ? "drink active" : "drink") + (d.temps.every(t => t === "Cold") ? " coldDrink" : "")} onClick={() => setForm(f => ({...f, drinkId: d.id}))}>
+                    <div className="drinkVisual">{d.temps.every(t => t === "Cold") ? <Snowflake size={36} strokeWidth={1.4} /> : <Coffee size={36} strokeWidth={1.4} />}<span className="drinkCheck"><Check size={15} /></span></div>
+                    <strong>{d.label}</strong><span className="drinkDescription">{d.desc}</span>
+                    <small>{d.temps.join(" / ")}</small>
+                  </button>)}
                 </div>
                 {errors.drink && <div className="errorText">{errors.drink}</div>}
               </div>
 
+              <div className="customizeHeading"><SlidersHorizontal size={20} /><h3>Make it yours</h3><span>{drink.label}</span></div>
               {drink.showTemp !== false && (drink.temps.length > 1 ? (
                 <div className="field">
                   {lbl("Temperature")}
-                  <div className="row">{drink.temps.map(t => <button key={t} className={form.temp === t ? "choice active" : "choice"} onClick={() => setForm(f => ({...f, temp: t}))}>{t}</button>)}</div>
+                  <div className="row temperatureChoices">{drink.temps.map(t => <button key={t} aria-pressed={form.temp === t} className={(form.temp === t ? "choice active" : "choice") + (t === "Hot" ? " hotChoice" : " coldChoice")} onClick={() => setForm(f => ({...f, temp: t}))}>{t === "Hot" ? <Flame size={18} /> : <Snowflake size={18} />}{t}</button>)}</div>
                 </div>
               ) : <div className="servedOnly">Served <strong>{drink.temps[0].toLowerCase()}</strong> only</div>)}
 
@@ -2612,26 +2619,34 @@ function CustomerPage({ isClergy = false }) {
                 <textarea value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} rows={2} placeholder="Any special requests?" />
               </div>
 
-              <button disabled={busy} className="joinBtn" onClick={submit}>{busy ? "Sending…" : "Join the Queue →"}</button>
+              <button disabled={busy} className="joinBtn" onClick={submit}>{busy ? "Sending..." : "Place order"}<ArrowRight size={19} /></button>
             </>
           )}
         </section>
 
-        <section className="queueCol privateStatusCol">
-          <h2>Order Status</h2>
-          <p className="sub">This screen only shows your order.</p>
+        <section className="queueCol privateStatusCol" id="your-order">
+          <div className="eyebrow">{myOrder ? "LIVE UPDATES" : "YOUR NEXT COFFEE"}</div>
+          <h2>{myOrder ? "Your order" : "Looking good."}</h2>
 
           {!myOrder ? (
-            <div className="empty privateEmpty">
-              <div>☕</div>
-              <p>Place an order and your live status will appear here.</p>
+            <div className="draftOrder">
+              <div className="draftVisual"><Coffee size={52} strokeWidth={1.2} /></div>
+              <h3>{drink.label}</h3>
+              <dl>
+                <div><dt>Temperature</dt><dd>{form.temp}</dd></div>
+                {drink.milk && <div><dt>Milk</dt><dd>{form.milk || "Not selected"}</dd></div>}
+                {drink.syrups && <div><dt>Syrup</dt><dd>{form.syrups.join(", ") || "None"}</dd></div>}
+                <div><dt>For</dt><dd>{form.name.trim() || "Your name"}</dd></div>
+                <div><dt>Collection</dt><dd>{form.fulfillmentType === "delivery" ? "Delivery" : "Kitchen pickup"}</dd></div>
+              </dl>
+              <div className="draftFooter"><Clock3 size={17} /><span>Freshly made, in queue order.</span></div>
             </div>
           ) : (() => {
             const currentPosition = Math.max(1, Number(myOrder.position || myOrderPosition || 1));
             return (
               <div className={"customerStatusCard " + myOrder.status}>
                 <div className="statusHero">
-                  <span>{statusEmoji(myOrder.status)}</span>
+                  <span>{["ready", "complete"].includes(myOrder.status) ? <CircleCheck size={38} /> : myOrder.status === "canceled" ? <CircleX size={38} /> : <Coffee size={38} />}</span>
                   <div>
                     <div className="label gold">Your Order</div>
                     <h3>#{String(currentPosition).padStart(3, "0")}</h3>
@@ -2885,7 +2900,7 @@ function DisplayPage({ isClergy = false }) {
           <h1>ARISE! COFFEE</h1>
           <p>{new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} • Live pickup board</p>
         </div>
-        {!isFullscreen && <button className="displayFullscreenBtn" onClick={toggleFullscreen}>Fullscreen</button>}
+        {!isFullscreen && <button className="displayFullscreenBtn" onClick={toggleFullscreen}><Monitor size={18} />Fullscreen</button>}
       </header>
 
       <div className="displayBoards" style={!showReady ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
@@ -2982,6 +2997,9 @@ class AppErrorBoundary extends React.Component {
 }
 
 function App() {
+  if (!hasBackendConfig && !isLocalPreview) {
+    return <main className="closedPage"><h1>Arise is unavailable</h1><p>The database connection is not configured. Please contact Arise staff.</p></main>;
+  }
   const path = window.location.pathname.toLowerCase();
   const host = window.location.hostname.toLowerCase();
   const params = new URLSearchParams(window.location.search);
@@ -3012,6 +3030,7 @@ function App() {
 
 createRoot(document.getElementById("root")).render(
   <AppErrorBoundary>
+    {isLocalPreview && <div className="previewNotice" role="status">Design preview · Sample data only · Changes disabled · Staff PIN: 0000</div>}
     <App />
   </AppErrorBoundary>
 );

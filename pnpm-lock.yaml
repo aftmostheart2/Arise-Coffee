@@ -23,6 +23,9 @@ importers:
       vite:
         specifier: latest
         version: 8.3.0(terser@5.51.2)
+      lucide-react:
+        specifier: ^1.59.0
+        version: 1.59.0(react@19.3.0)
     devDependencies:
       '@vitejs/plugin-legacy':
         specifier: ^8.0.0
@@ -1090,6 +1093,15 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+  lucide-react@1.59.0:
+    resolution:
+      integrity: sha512-5qgMyyCPU6OvnKpLS2t693+ZtiqA8oaSweWoUows0BLFKFf6V75m4+CptpmohZHpD5IuOVIBXHBBiv2vpLJmtw==
+    peerDependencies:
+      "@types/react": "*"
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
 
 snapshots:
 
@@ -2176,3 +2188,6 @@ snapshots:
       terser: 5.51.2
 
   yallist@3.1.1: {}
+  lucide-react@1.59.0(react@19.3.0):
+    dependencies:
+      react: 19.3.0
