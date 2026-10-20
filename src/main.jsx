@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import "./redesign.css";
 import { hasBackendConfig, isLocalPreview } from "./supabaseClient";
-import { Church, Coffee, Snowflake, Flame, Check, ArrowRight, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
+import { Church, Coffee, Snowflake, Flame, Check, ArrowRight, ArrowUp, ArrowDown, Eye, EyeOff, Trash2, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
 import { apiGet, apiPost } from "./api/backend";
 import PickupStrikeSettings from "./PickupStrikeSettings";
 import PickupSettings from "./PickupSettings";
@@ -1720,6 +1720,17 @@ function MenuEditor({
                 <span className={drink.active ? "menuState active" : "menuState"}>{drink.active ? "Visible" : "Hidden"}</span>
               </div>
 
+              <div className="menuTileOverview">
+                <p>{drink.desc || "No description"}</p>
+                <div className="menuTileTags">
+                  {drink.temps.map(temp => <span key={temp}>{temp === "Hot" ? <Flame size={14} /> : <Snowflake size={14} />}{temp}</span>)}
+                  {drink.milk && <span>Milk</span>}
+                  {drink.syrups && <span>Syrups</span>}
+                </div>
+              </div>
+
+              <details className="menuTileEditor">
+                <summary><SlidersHorizontal size={16} />Edit drink</summary>
               <div className="menuCardBody">
                 <label>
                   <span className="label">Name</span>
@@ -1782,11 +1793,13 @@ function MenuEditor({
                 </div>
               </div>
 
-              <div className="menuItemActions">
-                <button className="ghostBtn" disabled={busy} onClick={() => onUpdate(drink.id, { active: !drink.active })}>{drink.active ? "Hide" : "Show"}</button>
-                <button className="ghostBtn" disabled={busy || index === 0} onClick={() => onMove(drink.id, -1)}>Move up</button>
-                <button className="ghostBtn" disabled={busy || index === drinks.length - 1} onClick={() => onMove(drink.id, 1)}>Move down</button>
-                <button className="dangerOutlineBtn" disabled={busy || drinks.length <= 1} onClick={() => onRemove(drink.id)}>Delete</button>
+              </details>
+
+              <div className="menuItemActions menuTileActions">
+                <button className="ghostBtn" title={drink.active ? "Hide drink" : "Show drink"} aria-label={drink.active ? "Hide drink" : "Show drink"} disabled={busy} onClick={() => onUpdate(drink.id, { active: !drink.active })}>{drink.active ? <Eye size={18} /> : <EyeOff size={18} />}</button>
+                <button className="ghostBtn" title="Move drink up" aria-label="Move drink up" disabled={busy || index === 0} onClick={() => onMove(drink.id, -1)}><ArrowUp size={18} /></button>
+                <button className="ghostBtn" title="Move drink down" aria-label="Move drink down" disabled={busy || index === drinks.length - 1} onClick={() => onMove(drink.id, 1)}><ArrowDown size={18} /></button>
+                <button className="dangerOutlineBtn" title="Delete drink" aria-label="Delete drink" disabled={busy || drinks.length <= 1} onClick={() => onRemove(drink.id)}><Trash2 size={18} /></button>
               </div>
             </div>
           ))}
