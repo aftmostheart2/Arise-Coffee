@@ -3,11 +3,13 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import "./redesign.css";
 import { hasBackendConfig, isLocalPreview } from "./supabaseClient";
-import { Church, Coffee, Snowflake, Flame, Check, ArrowRight, ArrowUp, ArrowDown, Eye, EyeOff, Trash2, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
+import { Church, Coffee, Snowflake, Flame, Star, Check, ArrowRight, ArrowUp, ArrowDown, Eye, EyeOff, Trash2, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
 import { apiGet, apiPost } from "./api/backend";
 import PickupStrikeSettings from "./PickupStrikeSettings";
 import PickupSettings from "./PickupSettings";
 import PickupOrders from "./PickupOrders";
+import OrderReview from "./OrderReview";
+import ReviewsAdmin from "./ReviewsAdmin";
 import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendCancelNotification, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
@@ -20,6 +22,11 @@ const ORDER_QUOTE_KEY = "arise-order-quote";
 const LAST_ORDER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_TIMER_POSITION_KEY = "arise-admin-timer-position";
 const APP_ENTRY_MODE_KEY = "arise-app-entry-mode";
+
+function loadReviewToken(orderId) {
+  try { return localStorage.getItem(`arise-review-token:${orderId}`) || localStorage.getItem(`arise-pickup-token:${orderId}`) || ""; }
+  catch { return ""; }
+}
 
 const BIBLE_QUOTES = [
   { text: "Let all that you do be done with love.", reference: "1 Corinthians 16:14" },
@@ -1132,6 +1139,7 @@ function AdminPage() {
     <button aria-current={adminView === "menu" ? "page" : undefined} onClick={openMenuScreen}><Coffee size={18} />Menu</button>
     <button aria-current={adminView === "archive" ? "page" : undefined} onClick={toggleArchive}><Archive size={18} />Archive</button>
     <button aria-current={adminView === "analytics" ? "page" : undefined} onClick={toggleAnalytics}><ChartNoAxesCombined size={18} />Analytics</button>
+    <button aria-current={adminView === "reviews" ? "page" : undefined} onClick={() => setAdminView("reviews")}><Star size={18} />Reviews</button>
     <button aria-current={adminView === "settings" ? "page" : undefined} onClick={openSettingsScreen}><Settings size={18} />Settings</button>
     <a href="/display"><Monitor size={18} />TV display</a>
   </nav>;
@@ -1140,6 +1148,20 @@ function AdminPage() {
     return <>
       <Header isOpen={isOpen} statusText="Admin" />
       <PinGate onSuccess={p => { setPin(p); }} />
+    </>;
+  }
+
+  if (adminView === "reviews") {
+    return <>
+      <Header isOpen={isOpen} />
+      {adminNavigation}
+      <main className="adminPage adminSubpage">
+        <section className="adminTop">
+          <div><h2>Reviews</h2><p className="sub">Feedback from our coffee and church family.</p></div>
+          <button className="ghostBtn" onClick={() => setAdminView("dashboard")}>Back to orders</button>
+        </section>
+        <ReviewsAdmin pin={pin} />
+      </main>
     </>;
   }
 
@@ -2013,6 +2035,7 @@ function CustomerPage({ isClergy = false }) {
   const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS));
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [myOrderId, setMyOrderId] = useState(() => new URLSearchParams(window.location.search).get("order") || localStorage.getItem("coffee-my-order-id") || "");
+  const [reviewToken, setReviewToken] = useState(() => loadReviewToken(myOrderId));
   const [myOrder, setMyOrder] = useState(null);
   const [myOrderPosition, setMyOrderPosition] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -2094,8 +2117,11 @@ function CustomerPage({ isClergy = false }) {
     const found = normalizeOrderFromSingle(order);
     if (!found) {
       setMyOrder(null);
-      setMyOrderId("");
-      localStorage.removeItem("coffee-my-order-id");
+      // Keep the private receipt available for feedback after final archive.
+      if (!reviewToken) {
+        setMyOrderId("");
+        localStorage.removeItem("coffee-my-order-id");
+      }
       return;
     }
 
@@ -2379,6 +2405,10 @@ function CustomerPage({ isClergy = false }) {
 
       localStorage.setItem("arise-customer-name", form.name.trim());
       localStorage.setItem("coffee-my-order-id", data.id);
+      setReviewToken(data.pickupToken || "");
+      if (data.pickupToken) {
+        try { localStorage.setItem(`arise-review-token:${data.id}`, data.pickupToken); } catch {}
+      }
       const savedOrder = {
         drinkId: form.drinkId,
         drinkLabel: drink.label,
@@ -2428,6 +2458,7 @@ function CustomerPage({ isClergy = false }) {
   }
 
   function clearMyTicket() {
+    setReviewToken("");
     localStorage.removeItem("coffee-my-order-id");
     localStorage.removeItem(ORDER_QUOTE_KEY);
     setMyOrderId("");
@@ -2495,6 +2526,7 @@ function CustomerPage({ isClergy = false }) {
         <h1>{isClergy ? "Clergy ordering is closed" : "We're closed"}</h1>
         <p>{isClergy ? "Please check with the Arise! Coffee team." : (message || "Orders aren't being taken right now. Check back soon!")}</p>
         <button className="ghostBtn" onClick={refreshStatusOnly}>Refresh status</button>
+        {myOrderId && reviewToken && <OrderReview key={myOrderId} orderId={myOrderId} token={reviewToken} />}
       </main>
     </>;
   }
@@ -2506,8 +2538,10 @@ function CustomerPage({ isClergy = false }) {
       <main className={largeText ? "layout customerLayout customerLargeText" : "layout customerLayout"}>
         <div className="customerIntro">
           <div><div className="eyebrow churchIdentity"><Church size={18} aria-hidden="true" />Holy Transfiguration Church</div>
-            <h2>{isClergy ? "Coffee for our clergy." : "Coffee, faith & fellowship."}</h2>
-            <p>{isClergy ? "With gratitude for those who serve our church." : "Serving our church family, one cup at a time."}</p>
+            {isClergy && <>
+              <h2>Coffee for our clergy.</h2>
+              <p>With gratitude for those who serve our church.</p>
+            </>}
           </div>
           <a className="orderJump" href="#your-order"><ClipboardList size={18} />{myOrder ? "Track your order" : "Your order"}<ArrowRight size={16} /></a>
         </div>
@@ -2731,6 +2765,7 @@ function CustomerPage({ isClergy = false }) {
               </div>
             );
           })()}
+          {myOrderId && reviewToken && <OrderReview key={myOrderId} orderId={myOrderId} token={reviewToken} status={myOrder?.status} />}
         </section>
       </main>
       {showDonation && <DonationModal onClose={() => setShowDonation(false)} />}

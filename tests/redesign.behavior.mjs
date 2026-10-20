@@ -14,6 +14,8 @@ const status = { ok: true, isOpen: true, queueTimerEnabled: false, clergyOrderin
 const options = { showReady: true, archiveMinutes: 30, adminPickup: true };
 const delay = () => new Promise(resolve => setTimeout(resolve, 60));
 let checks = 0;
+let savedReview = null;
+let mockOrderArchived = false;
 async function mount(path, storage = {}) {
   const dom = new JSDOM('<!doctype html><html><head><link rel="manifest" href="/manifest.webmanifest"></head><body><div id="root"></div></body></html>', { url: `http://localhost${path}`, runScripts: "dangerously", pretendToBeVisual: true });
   const w = dom.window;
@@ -24,11 +26,25 @@ async function mount(path, storage = {}) {
   w.alert = () => {};
   w.confirm = () => true;
   Object.entries(storage).forEach(([key, value]) => w.localStorage.setItem(key, value));
-  w.fetch = async url => {
+  w.fetch = async (url, options) => {
     assert.equal(previewTest, false, "Local sample preview must never contact a backend");
     const rpc = String(url).split("/").pop();
     let response = { ...status, orders, inventory: [], ready: orders, collected: [], pickupOptions: options };
     if (rpc === "arise_order") response = { ...status, order: orders[0], position: 1 };
+    if (rpc === "arise_order" && mockOrderArchived) response.order = null;
+    if (rpc === "arise_order_review") {
+      const args = JSON.parse(options?.body || "{}");
+      if (args.input_rating && !savedReview) savedReview = { rating: args.input_rating, comment: args.input_comment, createdAt: new Date().toISOString() };
+      response = { ok: true, eligible: true, review: savedReview };
+    }
+    if (rpc === "arise_reviews_admin") {
+      const args = JSON.parse(options?.body || "{}");
+      const matches = savedReview && (!args.input_rating || args.input_rating === savedReview.rating);
+      response = { ok: true, page: 0, pageSize: 25, totalReviews: savedReview ? 1 : 0,
+        averageRating: savedReview?.rating || null, filteredTotal: matches ? 1 : 0,
+        ratingCounts: savedReview ? { [savedReview.rating]: 1 } : {},
+        reviews: matches ? [{ ...savedReview, id: "review-one", name: "Adam Basilious", drink: "Latte" }] : [] };
+    }
     if (rpc === "arise_customer_strikes") response = { ok: true, enabled: false, entries: [] };
     if (rpc === "arise_archive") response = { ok: true, archive: [] };
     return new Response(JSON.stringify(response), { headers: { "content-type": "application/json" } });
@@ -64,15 +80,44 @@ try {
   dom = await mount("/", { "coffee-my-order-id": "one" });
   assert.ok(dom.window.document.querySelector(previewTest ? ".previewNotice" : ".customerStatusCard")); checks++;
   dom.window.close();
+  if (!previewTest) {
+    orders[0].status = "complete";
+    const receipt = { "coffee-my-order-id": "one", "arise-review-token:one": "private-test-token" };
+    dom = await mount("/", receipt);
+    assert.ok(dom.window.document.querySelector(".orderReview form"), "Review form available for completed receipt"); checks++;
+    dom.window.document.querySelector('.reviewStars input[value="4"]').click();
+    await delay();
+    button(dom, "Send review").click(); await delay();
+    assert.equal(savedReview.rating, 4, "Selected stars sent to backend"); checks++;
+    assert.ok(dom.window.document.querySelector(".reviewSaved"), "Submission acknowledged"); checks++;
+    assert.equal(dom.window.document.querySelector(".orderReview form"), null, "Duplicate review form removed"); checks++;
+    dom.window.close();
+    mockOrderArchived = true;
+    status.isOpen = false;
+    dom = await mount("/", receipt);
+    assert.ok(dom.window.document.querySelector(".closedPage .reviewSaved"), "Review survives archived order and closed queue"); checks++;
+    dom.window.close();
+    mockOrderArchived = false;
+    status.isOpen = true;
+    orders[0].status = "waiting";
+  }
   dom = await mount("/admin");
   for (const digit of (previewTest ? ["0", "0", "0", "0"] : ["1", "2", "3", "4"])) { button(dom, digit).click(); await delay(); }
   await delay();
   assert.ok(dom.window.document.querySelector(".workspaceNav")); checks++;
   assert.equal(dom.window.document.querySelectorAll(".adminOrderGrid .adminOrder").length, previewTest ? 4 : 1); checks++;
-  for (const page of ["Settings", "Menu", "Archive", "Analytics", "Delivery", "Orders"]) {
+  for (const page of ["Settings", "Menu", "Archive", "Analytics", "Reviews", "Delivery", "Orders"]) {
     button(dom, page, ".workspaceNav").click(); await delay();
     assert.equal(dom.window.document.querySelector(".workspaceNav [aria-current=page]").textContent, page); checks++;
     assert.equal(dom.window.document.querySelector(".closedPage"), null, "No error boundary"); checks++;
+    if (page === "Reviews" && !previewTest) {
+      assert.equal(dom.window.document.querySelectorAll(".staffReview").length, 1, "Staff sees review"); checks++;
+      const filter = dom.window.document.querySelector("#review-rating-filter");
+      filter.value = "1";
+      filter.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+      await delay();
+      assert.equal(dom.window.document.querySelectorAll(".staffReview").length, 0, "Star filter updates list"); checks++;
+    }
     if (process.env.AUDIT_STYLES) {
       const legacy = [...dom.window.document.querySelectorAll("main *")].filter(el => {
         const style = dom.window.getComputedStyle(el);

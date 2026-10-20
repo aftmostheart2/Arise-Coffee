@@ -35,6 +35,8 @@ export function previewRpc(name, args = {}) {
       break;
     case "arise_archive": return { ok: true, archive: [] };
     case "arise_analytics": return { ok: true, analytics: null };
+    case "arise_reviews_admin": return { ok: true, page: 0, pageSize: 25, totalReviews: 0,
+      averageRating: null, filteredTotal: 0, ratingCounts: {}, reviews: [] };
   }
   return { ok: false, error: "This is a read-only design preview. No orders or settings were changed." };
 }

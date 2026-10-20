@@ -32,6 +32,19 @@ export async function apiGet(action, params = {}) {
 }
 
 export async function apiPost(payload) {
+  if (payload.action === "orderReview" || payload.action === "reviewsAdmin") {
+    try {
+      return payload.action === "orderReview"
+        ? await callRpc("arise_order_review", { order_id: payload.id, input_token: payload.token,
+          input_rating: payload.rating ?? null, input_comment: payload.comment || "" })
+        : await callRpc("arise_reviews_admin", { input_pin: payload.pin,
+          input_page: payload.page || 0, input_rating: payload.rating || null });
+    } catch {
+      return { ok: false, error: payload.action === "reviewsAdmin"
+        ? "Reviews are unavailable. Check your connection and that the reviews SQL update is installed."
+        : "Reviews are unavailable. Please try again later." };
+    }
+  }
   if (payload.action === "pickupSettings") {
     try {
       return await callRpc("arise_pickup_settings", { input_pin: payload.pin, input_options: payload.options || null });
