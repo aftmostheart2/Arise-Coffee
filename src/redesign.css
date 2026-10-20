@@ -1,8 +1,8 @@
 /* Shared visual system. Existing layout rules remain for legacy iPad support. */
 .previewNotice{padding:10px 18px;background:#e8f2fb;color:#285777;border-bottom:1px solid #bfd7e9;text-align:center;font:600 12px/1.5 Inter,Arial,sans-serif}
 :root{
-  --bg:#e8dcc8;--bg-2:#f3e9d8;--surface:#f3e9d8;--surface-2:#dfcfb7;
-  --line:#cbbba3;--line-strong:#a9977e;--text:#17251e;--cream:#17251e;
+  --bg:#dfcfb7;--bg-2:#eadcc6;--surface:#eadcc6;--surface-2:#d5c1a3;
+  --line:#bdaa8d;--line-strong:#9d886a;--text:#17251e;--cream:#17251e;
   --muted:#625e51;--dim:#6b6558;--gold:#21664a;--gold-2:#175439;
   --green:#21664a;--red:#b13545;--accent:#21664a;
   color-scheme:light;
@@ -23,6 +23,8 @@ p,span,strong,em{overflow-wrap:break-word}
 .sub{font-size:14px;line-height:1.5;margin-top:6px;margin-bottom:24px}
 .label,.settingsField span,.eyebrow{display:block;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:0;text-transform:uppercase}
 .eyebrow{margin-bottom:10px}
+.churchIdentity{display:flex;align-items:center;gap:8px;line-height:1.5;color:var(--accent)}
+.churchIdentity svg{flex-shrink:0}
 .label span{color:var(--muted)}
 .gold{color:var(--accent)!important}
 input,textarea,select{background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:12px 14px;min-height:44px;font-size:15px;box-shadow:none}
@@ -95,17 +97,24 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .draftOrder dd{margin:0;text-align:right;font-weight:600;overflow-wrap:anywhere;min-width:0}
 .draftFooter{display:flex;gap:9px;align-items:center;margin-top:22px;color:var(--muted);font-size:12px}
 .customerStatusCard,.myTicket{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:24px;box-shadow:none}
+.customerStatusCard.ready,.customerStatusCard.complete,.customerStatusCard.canceled{background:var(--surface);box-shadow:none}
+.customerStatusCard.ready,.customerStatusCard.complete{border-color:#8eb39b}
 .statusHero{border-bottom:1px solid var(--line);padding-bottom:20px;gap:18px}
 .statusHero > span{background:#e9f2ec;color:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;width:62px;height:62px;font-size:30px}
 .statusHero h3{font-family:inherit;font-size:44px;color:var(--text);font-variant-numeric:tabular-nums}
 .statusBig{font-size:25px;color:var(--accent);margin:22px 0 12px;font-family:inherit}
 .customerDrinkSummary{background:none;border:0;padding:0;color:var(--text)}
+.customerDrinkSummary strong{color:var(--text);line-height:1.4}
 .customerDrinkSummary p,.customerDrinkSummary em{color:var(--muted)}
 .progressRail{background:none;border:0;padding:20px 0;gap:8px}
-.progressStep{min-width:0;color:#6b7a71}
-.progressStep span{background:var(--bg);color:#67776b;border-color:var(--line)}
-.progressStep.done span{background:#21664a;color:white;border-color:#21664a}
-.progressStep p{color:var(--muted);font-size:11px}
+.customerStatusCard .progressStep{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0;padding:12px 6px;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--muted);box-shadow:none}
+.customerStatusCard .progressStep.done,.customerStatusCard.ready .progressStep.done,.customerStatusCard.complete .progressStep.done{background:#e7f2eb;border-color:#bcd5c4;color:#1c5c3e}
+.customerStatusCard .progressStep span{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;margin:0;background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:50%}
+.customerStatusCard .progressStep.done span{background:#21664a;color:white;border-color:#21664a}
+.customerStatusCard .progressStep p{color:var(--muted);font-size:11px;line-height:1.4;margin:0}
+.customerStatusCard .progressStep.done p{color:#1c5c3e}
+.customerLargeText .customerStatusCard .progressStep p{font-size:15px}
+.customerLargeText .customerStatusCard .progressStep svg{width:22px;height:22px}
 .etaBox,.notifyBox,.scriptureCard{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:16px;color:var(--text);box-shadow:none}
 .etaBox strong,.etaBox span,.etaBox small,.scriptureCard p,.scriptureCard span,.notifyBox p{color:var(--muted)}
 .etaBox strong{color:var(--text)}

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import "./redesign.css";
 import { hasBackendConfig, isLocalPreview } from "./supabaseClient";
-import { Coffee, Snowflake, Flame, Check, ArrowRight, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
+import { Church, Coffee, Snowflake, Flame, Check, ArrowRight, Settings, LayoutGrid, Archive, ChartNoAxesCombined, Truck, Monitor, RefreshCw, LogOut, LockKeyhole, Clock3, ClipboardList, SlidersHorizontal, Bell, CircleCheck, CircleX } from "lucide-react";
 import { apiGet, apiPost } from "./api/backend";
 import PickupStrikeSettings from "./PickupStrikeSettings";
 import PickupSettings from "./PickupSettings";
@@ -426,7 +426,7 @@ function Header({ isOpen, statusText }) {
     <header className="appHeader">
       <a className="brand" href="/" title="Arise! Coffee">
         <img className="brandLogo" src="/icons/arise-icon-192.png" alt="" width="42" height="42" />
-        <div><h1>ARISE<span className="brandAccent">!</span></h1><p>Coffee & community</p></div>
+        <div><h1>ARISE<span className="brandAccent">!</span></h1><p>Coffee & church</p></div>
       </a>
       {!isAdminPage && <button className="staffAccess iconButton" title="Staff access" aria-label="Staff access" onClick={() => window.location.assign("/admin")}><LockKeyhole size={18} /></button>}
       <div className={isOpen ? "pill open" : "pill closed"}>{statusText || (isOpen ? "● Open" : "● Closed")}</div>
@@ -2492,9 +2492,9 @@ function CustomerPage({ isClergy = false }) {
       <QueueTimerBadge isOpen={!isClergy && queueTimerEnabled && isOpen && hasQueueTimeLeft(queueClosesAt, nowMs)} queueClosesAt={queueClosesAt} queueTimerMinutes={queueTimerMinutes} nowMs={nowMs} />
       <main className={largeText ? "layout customerLayout customerLargeText" : "layout customerLayout"}>
         <div className="customerIntro">
-          <div><div className="eyebrow">{isClergy ? "THE CLERGY TABLE" : "MADE WITH CARE. SHARED WITH LOVE."}</div>
-            <h2>Your coffee. Your moment.</h2>
-            <p>{isClergy ? "A warm welcome to Arise! Clergy." : "Something good is brewing."}</p>
+          <div><div className="eyebrow churchIdentity"><Church size={18} aria-hidden="true" />Holy Transfiguration Church</div>
+            <h2>{isClergy ? "Coffee for our clergy." : "Coffee, faith & fellowship."}</h2>
+            <p>{isClergy ? "With gratitude for those who serve our church." : "Serving our church family, one cup at a time."}</p>
           </div>
           <a className="orderJump" href="#your-order"><ClipboardList size={18} />{myOrder ? "Track your order" : "Your order"}<ArrowRight size={16} /></a>
         </div>
@@ -2639,7 +2639,7 @@ function CustomerPage({ isClergy = false }) {
                 <div><dt>For</dt><dd>{form.name.trim() || "Your name"}</dd></div>
                 <div><dt>Collection</dt><dd>{form.fulfillmentType === "delivery" ? "Delivery" : "Kitchen pickup"}</dd></div>
               </dl>
-              <div className="draftFooter"><Clock3 size={17} /><span>Freshly made, in queue order.</span></div>
+              <div className="draftFooter"><Church size={17} /><span>Made with love for our church family.</span></div>
             </div>
           ) : (() => {
             const currentPosition = Math.max(1, Number(myOrder.position || myOrderPosition || 1));
@@ -2664,15 +2664,15 @@ function CustomerPage({ isClergy = false }) {
 
                 <div className="progressRail">
                   <div className={["waiting","making","ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
-                    <span>✓</span>
+                    <span><Check size={18} aria-hidden="true" /></span>
                     <p>Received</p>
                   </div>
                   <div className={["making","ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
-                    <span>{["making","ready","complete"].includes(myOrder.status) ? "✓" : "○"}</span>
+                    <span>{["making","ready","complete"].includes(myOrder.status) ? <Check size={18} aria-hidden="true" /> : <Coffee size={18} aria-hidden="true" />}</span>
                     <p>Making</p>
                   </div>
                   <div className={["ready","complete"].includes(myOrder.status) ? "progressStep done" : "progressStep"}>
-                    <span>{["ready","complete"].includes(myOrder.status) ? "✓" : "○"}</span>
+                    <span>{["ready","complete"].includes(myOrder.status) ? <Check size={18} aria-hidden="true" /> : <Bell size={18} aria-hidden="true" />}</span>
                     <p>Ready</p>
                   </div>
                 </div>
@@ -2698,7 +2698,7 @@ function CustomerPage({ isClergy = false }) {
                 ))}
                 {orderQuote && (
                   <div className="scriptureCard">
-                    <div className="label gold">A verse for your wait</div>
+                    <div className="label gold">A moment in Scripture</div>
                     <p>{orderQuote.excerpt ? "..." : ""}"{orderQuote.text}"{orderQuote.excerpt ? "..." : ""}</p>
                     <span>{orderQuote.reference}{orderQuote.excerpt ? " excerpt" : ""}</span>
                   </div>
