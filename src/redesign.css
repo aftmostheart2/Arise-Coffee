@@ -55,6 +55,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .customerIntro h2{font-size:38px;font-weight:750;line-height:1.15}
 .customerIntro p{color:var(--muted);margin-top:10px;font-size:15px}
 .orderJump{display:inline-flex;gap:10px;align-items:center;font-weight:650;color:var(--accent);white-space:nowrap}
+.customerLayout .formCol,.customerLayout .privateStatusCol{background:transparent;box-shadow:none;border-radius:0}
 .customerLayout .formCol{padding:30px 0;border:0;min-width:0}
 .customerSectionHead{align-items:flex-start;margin-bottom:22px}
 .customerSectionHead h2{font-size:23px}
