@@ -1,4 +1,4 @@
-import { supabase } from "../supabaseClient";
+import { supabase, isLocalPreview } from "../supabaseClient";
 
 function normalizeResponse(data, fallback = {}) {
   if (!data) return fallback;
@@ -10,6 +10,11 @@ function errorMessage(error) {
 }
 
 async function callRpc(name, args = {}, fallback = { ok: false, error: "Connection error" }) {
+  if (isLocalPreview) {
+    const { previewRpc } = await import("./preview");
+    return previewRpc(name, args);
+  }
+  if (!supabase) throw new Error("Database connection settings are missing.");
   const { data, error } = await supabase.rpc(name, args);
   if (error) throw error;
   return normalizeResponse(data, fallback);
