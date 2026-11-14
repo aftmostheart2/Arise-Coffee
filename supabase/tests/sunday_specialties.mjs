@@ -25,6 +25,7 @@ try {
   const migration = read("../migrations/202611130001_sunday_specialties.sql");
   await db.exec(migration);
   await db.exec(migration);
+  await db.exec(read("../migrations/202611130002_menu_based_specialty_recipes.sql"));
   await db.exec(`update settings set value = '"test-pin"' where key = 'pin';
     update settings set value = '"true"' where key in ('isOpen', 'clergyOrderingEnabled');
     update settings set value = '"false"' where key = 'queueTimerEnabled';
@@ -100,6 +101,7 @@ try {
     specials[0].regularRecipe, "Archived specialty retains recipe snapshot");
   await save([], false);
   await db.exec(migration);
+  await db.exec(read("../migrations/202611130002_menu_based_specialty_recipes.sql"));
   check((await list()).specialties.length, 0, "Migration rerun does not resurrect removed specialties");
   check((await rpc("arise_place_order", [JSON.stringify({ name: "Regular Guest", drink: "Latte", temp: "Hot" })])).ok, true, "Regular orders still work");
   console.log(`${checks} Sunday specialty database checks passed.`);

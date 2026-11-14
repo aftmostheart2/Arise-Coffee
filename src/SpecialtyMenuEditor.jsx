@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, RefreshCw, Star, Trash2 } from "lucide-react";
 import { apiPost } from "./api/backend";
+import SpecialtyRecipeOptions, { emptySpecialtyRecipe } from "./SpecialtyRecipeOptions";
 
-export default function SpecialtyMenuEditor({ pin }) {
+export default function SpecialtyMenuEditor({ pin, drinks = [], syrups = [] }) {
   const [specialties, setSpecialties] = useState([]);
   const [enabled, setEnabled] = useState(false);
   const [startsOn, setStartsOn] = useState("");
@@ -17,8 +18,9 @@ export default function SpecialtyMenuEditor({ pin }) {
   async function request(save = false) {
     if (pending.current) return;
     if (save) {
-      const invalid = specialties.some(item => !item.label.trim() || !item.temps.length || (item.active && !item.regularRecipe.trim()));
-      if (invalid) { setError("Every specialty needs a name and temperature. Add a regular recipe before including it in rotation."); return; }
+      const invalid = specialties.some(item => !item.label.trim() || !item.temps.length ||
+        (item.active && (item.recipeConfig ? !item.recipeConfig.baseDrinkId : !item.regularRecipe.trim())));
+      if (invalid) { setError("Every specialty needs a name and temperature. Choose a base drink before including it in rotation."); return; }
       if (enabled && !specialties.some(item => item.active)) { setError("Include at least one specialty in rotation."); return; }
       if (!startsOn || new Date(`${startsOn}T12:00:00`).getDay() !== 0) { setError("Choose a Sunday start date."); return; }
     }
@@ -60,7 +62,7 @@ export default function SpecialtyMenuEditor({ pin }) {
   return <section className="specialtyMenuSection" aria-labelledby="specialties-title">
     <div className="sectionHeader">
       <div><h2 id="specialties-title"><Star size={21} />Specialties</h2>
-        {loaded && <p className="sub">{dirty ? "Unsaved changes" : featured ? `This week: ${featured.label}` : enabled ? `Rotation starts ${startsOn}` : "Rotation paused"}</p>}
+        {loaded && <p className="sub">{dirty ? "Unsaved changes" : featured ? `This week: ${featured.label}` : enabled ? "No specialty available this week" : "Rotation paused"}</p>}
       </div>
       <div className="specialtyEditorActions">
         <button type="button" className="ghostBtn" disabled={busy} onClick={() => {
@@ -68,7 +70,7 @@ export default function SpecialtyMenuEditor({ pin }) {
         }}><RefreshCw size={16} />Reload</button>
         <button type="button" className="ghostBtn" disabled={busy || !loaded} onClick={() => {
           setSpecialties(items => [...items, { id: `specialty-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            label: "", desc: "", regularRecipe: "", sugarFreeRecipe: "", temps: ["Hot", "Cold"], active: false }]);
+            label: "", desc: "", regularRecipe: "", sugarFreeRecipe: "", recipeConfig: emptySpecialtyRecipe(), temps: ["Hot", "Cold"], active: false }]);
           setDirty(true);
         }}><Plus size={16} />Add specialty</button>
       </div>
@@ -88,8 +90,12 @@ export default function SpecialtyMenuEditor({ pin }) {
           <fieldset disabled={busy}>
             <label className="settingsField"><span>Name</span><input maxLength={80} required value={item.label} onChange={event => update(item.id, { label: event.target.value })} /></label>
             <label className="settingsField"><span>Customer description</span><input maxLength={180} value={item.desc} onChange={event => update(item.id, { desc: event.target.value })} /></label>
-            <label className="settingsField"><span>Regular recipe</span><textarea maxLength={1000} rows={3} required={item.active} value={item.regularRecipe} onChange={event => update(item.id, { regularRecipe: event.target.value })} /></label>
-            <label className="settingsField"><span>Sugar-free recipe (optional)</span><textarea maxLength={1000} rows={3} value={item.sugarFreeRecipe} onChange={event => update(item.id, { sugarFreeRecipe: event.target.value })} /></label>
+            {!item.recipeConfig && item.regularRecipe ? <div className="specialtySavedRecipe">
+              <span className="label">Saved regular recipe</span><p>{item.regularRecipe}</p>
+              {item.sugarFreeRecipe && <><span className="label">Saved sugar-free recipe</span><p>{item.sugarFreeRecipe}</p></>}
+              <button type="button" className="ghostBtn" onClick={() => update(item.id, { recipeConfig: emptySpecialtyRecipe() })}>Replace with menu selections</button>
+            </div> : <SpecialtyRecipeOptions config={item.recipeConfig || emptySpecialtyRecipe()} drinks={drinks} syrups={syrups}
+              required={item.active} onChange={recipeConfig => update(item.id, { recipeConfig })} />}
             <div className="specialtyTemps">{["Hot", "Cold"].map(temp => <label className="adminCheck" key={temp}>
               <input type="checkbox" checked={item.temps.includes(temp)} onChange={event => update(item.id, { temps: event.target.checked ? [...item.temps, temp] : item.temps.filter(value => value !== temp) })} />{temp}
             </label>)}</div>

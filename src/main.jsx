@@ -1261,7 +1261,7 @@ function AdminPage() {
             onUpdate={updateMenuDrink}
             onUpdateIngredient={updateMenuIngredient}
           />
-          <SpecialtyMenuEditor pin={pin} />
+          <SpecialtyMenuEditor pin={pin} drinks={menuDrinks} syrups={menuSyrups} />
         </main>
       </>
     );

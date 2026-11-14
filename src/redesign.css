@@ -377,6 +377,15 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .specialtyMenuSection .settingsField input,.specialtyMenuSection .settingsField textarea{max-width:none;width:100%}
 .specialtyMenuSection .adminCheck{color:var(--text);background:none;border:0}
 .specialtyTemps{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 8px}
+.specialtyMenuSection .specialtySyrupOptions{display:flex;flex-direction:column;gap:4px;margin-top:18px}
+.specialtySyrupOptions legend{color:var(--muted);font-size:12px;margin-bottom:8px}
+.specialtySyrupOptions .adminCheck{min-width:0;align-items:flex-start;gap:9px;padding:7px 0}
+.specialtySyrupOptions .adminCheck span{min-width:0;overflow-wrap:anywhere}
+.specialtySyrupOptions input{margin-top:1px}
+.specialtySugarFreeToggle{margin-top:18px}
+.specialtySavedRecipe{margin-top:18px}
+.specialtySavedRecipe p{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);font-size:13px;line-height:1.6;margin:8px 0 16px}
+.specialtySavedRecipe button{width:100%;white-space:normal}
 .specialtyTileActions{justify-content:flex-end;margin-top:18px;padding-top:12px;border-top:1px solid var(--line)}
 .specialtyTileActions button{display:flex;align-items:center;justify-content:center;min-width:44px}
 .specialtySaveActions{display:flex;justify-content:flex-end;margin-top:20px}

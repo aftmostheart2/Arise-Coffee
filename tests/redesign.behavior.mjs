@@ -19,7 +19,7 @@ let mockOrderArchived = false;
 let specialtyFixture = null;
 let lastSpecialtyOrder = null;
 let savedSpecialties = ["Verena Vanilla", "Mount Caramel Latte"].map((label, index) => ({
-  id: `specialty-ui-${index}`, label, desc: "", regularRecipe: "", sugarFreeRecipe: "", temps: ["Hot", "Cold"], active: false,
+  id: `specialty-ui-${index}`, label, desc: "", regularRecipe: index === 0 ? "Latte with two pumps vanilla" : "", sugarFreeRecipe: "", temps: ["Hot", "Cold"], active: false,
 }));
 async function mount(path, storage = {}) {
   const dom = new JSDOM('<!doctype html><html><head><link rel="manifest" href="/manifest.webmanifest"></head><body><div id="root"></div></body></html>', { url: `http://localhost${path}`, runScripts: "dangerously", pretendToBeVisual: true });
@@ -150,6 +150,8 @@ try {
     assert.equal(dom.window.document.querySelector(".closedPage"), null, "No error boundary"); checks++;
     if (page === "Menu" && !previewTest) {
       assert.equal(dom.window.document.querySelectorAll(".specialtyEditorTile").length, 2); checks++;
+      assert.equal(dom.window.document.querySelectorAll(".specialtyEditorTile textarea").length, 0, "Recipes use menu selectors rather than text boxes"); checks++;
+      assert.match(dom.window.document.querySelector(".specialtySavedRecipe").textContent, /two pumps vanilla/, "Existing written recipe displayed without being changed"); checks++;
       button(dom, "Add specialty").click(); await delay();
       assert.equal(dom.window.document.querySelectorAll(".specialtyEditorTile").length, 3); checks++;
       const tiles = dom.window.document.querySelectorAll(".specialtyEditorTile");
@@ -159,9 +161,21 @@ try {
       const input = dom.window.document.querySelector(".specialtyEditorTile input");
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, "Mount Caramel Special");
       input.dispatchEvent(new dom.window.Event("input", { bubbles: true })); await delay();
+      const recipeTile = dom.window.document.querySelector(".specialtyEditorTile");
+      const baseSelect = recipeTile.querySelector(".specialtyRecipeOptions select");
+      baseSelect.value = "latte";
+      baseSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true })); await delay();
+      [...recipeTile.querySelectorAll(".specialtySyrupOptions label")].find(label => label.textContent.trim() === "Vanilla").querySelector("input").click(); await delay();
+      recipeTile.querySelector(".specialtySugarFreeToggle input").click(); await delay();
+      [...recipeTile.querySelectorAll(".specialtySyrupOptions")][1].querySelectorAll("label").forEach(label => {
+        if (label.textContent.trim() === "Sugar Free Vanilla") label.querySelector("input").click();
+      }); await delay();
       button(dom, "Save specialties").click(); await delay();
       assert.equal(savedSpecialties[0].label, "Mount Caramel Special", "Specialty rename saved"); checks++;
       assert.equal(savedSpecialties.length, 2, "Removed specialty stays removed on save"); checks++;
+      assert.deepEqual(savedSpecialties[0].recipeConfig, { baseDrinkId: "latte", regularSyrups: ["Vanilla"], sugarFreeEnabled: true, sugarFreeSyrups: ["Sugar Free Vanilla"] }, "Menu selections saved for both versions"); checks++;
+      assert.equal(savedSpecialties[1].regularRecipe, "Latte with two pumps vanilla", "Untouched written recipe preserved"); checks++;
+      assert.equal(dom.window.document.querySelector(".specialtyRecipeOptions select").value, "latte", "Selections restored after save"); checks++;
     }
     if (page === "Reviews" && !previewTest) {
       assert.equal(dom.window.document.querySelectorAll(".staffReview").length, 1, "Staff sees review"); checks++;
