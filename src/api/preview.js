@@ -22,6 +22,12 @@ export function previewRpc(name, args = {}) {
     case "arise_display": return { ...status, orders, ready, pickupOptions };
     case "arise_order": return { ok: true, order: null };
     case "arise_menu": return { ok: true };
+    case "arise_specialties_admin":
+      if (args.input_specialties == null) return { ok: true, enabled: false, startsOn: "2026-11-15", featured: null,
+        specialties: ["Verena Vanilla", "Mount Caramel Latte", "Archangel Mocha", "Bright White Mocha", "Ton Cina-Mon", "St. Bazel-Nut"].map((label, index) => ({
+          id: `specialty-preview-${index}`, label, desc: "", regularRecipe: "", sugarFreeRecipe: "", temps: ["Hot", "Cold"], active: false,
+        })) };
+      break;
     case "arise_inventory": return { ok: true, inventory: [
       ...["Whole Milk", "Oat Milk", "Almond Milk"].map(item => ({ item, type: "milk", available: true })),
       ...["Vanilla", "Caramel", "Hazelnut"].map(item => ({ item, type: "syrup", available: true })),

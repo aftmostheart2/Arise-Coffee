@@ -16,6 +16,11 @@ const delay = () => new Promise(resolve => setTimeout(resolve, 60));
 let checks = 0;
 let savedReview = null;
 let mockOrderArchived = false;
+let specialtyFixture = null;
+let lastSpecialtyOrder = null;
+let savedSpecialties = ["Verena Vanilla", "Mount Caramel Latte"].map((label, index) => ({
+  id: `specialty-ui-${index}`, label, desc: "", regularRecipe: "", sugarFreeRecipe: "", temps: ["Hot", "Cold"], active: false,
+}));
 async function mount(path, storage = {}) {
   const dom = new JSDOM('<!doctype html><html><head><link rel="manifest" href="/manifest.webmanifest"></head><body><div id="root"></div></body></html>', { url: `http://localhost${path}`, runScripts: "dangerously", pretendToBeVisual: true });
   const w = dom.window;
@@ -31,6 +36,16 @@ async function mount(path, storage = {}) {
     const rpc = String(url).split("/").pop();
     let response = { ...status, orders, inventory: [], ready: orders, collected: [], pickupOptions: options };
     if (rpc === "arise_order") response = { ...status, order: orders[0], position: 1 };
+    if (rpc === "arise_menu") response = { ok: true, specialty: specialtyFixture };
+    if (rpc === "arise_place_order") {
+      lastSpecialtyOrder = JSON.parse(options?.body || "{}").input_order;
+      response = { ok: true, id: "specialty-order", position: 1, pickupToken: "private-token" };
+    }
+    if (rpc === "arise_specialties_admin") {
+      const args = JSON.parse(options?.body || "{}");
+      if (args.input_specialties) savedSpecialties = args.input_specialties;
+      response = { ok: true, specialties: savedSpecialties, enabled: false, startsOn: "2026-11-15", featured: null };
+    }
     if (rpc === "arise_order" && mockOrderArchived) response.order = null;
     if (rpc === "arise_order_review") {
       const args = JSON.parse(options?.body || "{}");
@@ -73,6 +88,29 @@ try {
   button(dom, "Deliver to classroom").click(); await delay();
   assert.equal(document.querySelector(".deliveryServantsNotice").textContent, "For Servants only"); checks++;
   dom.window.close();
+  if (!previewTest) {
+    specialtyFixture = { id: "specialty-ui-0", label: "Verena Vanilla", desc: "Vanilla specialty",
+      isSpecialty: true, milk: true, syrups: false, temps: ["Hot", "Cold"], regularAvailable: true, sugarFreeAvailable: true };
+    dom = await mount("/", { "arise-customer-name": "Adam Basilious" });
+    dom.window.document.querySelector(".specialtyChoice").click(); await delay();
+    assert.equal(dom.window.document.querySelector(".draftOrder h3").textContent, "Verena Vanilla"); checks++;
+    assert.equal(dom.window.document.querySelector(".formCol .syrups"), null, "No custom syrups for specialty"); checks++;
+    assert.equal(dom.window.document.querySelector(".formCol textarea"), null, "No recipe-changing notes for specialty"); checks++;
+    button(dom, "Sugar-free").click(); button(dom, "Cold").click(); button(dom, "Whole milk").click();
+    await delay();
+    button(dom, "Place order").click(); await delay(); await delay();
+    assert.equal(lastSpecialtyOrder.specialtyId, "specialty-ui-0"); checks++;
+    assert.equal(lastSpecialtyOrder.sweetness, "sugar-free"); checks++;
+    assert.equal(lastSpecialtyOrder.temp, "Cold"); checks++;
+    assert.equal(lastSpecialtyOrder.notes, ""); checks++;
+    dom.window.close();
+    specialtyFixture = { ...specialtyFixture, sugarFreeAvailable: false };
+    dom = await mount("/");
+    dom.window.document.querySelector(".specialtyChoice").click(); await delay();
+    assert.equal([...dom.window.document.querySelectorAll(".formCol button")].some(el => el.textContent === "Sugar-free"), false); checks++;
+    dom.window.close();
+    specialtyFixture = null;
+  }
   dom = await mount("/?mode=clergy");
   assert.equal(dom.window.document.querySelector(".customerSectionHead h2").textContent, "Clergy menu"); checks++;
   assert.equal(dom.window.document.querySelector(".deliveryFields"), null); checks++;
@@ -110,6 +148,21 @@ try {
     button(dom, page, ".workspaceNav").click(); await delay();
     assert.equal(dom.window.document.querySelector(".workspaceNav [aria-current=page]").textContent, page); checks++;
     assert.equal(dom.window.document.querySelector(".closedPage"), null, "No error boundary"); checks++;
+    if (page === "Menu" && !previewTest) {
+      assert.equal(dom.window.document.querySelectorAll(".specialtyEditorTile").length, 2); checks++;
+      button(dom, "Add specialty").click(); await delay();
+      assert.equal(dom.window.document.querySelectorAll(".specialtyEditorTile").length, 3); checks++;
+      const tiles = dom.window.document.querySelectorAll(".specialtyEditorTile");
+      tiles[2].querySelector('[aria-label="Remove specialty"]').click(); await delay();
+      dom.window.document.querySelectorAll(".specialtyEditorTile")[1].querySelector('[aria-label="Move specialty earlier"]').click(); await delay();
+      assert.equal(dom.window.document.querySelector(".specialtyTileHeading h3").textContent, "Mount Caramel Latte"); checks++;
+      const input = dom.window.document.querySelector(".specialtyEditorTile input");
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, "Mount Caramel Special");
+      input.dispatchEvent(new dom.window.Event("input", { bubbles: true })); await delay();
+      button(dom, "Save specialties").click(); await delay();
+      assert.equal(savedSpecialties[0].label, "Mount Caramel Special", "Specialty rename saved"); checks++;
+      assert.equal(savedSpecialties.length, 2, "Removed specialty stays removed on save"); checks++;
+    }
     if (page === "Reviews" && !previewTest) {
       assert.equal(dom.window.document.querySelectorAll(".staffReview").length, 1, "Staff sees review"); checks++;
       const filter = dom.window.document.querySelector("#review-rating-filter");

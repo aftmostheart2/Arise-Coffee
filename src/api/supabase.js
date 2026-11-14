@@ -32,6 +32,15 @@ export async function apiGet(action, params = {}) {
 }
 
 export async function apiPost(payload) {
+  if (payload.action === "specialtiesAdmin") {
+    try {
+      return await callRpc("arise_specialties_admin", { input_pin: payload.pin,
+        input_specialties: payload.specialties ?? null,
+        input_enabled: payload.enabled ?? null, input_starts_on: payload.startsOn || null });
+    } catch {
+      return { ok: false, error: "Could not load or save specialties. Check your connection and install the specialties SQL update." };
+    }
+  }
   if (payload.action === "orderReview" || payload.action === "reviewsAdmin") {
     try {
       return payload.action === "orderReview"
@@ -179,6 +188,8 @@ export async function placeOrder(order) {
       input_order: {
         name: order.name || "",
         drink: order.drink || "",
+        specialtyId: order.specialtyId || null,
+        sweetness: order.sweetness || "",
         temp: order.temp || "",
         milk: order.milk || "",
         syrups: Array.isArray(order.syrups) ? order.syrups : [],

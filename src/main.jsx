@@ -10,6 +10,7 @@ import PickupSettings from "./PickupSettings";
 import PickupOrders from "./PickupOrders";
 import OrderReview from "./OrderReview";
 import ReviewsAdmin from "./ReviewsAdmin";
+import SpecialtyMenuEditor from "./SpecialtyMenuEditor";
 import { getPushDeviceHint, getPushSupportStatus, isAppleTouchDevice, isStandaloneApp, sendCancelNotification, sendReadyNotification, subscribeToReadyNotification } from "./api/pushNotifications";
 
 const DONATION_VENMO_URL = "https://account.venmo.com/u/HolyTransfiguration-OrthodoxCh";
@@ -85,6 +86,9 @@ function normalizeDrinkItem(drink, index = 0) {
     showTemp: drink?.showTemp === false ? false : true,
     active: drink?.active !== false,
     sortOrder: Number.isFinite(Number(drink?.sortOrder)) ? Number(drink.sortOrder) : index,
+    isSpecialty: drink?.isSpecialty === true,
+    regularAvailable: drink?.regularAvailable === true,
+    sugarFreeAvailable: drink?.sugarFreeAvailable === true,
   };
 }
 
@@ -141,7 +145,7 @@ function getDrink(id, drinks = DRINKS) {
 }
 
 function defaultForm() {
-  return { name: "", drinkId: "latte", temp: "Hot", milk: "", syrups: [], notes: "", fulfillmentType: "pickup", deliveryLocation: "", customDeliveryLocation: "" };
+  return { name: "", drinkId: "latte", temp: "Hot", milk: "", sweetness: "regular", syrups: [], notes: "", fulfillmentType: "pickup", deliveryLocation: "", customDeliveryLocation: "" };
 }
 
 function randomBibleQuote() {
@@ -1257,6 +1261,7 @@ function AdminPage() {
             onUpdate={updateMenuDrink}
             onUpdateIngredient={updateMenuIngredient}
           />
+          <SpecialtyMenuEditor pin={pin} />
         </main>
       </>
     );
@@ -1531,6 +1536,7 @@ function AdminPage() {
                     <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
                     <span className="orderAge">Deliver to {o.deliveryLocation || "classroom"}</span>
                     {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
+                    {o.recipe && <p className="specialtyRecipe"><strong>{o.sweetness === "sugar-free" ? "Sugar-free" : "Regular"} specialty</strong>{o.recipe}</p>}
                     {o.notes && <em>"{o.notes}"</em>}
                   </div>
                   <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
@@ -1692,6 +1698,7 @@ function AdminPage() {
                       </div>
                       <p>{o.temp} {o.drink}{o.milk ? ` · ${o.milk}` : ""}{o.syrups ? ` · ${o.syrups}` : ""}</p>
                       {orderAgeText(o.time) && <span className="orderAge">Ordered {orderAgeText(o.time)}</span>}
+                      {o.recipe && <p className="specialtyRecipe"><strong>{o.sweetness === "sugar-free" ? "Sugar-free" : "Regular"} specialty</strong>{o.recipe}</p>}
                       {o.notes && <em>"{o.notes}"</em>}
                     </div>
                     <span className={"statusBadge " + o.status}>{statusLabel(o.status)}</span>
@@ -2089,6 +2096,7 @@ function CustomerPage({ isClergy = false }) {
   const [isOpen, setIsOpen] = useState(true);
   const [message, setMessage] = useState("");
   const [menuDrinks, setMenuDrinks] = useState(() => normalizeMenuDrinks(DRINKS));
+  const [featuredSpecialty, setFeaturedSpecialty] = useState(null);
   const [inventory, setInventory] = useState(loadCachedInventory);
   const [myOrderId, setMyOrderId] = useState(() => new URLSearchParams(window.location.search).get("order") || localStorage.getItem("coffee-my-order-id") || "");
   const [reviewToken, setReviewToken] = useState(() => loadReviewToken(myOrderId));
@@ -2121,7 +2129,9 @@ function CustomerPage({ isClergy = false }) {
   const previousStatusRef = useRef("");
   const nameRef = useRef(null);
 
-  const customerDrinks = useMemo(() => normalizeMenuDrinks(menuDrinks), [menuDrinks]);
+  const customerDrinks = useMemo(() => featuredSpecialty
+    ? [...normalizeMenuDrinks(menuDrinks), normalizeDrinkItem(featuredSpecialty)]
+    : normalizeMenuDrinks(menuDrinks), [menuDrinks, featuredSpecialty]);
   const drink = useMemo(() => getDrink(form.drinkId, customerDrinks), [form.drinkId, customerDrinks]);
   const inventoryLookup = useMemo(() => buildInventoryLookup(inventory), [inventory]);
   const customerMilks = useMemo(() => inventoryItemsByType(inventory, "milk", MILKS).filter(item => item.available !== false), [inventory]);
@@ -2259,7 +2269,14 @@ function CustomerPage({ isClergy = false }) {
     menuLoadingRef.current = true;
     try {
       const data = await apiGet("menu");
-      if (data.ok && Array.isArray(data.drinks)) setMenuDrinks(normalizeMenuDrinks(data.drinks));
+      if (data.ok) {
+        if (Array.isArray(data.drinks)) {
+          const next = normalizeMenuDrinks(data.drinks);
+          setMenuDrinks(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+        }
+        const nextSpecialty = data.specialty || null;
+        setFeaturedSpecialty(current => JSON.stringify(current) === JSON.stringify(nextSpecialty) ? current : nextSpecialty);
+      }
     } catch {
     } finally {
       menuLoadingRef.current = false;
@@ -2300,9 +2317,11 @@ function CustomerPage({ isClergy = false }) {
       if (isPageVisible()) refreshStatusOnly();
     }, 6000);
     const timerId = setInterval(() => setNowMs(Date.now()), 1000);
+    const menuId = setInterval(() => { if (isPageVisible()) refreshMenuOnly(); }, 60000);
 
     function refreshWhenVisible() {
       if (!isPageVisible()) return;
+      refreshMenuOnly();
       if (myOrderId) refreshOrder();
       else refreshInitialCustomerData();
     }
@@ -2314,6 +2333,7 @@ function CustomerPage({ isClergy = false }) {
       if (inventoryId) clearInterval(inventoryId);
       if (statusId) clearInterval(statusId);
       clearInterval(timerId);
+      clearInterval(menuId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [myOrderId]);
@@ -2327,7 +2347,8 @@ function CustomerPage({ isClergy = false }) {
       temp: pending?.temp || d.temps[0],
       milk: pending?.milk || "",
       syrups: pending?.syrups || [],
-      notes: pending?.notes ?? f.notes,
+      notes: d.isSpecialty ? "" : pending?.notes ?? f.notes,
+      sweetness: d.isSpecialty && pending?.sweetness === "sugar-free" && d.sugarFreeAvailable ? "sugar-free" : "regular",
       fulfillmentType: pending?.fulfillmentType || f.fulfillmentType,
       deliveryLocation: pending?.deliveryLocation || f.deliveryLocation,
     }));
@@ -2363,6 +2384,7 @@ function CustomerPage({ isClergy = false }) {
     if (!form.name.trim()) e.name = "Please enter your name";
     else if (!hasFirstAndLastName(form.name)) e.name = "Please enter first and last name";
     if (drink.milk && !form.milk) e.milk = "Please choose a milk";
+    if (drink.isSpecialty && (!["regular", "sugar-free"].includes(form.sweetness) || form.sweetness === "sugar-free" && !drink.sugarFreeAvailable)) e.sweetness = "Choose an available sweetness option.";
     if (deliveryEnabled && form.fulfillmentType === "delivery") {
       const location = form.deliveryLocation === "Other" ? form.customDeliveryLocation.trim() : form.deliveryLocation;
       if (!location) e.delivery = "Please choose a classroom or grade";
@@ -2401,10 +2423,14 @@ function CustomerPage({ isClergy = false }) {
       milk: nextMilk,
       syrups: nextSyrups,
       notes: lastOrder.notes || "",
+      sweetness: lastOrder.sweetness || "regular",
       fulfillmentType: deliveryEnabled ? lastOrder.fulfillmentType || "pickup" : "pickup",
       deliveryLocation: deliveryEnabled ? lastOrder.deliveryLocation || "" : "",
     };
-    setForm(f => ({ ...f, drinkId: savedDrink.id }));
+    const restored = { ...pendingLastOrderRef.current };
+    setForm(f => ({ ...f, ...(savedDrink.isSpecialty ? {
+      ...restored, notes: "", sweetness: restored.sweetness === "sugar-free" && savedDrink.sugarFreeAvailable ? "sugar-free" : "regular",
+    } : {}), drinkId: savedDrink.id }));
     setErrors({});
   }
 
@@ -2435,10 +2461,12 @@ function CustomerPage({ isClergy = false }) {
         name: form.name.trim(),
         drink: drink.label,
         drinkId: form.drinkId,
+        specialtyId: drink.isSpecialty ? drink.id : null,
+        sweetness: drink.isSpecialty ? form.sweetness : "",
         temp: form.temp,
         milk: form.milk,
         syrups: form.syrups,
-        notes: form.notes,
+        notes: drink.isSpecialty ? "" : form.notes,
         source: isClergy ? "clergy" : "",
         fulfillmentType: deliveryEnabled ? form.fulfillmentType : "pickup",
         deliveryLocation: deliveryEnabled && form.fulfillmentType === "delivery"
@@ -2454,6 +2482,7 @@ function CustomerPage({ isClergy = false }) {
           alert(data.error || "Could not place order");
         }
         await refreshStatusOnly();
+        if (drink.isSpecialty) await refreshMenuOnly();
         setBusy(false);
         submittingRef.current = false;
         return;
@@ -2468,6 +2497,7 @@ function CustomerPage({ isClergy = false }) {
       const savedOrder = {
         drinkId: form.drinkId,
         drinkLabel: drink.label,
+        sweetness: form.sweetness,
         temp: form.temp,
         milk: form.milk,
         syrups: form.syrups,
@@ -2487,7 +2517,7 @@ function CustomerPage({ isClergy = false }) {
       previousStatusRef.current = "waiting";
       setMyOrderId(data.id);
       setMyOrderPosition(Number(data.position || 1));
-      setMyOrder({
+      setMyOrder(data.order || {
         id: data.id,
         name: form.name.trim(),
         drink: drink.label,
@@ -2625,10 +2655,19 @@ function CustomerPage({ isClergy = false }) {
                 {errors.name && <div className="errorText">{errors.name}</div>}
               </div>
 
+              {featuredSpecialty && <section className="featuredSpecialty" aria-labelledby="weekly-special-title">
+                <div className="featuredSpecialtyHeading"><Star size={18} /><h3 id="weekly-special-title">This week's specialty</h3></div>
+                <button className={form.drinkId === featuredSpecialty.id ? "specialtyChoice active" : "specialtyChoice"}
+                  aria-pressed={form.drinkId === featuredSpecialty.id}
+                  onClick={() => setForm(f => ({ ...f, drinkId: featuredSpecialty.id }))}>
+                  <Coffee size={30} /><span><strong>{featuredSpecialty.label}</strong><span>{featuredSpecialty.desc}</span></span>
+                  {form.drinkId === featuredSpecialty.id && <Check size={20} />}
+                </button>
+              </section>}
               <div className="field">
                 {lbl("Drink")}
                 <div className="drinkList">
-                  {customerDrinks.map(d => <button key={d.id} aria-pressed={form.drinkId === d.id} className={(form.drinkId === d.id ? "drink active" : "drink") + (d.temps.every(t => t === "Cold") ? " coldDrink" : "")} onClick={() => setForm(f => ({...f, drinkId: d.id}))}>
+                  {customerDrinks.filter(d => !d.isSpecialty).map(d => <button key={d.id} aria-pressed={form.drinkId === d.id} className={(form.drinkId === d.id ? "drink active" : "drink") + (d.temps.every(t => t === "Cold") ? " coldDrink" : "")} onClick={() => setForm(f => ({...f, drinkId: d.id}))}>
                     <div className="drinkVisual">{d.temps.every(t => t === "Cold") ? <Snowflake size={36} strokeWidth={1.4} /> : <Coffee size={36} strokeWidth={1.4} />}<span className="drinkCheck"><Check size={15} /></span></div>
                     <strong>{d.label}</strong><span className="drinkDescription">{d.desc}</span>
                     <small>{d.temps.join(" / ")}</small>
@@ -2664,6 +2703,14 @@ function CustomerPage({ isClergy = false }) {
                 {errors.milk && <div className="errorText">{errors.milk}</div>}
               </div>}
 
+              {drink.isSpecialty && <div className="field">
+                {lbl("Sweetness")}
+                <div className="row">
+                  <button className={form.sweetness === "regular" ? "choice active" : "choice"} aria-pressed={form.sweetness === "regular"} onClick={() => setForm(f => ({ ...f, sweetness: "regular" }))}>Regular</button>
+                  {drink.sugarFreeAvailable && <button className={form.sweetness === "sugar-free" ? "choice active" : "choice"} aria-pressed={form.sweetness === "sugar-free"} onClick={() => setForm(f => ({ ...f, sweetness: "sugar-free" }))}>Sugar-free</button>}
+                </div>
+                {errors.sweetness && <div className="errorText">{errors.sweetness}</div>}
+              </div>}
               {drink.syrups && <div className="field">
                 {lbl("Syrup", `— pick up to ${MAX_SYRUPS}`)}
                 <div className="syrups">{customerSyrups.map(s => {
@@ -2717,10 +2764,10 @@ function CustomerPage({ isClergy = false }) {
                 </div>
               )}
 
-              <div className="field">
+              {!drink.isSpecialty && <div className="field">
                 {lbl("Notes", "(optional)")}
                 <textarea value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} rows={2} placeholder="Any special requests?" />
-              </div>
+              </div>}
 
               <button disabled={busy} className="joinBtn" onClick={submit}>{busy ? "Sending..." : "Place order"}<ArrowRight size={19} /></button>
             </>
@@ -2739,6 +2786,7 @@ function CustomerPage({ isClergy = false }) {
                 <div><dt>Temperature</dt><dd>{form.temp}</dd></div>
                 {drink.milk && <div><dt>Milk</dt><dd>{form.milk || "Not selected"}</dd></div>}
                 {drink.syrups && <div><dt>Syrup</dt><dd>{form.syrups.join(", ") || "None"}</dd></div>}
+                {drink.isSpecialty && <div><dt>Sweetness</dt><dd>{form.sweetness === "sugar-free" ? "Sugar-free" : "Regular"}</dd></div>}
                 <div><dt>For</dt><dd>{form.name.trim() || "Your name"}</dd></div>
                 <div><dt>Collection</dt><dd>{form.fulfillmentType === "delivery" ? "Delivery" : "Kitchen pickup"}</dd></div>
               </dl>
@@ -2761,6 +2809,7 @@ function CustomerPage({ isClergy = false }) {
                 <div className="customerDrinkSummary">
                   <strong>{myOrder.temp} {myOrder.drink}</strong>
                   <p>{myOrder.milk ? myOrder.milk : "No milk"}{myOrder.syrups ? ` · ${myOrder.syrups}` : ""}</p>
+                  {myOrder.specialtyId && <p>{myOrder.sweetness === "sugar-free" ? "Sugar-free" : "Regular"} specialty</p>}
                   {myOrder.fulfillmentType === "delivery" && <p>Delivery to {myOrder.deliveryLocation || "classroom"} after the queue window closes.</p>}
                   {myOrder.notes && <em>"{myOrder.notes}"</em>}
                 </div>
